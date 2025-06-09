@@ -148,14 +148,15 @@ static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
     printf("P_TweakSector: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
-static void P_TweakMapThing(mapthing_t *thing, ap_maptweak_t *tweak)
+static void P_TweakMapThing(mapthing_t *mapthing, ap_maptweak_t *tweak)
 {
     switch (tweak->type)
     {
-        case TWEAK_MAPTHING_X:     thing->x = tweak->value;     break;
-        case TWEAK_MAPTHING_Y:     thing->y = tweak->value;     break;
-        case TWEAK_MAPTHING_TYPE:  thing->type = tweak->value;  break;
-        case TWEAK_MAPTHING_ANGLE: thing->angle = tweak->value; break;
+        case TWEAK_MAPTHING_X:     mapthing->x = tweak->value;       break;
+        case TWEAK_MAPTHING_Y:     mapthing->y = tweak->value;       break;
+        case TWEAK_MAPTHING_TYPE:  mapthing->type = tweak->value;    break;
+        case TWEAK_MAPTHING_ANGLE: mapthing->angle = tweak->value;   break;
+        case TWEAK_MAPTHING_FLAGS: mapthing->options = tweak->value; break;
         default: break;
     }
     printf("P_TweakMapThing: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
