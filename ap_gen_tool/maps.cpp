@@ -664,6 +664,21 @@ void init_wad(const char* filename, game_t& game)
                 }
             }
 
+            // Adjust things based on map tweaks. Only things matter enough to do this for
+            const Json::Value &tweaks = game.json_map_tweaks.get(dir_entry.name, {});
+            const auto& tweak_thing_ids = tweaks.get("things", {}).getMemberNames();
+            for (const auto& tweak_id : tweak_thing_ids)
+            {
+                map_thing_t &mt = map->things[std::stoi(tweak_id)];
+                const Json::Value tweak = tweaks["things"][tweak_id];
+
+                mt.x = tweak.get("x", mt.x).asInt();
+                mt.y = tweak.get("y", mt.y).asInt();
+                mt.type = tweak.get("type", mt.type).asInt();
+                mt.direction = tweak.get("angle", mt.direction).asInt();
+                mt.flags = tweak.get("flags", mt.flags).asInt();
+            }
+
             map->sectors.resize(map->map_sectors.size());
             map->subsectors.resize(map->map_subsectors.size());
             map->nodes.resize(map->map_nodes.size());
