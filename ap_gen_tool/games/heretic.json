@@ -87,14 +87,7 @@
             {"name": "Firemace", "ammo_type": "Spheres", "starting_ammo": 150},
             {"name": "Gauntlets of the Necromancer"},
             {"name": "Chicken's Beak"}
-        ],
-
-        "hint_auto_complete":{
-            "YELLOW": "Yellow key",
-            "GREEN": "Green key",
-            "BLUE": "Blue key",
-            "MAP": "Computer area map"
-        }
+        ]
     },
     "map_tweaks":{
         // The Crypts (E1M7)
@@ -183,7 +176,7 @@
                     {"x":142, "y": 57, "map_name":{"text":"THE HALLS OF FEAR - E3M6"} },
                     {"x":219, "y": 66, "map_name":{"text":"THE CHASM - E3M7"} },
                     {"x":249, "y": 56, "map_name":{"text":"D'SPARIL'S KEEP - E3M8"} },
-                    {"x":107, "y": 80, "map_name":{"text":"THE AQUIFIER - E3M9"} }
+                    {"x":107, "y": 80, "map_name":{"text":"THE AQUIFER - E3M9"} }
                 ]
             },
             {
@@ -241,55 +234,56 @@
         "85": "Silver Shield",
         "31": "Enchanted Shield"
     },
+
     "extra_connection_requirements": [
         {"doom_type": -1, "name": "deathlogic", "sprite": "FACEB2" },
         {"doom_type": -2, "name": "pro", "sprite": "FACEA0" }
     ],
     "progressions": [
-        {"doom_type": 2005, "name": "Gauntlets of the Necromancer", "group": "Weapons", "sprite": "WGNTA0"},
-        {"doom_type": 2001, "name": "Ethereal Crossbow", "group": "Weapons", "sprite": "WBOWA0"},
-        {"doom_type": 53, "name": "Dragon Claw", "group": "Weapons", "sprite": "WBLSA0"},
-        {"doom_type": 2003, "name": "Phoenix Rod", "group": "Weapons", "sprite": "WPHXA0"},
-        {"doom_type": 2002, "name": "Firemace", "group": "Weapons", "sprite": "WMCEA0"},
-        {"doom_type": 2004, "name": "Hellstaff", "group": "Weapons", "sprite": "WSKLA0"}
+        {"doom_type": 2005, "name": "Gauntlets of the Necromancer", "group": ["Weapons"], "sprite": "WGNTA0"},
+        {"doom_type": 2001, "name": "Ethereal Crossbow",            "group": ["Weapons"], "sprite": "WBOWA0"},
+        {"doom_type": 53,   "name": "Dragon Claw",                  "group": ["Weapons"], "sprite": "WBLSA0"},
+        {"doom_type": 2003, "name": "Phoenix Rod",                  "group": ["Weapons"], "sprite": "WPHXA0"},
+        {"doom_type": 2002, "name": "Firemace",                     "group": ["Weapons"], "sprite": "WMCEA0"},
+        {"doom_type": 2004, "name": "Hellstaff",                    "group": ["Weapons"], "sprite": "WSKLA0"}
     ],
     "fillers": [
-        {"doom_type": 36, "name": "Chaos Device", "group": "Artifacts", "sprite": "ARTIATLP"},
-        {"doom_type": 30, "name": "Morph Ovum", "group": "Artifacts", "sprite": "ARTIEGGC"},
-        {"doom_type": 32, "name": "Mystic Urn", "group": "Artifacts", "sprite": "ARTISPHL"},
-        {"doom_type": 82, "name": "Quartz Flask", "group": "Artifacts", "sprite": "ARTIPTN2"},
-        {"doom_type": 84, "name": "Ring of Invincibility", "group": "Artifacts", "sprite": "ARTIINVU"},
-        {"doom_type": 75, "name": "Shadowsphere", "group": "Artifacts", "sprite": "ARTIINVS"},
-        {"doom_type": 34, "name": "Timebomb of the Ancients", "group": "Artifacts", "sprite": "ARTIFBMB"},
-        {"doom_type": 86, "name": "Tome of Power", "group": "Artifacts", "sprite": "ARTIPWBK"},
-        {"doom_type": 33, "name": "Torch", "group": "Artifacts", "sprite": "ARTITRCH"},
-        {"doom_type": 85, "name": "Silver Shield", "group": "Armors", "sprite": "SHLDA0"},
-        {"doom_type": 31, "name": "Enchanted Shield", "group": "Armors", "sprite": "SHD2A0"},
-        {"doom_type": 12, "name": "Crystal Geode", "group": "Ammos", "sprite": "AMG2A0"},
-        {"doom_type": 55, "name": "Energy Orb", "group": "Ammos", "sprite": "AMB2C0"},
-        {"doom_type": 21, "name": "Greater Runes", "group": "Ammos", "sprite": "AMS2A0"},
-        {"doom_type": 23, "name": "Inferno Orb", "group": "Ammos", "sprite": "AMP2B0"},
-        {"doom_type": 16, "name": "Pile of Mace Spheres", "group": "Ammos", "sprite": "AMM2A0"},
-        {"doom_type": 19, "name": "Quiver of Ethereal Arrows", "group": "Ammos", "sprite": "AMC2B0"}
+        {"doom_type": 36, "name": "Chaos Device",              "group": ["Artifacts"], "sprite": "ARTIATLP"},
+        {"doom_type": 30, "name": "Morph Ovum",                "group": ["Artifacts"], "sprite": "ARTIEGGC"},
+        {"doom_type": 32, "name": "Mystic Urn",                "group": ["Artifacts"], "sprite": "ARTISPHL"},
+        {"doom_type": 82, "name": "Quartz Flask",              "group": ["Artifacts"], "sprite": "ARTIPTN2"},
+        {"doom_type": 84, "name": "Ring of Invincibility",     "group": ["Artifacts"], "sprite": "ARTIINVU"},
+        {"doom_type": 75, "name": "Shadowsphere",              "group": ["Artifacts"], "sprite": "ARTIINVS"},
+        {"doom_type": 34, "name": "Timebomb of the Ancients",  "group": ["Artifacts"], "sprite": "ARTIFBMB"},
+        {"doom_type": 86, "name": "Tome of Power",             "group": ["Artifacts"], "sprite": "ARTIPWBK"},
+        {"doom_type": 33, "name": "Torch",                     "group": ["Artifacts"], "sprite": "ARTITRCH"},
+        {"doom_type": 85, "name": "Silver Shield",             "group": ["Armors"],    "sprite": "SHLDA0"},
+        {"doom_type": 31, "name": "Enchanted Shield",          "group": ["Armors"],    "sprite": "SHD2A0"},
+        {"doom_type": 12, "name": "Crystal Geode",             "group": ["Ammos"],     "sprite": "AMG2A0"},
+        {"doom_type": 55, "name": "Energy Orb",                "group": ["Ammos"],     "sprite": "AMB2C0"},
+        {"doom_type": 21, "name": "Greater Runes",             "group": ["Ammos"],     "sprite": "AMS2A0"},
+        {"doom_type": 23, "name": "Inferno Orb",               "group": ["Ammos"],     "sprite": "AMP2B0"},
+        {"doom_type": 16, "name": "Pile of Mace Spheres",      "group": ["Ammos"],     "sprite": "AMM2A0"},
+        {"doom_type": 19, "name": "Quiver of Ethereal Arrows", "group": ["Ammos"],     "sprite": "AMC2B0"}
     ],
     "unique_progressions": [
     ],
     "unique_fillers": [
-        {"doom_type": 35, "name": "Map Scroll", "group": "Map Scrolls", "sprite": "SPMPA0"}
+        {"doom_type": 35, "name": "Map Scroll", "group": ["Map Scrolls", "%MAP% Map"], "sprite": "SPMPA0"}
     ],
     "capacity_upgrades": [
-        {"doom_type": 8, "name": "Bag of Holding", "group": "", "sprite": "BAGHA0"},
-        {"doom_type": 65001, "name": "Crystal Capacity", "group": "", "sprite": "BAGHA0"},
-        {"doom_type": 65002, "name": "Ethereal Arrow Capacity", "group": "", "sprite": "BAGHA0"},
-        {"doom_type": 65003, "name": "Claw Orb Capacity", "group": "", "sprite": "BAGHA0"},
-        {"doom_type": 65004, "name": "Rune Capacity", "group": "", "sprite": "BAGHA0"},
-        {"doom_type": 65005, "name": "Flame Orb Capacity", "group": "", "sprite": "BAGHA0"},
-        {"doom_type": 65006, "name": "Mace Sphere Capacity", "group": "", "sprite": "BAGHA0"}
+        {"doom_type": 8,     "name": "Bag of Holding",          "group": ["Capacity upgrades"], "sprite": "BAGHA0"},
+        {"doom_type": 65001, "name": "Crystal Capacity",        "group": ["Capacity upgrades"], "sprite": "BAGHA0"},
+        {"doom_type": 65002, "name": "Ethereal Arrow Capacity", "group": ["Capacity upgrades"], "sprite": "BAGHA0"},
+        {"doom_type": 65003, "name": "Claw Orb Capacity",       "group": ["Capacity upgrades"], "sprite": "BAGHA0"},
+        {"doom_type": 65004, "name": "Rune Capacity",           "group": ["Capacity upgrades"], "sprite": "BAGHA0"},
+        {"doom_type": 65005, "name": "Flame Orb Capacity",      "group": ["Capacity upgrades"], "sprite": "BAGHA0"},
+        {"doom_type": 65006, "name": "Mace Sphere Capacity",    "group": ["Capacity upgrades"], "sprite": "BAGHA0"}
     ],
     "keys": [
-        {"doom_type": 80, "name": "Yellow key", "group": "Keys", "key": 0, "region_name": "Yellow", "color": [1, 1, 0], "sprite": "CKYYA0"},
-        {"doom_type": 73, "name": "Green key", "group": "Keys", "key": 1, "region_name": "Green", "color": [0, 1, 0], "sprite": "AKYYA0"},
-        {"doom_type": 79, "name": "Blue key", "group": "Keys", "key": 2, "region_name": "Blue", "color": [0, 0, 1], "sprite": "BKYYA0"}
+        {"doom_type": 80, "name": "Yellow key", "group": ["Keys", "%MAP% Keys", "%MAP% Yellow"], "key": 0, "region_name": "Yellow", "color": [1, 1, 0], "sprite": "CKYYA0"},
+        {"doom_type": 73, "name": "Green key",  "group": ["Keys", "%MAP% Keys", "%MAP% Green"],  "key": 1, "region_name": "Green",  "color": [0, 1, 0], "sprite": "AKYYA0"},
+        {"doom_type": 79, "name": "Blue key",   "group": ["Keys", "%MAP% Keys", "%MAP% Blue"],   "key": 2, "region_name": "Blue",   "color": [0, 0, 1], "sprite": "BKYYA0"}
     ],
     "loc_remap": {},
     "item_remap": {}
