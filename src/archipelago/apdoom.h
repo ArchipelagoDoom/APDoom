@@ -306,12 +306,6 @@ typedef struct
     char string[9];
 } ap_maptweak_t;
 
-typedef struct {
-    const char *input;
-    const char *replace_normal;
-    const char *replace_skull;
-    int key_id;
-} ap_hint_autocomplete_t;
 // ============================================================================
 
 extern ap_state_t ap_state;

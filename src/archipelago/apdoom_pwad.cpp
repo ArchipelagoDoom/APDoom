@@ -129,47 +129,6 @@ int json_parse_game_info(Json::Value json, ap_gameinfo_t &output)
 
 
 // ============================================================================
-// Hint auto completion
-// (json: "game_info/hint_auto_complete")
-// ============================================================================
-
-int json_parse_hint_autocomplete(Json::Value json, hint_autocomplete_storage_t &output)
-{
-	if (json.isNull())
-		return 1; // Optional
-
-	const int hint_count = (int)json.size();
-	output.resize(hint_count);
-
-	int idx = 0;
-	for (std::string &key_input : json.getMemberNames())
-	{
-		output[idx].input = string_to_const_char_ptr(key_input);
-
-		if (json[key_input].isArray())
-		{
-			if (key_input == "RED")
-				output[idx].key_id = 2;
-			else if (key_input == "YELLOW")
-				output[idx].key_id = 1;
-			else
-				output[idx].key_id = 0;
-			output[idx].replace_normal = string_to_const_char_ptr(json[key_input][0].asString());
-			output[idx].replace_skull = string_to_const_char_ptr(json[key_input][1].asString());
-		}
-		else
-		{
-			output[idx].key_id = -1;
-			output[idx].replace_normal = string_to_const_char_ptr(json[key_input].asString());
-			output[idx].replace_skull = NULL;
-		}
-		++idx;
-	}
-	return 1;
-}
-
-
-// ============================================================================
 // Level Select screen definitions
 // (json: "level_select")
 // ============================================================================
@@ -621,60 +580,4 @@ int json_parse_level_info(Json::Value json, level_info_storage_t &output)
 		}
 	}
 	return 1;
-}
-
-
-// ============================================================================
-// Other functions, not directly related to parsing definitions
-// ============================================================================
-
-std::string do_hint_replacement(const char *msg, hint_autocomplete_storage_t &ac_list)
-{
-	std::stringstream s(msg);
-
-	// Note: The Doom engine always converts chat text to all caps.
-	if (strncmp(msg, "!HINT ", 6) != 0)
-		return s.str();
-
-	const char *p = msg + 6;
-	while (*p && *p == ' ')
-		++p; // Advance to next non-space
-
-	// Get the map at the given index; if there isn't one, do not change anything
-	ap_level_index_t idx = ap_get_index_from_map_name(p);
-	if (idx.ep >= 0)
-	{
-		ap_level_info_t *level_info = ap_get_level_info(idx);
-
-		while (*p && *p != ' ')
-			++p; // Advance to next space
-		while (*p && *p == ' ')
-			++p; // Advance to next non-space
-
-		if (*p)
-		{
-			// If the string continues on, string compare what's left with our hint_auto_completes.
-			for (ap_hint_autocomplete_t &hint : ac_list)
-			{
-				if (strcmp(p, hint.input) == 0)
-				{
-					s.str("");
-					s << "!hint " << level_info->name << " - ";
-					if (hint.key_id < 0 || !level_info->use_skull[hint.key_id])
-						s << hint.replace_normal;
-					else
-						s << hint.replace_skull;
-
-					break;
-				}
-			}
-		}
-		else
-		{
-			// If it doesn't continue on from here, we wanted to hint the level unlock item.
-			s.str("");
-			s << "!hint " << level_info->name;
-		}
-	}
-	return s.str();
 }
