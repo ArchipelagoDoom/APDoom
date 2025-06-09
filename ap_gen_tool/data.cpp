@@ -9,6 +9,27 @@
 
 std::map<std::string, game_t> games;
 
+void parse_item(ap_item_def_t &item, const Json::Value &json)
+{
+    item.doom_type = json["doom_type"].asInt();
+    item.name = json["name"].asString();
+    item.sprite = json["sprite"].asString();
+
+    if (!json["group"].isNull())
+    {
+        if (json["group"].isString())
+        {
+            item.groups.resize(1);
+            item.groups[0] = json["group"].asString();
+        }
+        else
+        {
+            item.groups.resize(json["group"].size());
+            for (int i = 0; i < json["group"].size(); ++i)
+                item.groups[i] = json["group"][i].asString();
+        }
+    }
+}
 
 void init_data()
 {
@@ -85,9 +106,7 @@ void init_data()
         for (const auto& extra_connection_requirement_json : extra_connection_requirements_json)
         {
             ap_item_def_t item;
-            item.doom_type = extra_connection_requirement_json["doom_type"].asInt();
-            item.name = extra_connection_requirement_json["name"].asString();
-            item.sprite = extra_connection_requirement_json["sprite"].asString();
+            parse_item(item, extra_connection_requirement_json);
             game.extra_connection_requirements.push_back(item);
         }
 
@@ -95,10 +114,7 @@ void init_data()
         for (const auto& progression_json : progressions_json)
         {
             ap_item_def_t item;
-            item.doom_type = progression_json["doom_type"].asInt();
-            item.name = progression_json["name"].asString();
-            item.group = progression_json["group"].asString();
-            item.sprite = progression_json["sprite"].asString();
+            parse_item(item, progression_json);
             game.progressions.push_back(item);
         }
 
@@ -106,10 +122,7 @@ void init_data()
         for (const auto& filler_json : fillers_json)
         {
             ap_item_def_t item;
-            item.doom_type = filler_json["doom_type"].asInt();
-            item.name = filler_json["name"].asString();
-            item.group = filler_json["group"].asString();
-            item.sprite = filler_json["sprite"].asString();
+            parse_item(item, filler_json);
             game.fillers.push_back(item);
         }
 
@@ -117,10 +130,7 @@ void init_data()
         for (const auto& progression_json : unique_progressions_json)
         {
             ap_item_def_t item;
-            item.doom_type = progression_json["doom_type"].asInt();
-            item.name = progression_json["name"].asString();
-            item.group = progression_json["group"].asString();
-            item.sprite = progression_json["sprite"].asString();
+            parse_item(item, progression_json);
             game.unique_progressions.push_back(item);
         }
 
@@ -128,10 +138,7 @@ void init_data()
         for (const auto& filler_json : unique_fillers_json)
         {
             ap_item_def_t item;
-            item.doom_type = filler_json["doom_type"].asInt();
-            item.name = filler_json["name"].asString();
-            item.group = filler_json["group"].asString();
-            item.sprite = filler_json["sprite"].asString();
+            parse_item(item, filler_json);
             game.unique_fillers.push_back(item);
         }
 
@@ -139,10 +146,7 @@ void init_data()
         for (const auto& capacity_upgrade_json : capacity_upgrades_json)
         {
             ap_item_def_t item;
-            item.doom_type = capacity_upgrade_json["doom_type"].asInt();
-            item.name = capacity_upgrade_json["name"].asString();
-            item.group = capacity_upgrade_json["group"].asString();
-            item.sprite = capacity_upgrade_json["sprite"].asString();
+            parse_item(item, capacity_upgrade_json);
             game.capacity_upgrades.push_back(item);
         }
 
@@ -150,10 +154,7 @@ void init_data()
         for (const auto& key_json : keys_json)
         {
             ap_key_def_t item;
-            item.item.doom_type = key_json["doom_type"].asInt();
-            item.item.name = key_json["name"].asString();
-            item.item.group = key_json["group"].asString();
-            item.item.sprite = key_json["sprite"].asString();
+            parse_item(item.item, key_json);
             item.key = key_json["key"].asInt();
             item.use_skull = key_json["use_skull"].asBool();
             item.region_name = key_json["region_name"].asString();

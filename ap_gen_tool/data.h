@@ -194,9 +194,10 @@ struct ap_item_def_t
 {
     int doom_type = -1;
     std::string name;
-    std::string group;
     std::string sprite;
     OTextureRef icon;
+
+    std::vector<std::string> groups;
 };
 
 

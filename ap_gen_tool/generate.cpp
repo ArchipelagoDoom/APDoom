@@ -57,7 +57,6 @@ struct ap_item_t
     level_index_t idx;
     int doom_type;
     int count;
-    int progression_count;
     bool is_key;
     item_classification_t classification;
 };
@@ -98,6 +97,7 @@ struct level_t
 {
     level_index_t idx;
     std::string name;
+    std::string lump_name;
     std::vector<level_sector_t> sectors;
     int starting_sector = -1;
     bool keys[3] = {false};
@@ -188,8 +188,27 @@ void add_loc(const std::string& name, const map_thing_t& thing, level_t* level, 
     total_loc_count++;
 }
 
-int64_t add_unique(const std::string& name, const map_thing_t& thing, level_t* level, int index, bool is_key, item_classification_t classification, const std::string& group_name, int x, int y)
+void add_item_name_groups(const std::string name, const std::vector<std::string> groups, level_t *level = nullptr)
 {
+    std::string replacement = (level) ? level->lump_name : "NULL";
+
+    for (const std::string &group : groups)
+    {
+        if (group.empty())
+            continue;
+
+        std::string new_group = group;
+        size_t map_marker = new_group.find("%MAP%");
+        if (map_marker != std::string::npos)
+            new_group.replace(map_marker, 5, replacement);
+
+        item_name_groups[new_group].insert(name);
+    }
+}
+
+int64_t add_unique(const ap_key_def_t &key_def, item_classification_t classification, const map_thing_t& thing, level_t* level, int index)
+{
+    std::string name = level->name + std::string(" - ") + key_def.item.name;
     int64_t ret = 0;
     bool duplicated_item = false;
     for (const auto& other_item : ap_items)
@@ -205,42 +224,48 @@ int64_t add_unique(const std::string& name, const map_thing_t& thing, level_t* l
     if (!duplicated_item)
     {
         ap_item_t item;
-        item.id = item_next_id++;
+        item.is_key = true;
+        item.count = 1;
+        item.classification = classification;
+        total_item_count++;
+
         item.name = name;
         item.idx = level->idx;
-        item.doom_type = thing.type;
-        item.count = 1;
-        total_item_count++;
-        item.is_key = is_key;
-        item.classification = classification;
-        item.progression_count = 0;
+        item.id = item_next_id++;
+        item.doom_type = key_def.item.doom_type;
+
+        add_item_name_groups(name, key_def.item.groups, level);
         ap_items.push_back(item);
-        if (!group_name.empty())
-        {
-            item_name_groups[group_name].insert(name);
-        }
         ret = item.id;
     }
-    add_loc(name, thing, level, index, x, y);
+    add_loc(name, thing, level, index, thing.x, thing.y);
     return ret;
 }
 
-ap_item_t& add_item(const std::string& name, int doom_type, int count, item_classification_t classification, const std::string& group_name, int progression_count = 0, level_t* level = nullptr)
+ap_item_t& add_item(const ap_item_def_t &item_def, int count, item_classification_t classification, level_t* level = nullptr)
 {
     ap_item_t item;
-    item.id = item_next_id++;
-    item.name = name;
-    item.idx = level ? level->idx : level_index_t{"",-2,-2};
-    item.doom_type = doom_type;
-    item.count = count;
-    item.progression_count = progression_count;
-    total_item_count += count;
     item.is_key = false;
+    item.count = count;
     item.classification = classification;
-    if (!group_name.empty())
+    total_item_count += count;
+
+    if (level)
     {
-        item_name_groups[group_name].insert(name);
+        item.name = item_def.name.empty()
+            ? level->name
+            : level->name + std::string(" - ") + item_def.name;
+        item.idx = level->idx;
     }
+    else
+    {
+        item.name = item_def.name;
+        item.idx = level_index_t{"",-2,-2};
+    }
+    item.id = item_next_id++;
+    item.doom_type = item_def.doom_type;
+
+    add_item_name_groups(item.name, item_def.groups, level);
     ap_items.push_back(item);
     return ap_items.back();
 }
@@ -323,17 +348,17 @@ int generate(game_t* game)
     use_extended_names = game->extended_names;
 
     for (const auto& def : game->progressions)
-        add_item(def.name, def.doom_type, 1, PROGRESSION, def.group);
+        add_item(def, 1, PROGRESSION);
 
     // Backpack / Bag of Holding are handled kinda unusually because they used to be considered progression.
     for (const auto& def : game->capacity_upgrades)
     {
         if (def.doom_type == 8)
-            add_item(def.name, def.doom_type, 0, USEFUL, def.group);
+            add_item(def, 0, USEFUL);
     }
 
     for (const auto& def : game->fillers)
-        add_item(def.name, def.doom_type, 0, FILLER, def.group);
+        add_item(def, 0, FILLER);
     
     std::vector<level_t*> levels;
     std::map<int, std::vector<level_t*>> levels_map;
@@ -346,6 +371,7 @@ int generate(game_t* game)
             level_t* level = new level_t();
             level->idx = {game->name, ep, map};
             level->name = meta.name;
+            level->lump_name = meta.lump_name;
             level->map = &meta.map;
             level->map_state = &meta.state;
             levels.push_back(level);
@@ -381,7 +407,7 @@ int generate(game_t* game)
             {
                 if (key_def.item.doom_type == thing.type)
                 {
-                    level_to_keycards[(uintptr_t)level][0] = add_unique(lvl_prefix + key_def.item.name, thing, level, i, true, PROGRESSION, "Keys", thing.x, thing.y);
+                    level_to_keycards[(uintptr_t)level][0] = add_unique(key_def, PROGRESSION, thing, level, i);
                     level->keys[key_def.key] = true;
                     level->use_skull[key_def.key] = key_def.use_skull;
                     added_key = true;
@@ -439,34 +465,37 @@ int generate(game_t* game)
     }
 
     // Lastly, add level items. We want to add more levels in the future and not shift all existing item IDs
+    ap_item_def_t level_unlock_item;
+    level_unlock_item.doom_type = -1;
+    level_unlock_item.groups.push_back("Levels");
+    level_unlock_item.groups.push_back("%MAP%");
+
+    ap_item_def_t level_complete_item;
+    level_complete_item.doom_type = -2;
+    level_complete_item.name = "Complete";
+
     item_next_id = item_id_base + 400;
     for (auto level : levels)
     {
-        std::string lvl_prefix = level->name + std::string(" - ");
-
-        add_item(level->name, -1, 1, PROGRESSION, "Levels", 0, level);
-        add_item(lvl_prefix + "Complete", -2, 1, PROGRESSION, "", 0, level);
+        add_item(level_unlock_item, 1, PROGRESSION, level);
+        add_item(level_complete_item, 1, PROGRESSION, level);
 
         for (const auto& def : game->unique_progressions)
-        {
-            add_item(lvl_prefix + def.name, def.doom_type, 1, PROGRESSION, def.group, 0, level);
-        }
+            add_item(def, 1, PROGRESSION, level);
 
         for (const auto& def : game->unique_fillers)
-        {
-            add_item(lvl_prefix + def.name, def.doom_type, 1, FILLER, def.group, 0, level);
-        }
+            add_item(def, 1, FILLER, level);
     }
-
-    OLog(std::to_string(total_loc_count) + " locations\n" + std::to_string(total_item_count - 3) + " items");
 
     // Items unique to Archipelago: Capacity upgrades (excluding backpack / bag of holding)
     item_next_id = item_id_base + 600;
     for (const auto& def : game->capacity_upgrades)
     {
         if (def.doom_type != 8)
-            add_item(def.name, def.doom_type, 0, USEFUL, def.group);
+            add_item(def, 0, USEFUL);
     }
+
+    OLog(std::to_string(total_loc_count) + " locations\n" + std::to_string(total_item_count - 3) + " items");
 
     //--- Remap location's IDs
     {
