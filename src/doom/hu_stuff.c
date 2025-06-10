@@ -1031,6 +1031,8 @@ static const crispy_statsline_func_t crispy_statslines[NUM_STATSFORMATS] =
 	Crispy_Statsline_Boolean,
 };
 
+// [AP] Archipelago HUD display
+int HU_GetActiveAPMessageCount(void);
 
 void HU_ClearAPMessages()
 {

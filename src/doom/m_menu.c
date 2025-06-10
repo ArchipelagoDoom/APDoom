@@ -1365,6 +1365,7 @@ void M_APPlay(int choice)
     // Was the game quit during a level?
     if (ap_state.map != 0)
     {
+        extern void play_level(int, int);
         play_level(ap_state.ep - 1, ap_state.map - 1);
     }
     else
@@ -2286,6 +2287,8 @@ static boolean IsNullKey(int key)
         || key == KEY_SCRLCK || key == KEY_NUMLOCK;
 }
 
+// [AP] crispy-added warping functions, unused because we disallow that behavior
+#if 0
 // [crispy] reload current level / go to next level
 // adapted from prboom-plus/src/e6y.c:369-449
 static int G_ReloadLevel(void)
@@ -2405,6 +2408,7 @@ static int G_GotoNextLevel(void)
 
   return changed;
 }
+#endif
 
 //
 // CONTROL PANEL
@@ -2915,18 +2919,19 @@ boolean M_Responder (event_t* ev)
 	}
         // [crispy] those two can be considered as shortcuts for the IDCLEV cheat
         // and should be treated as such, i.e. add "if (!netgame)"
-            // AP Not allowed in AP
-  //      else if (!netgame && key != 0 && key == key_menu_reloadlevel)
-  //      {
-	 //   if (G_ReloadLevel())
-		//return true;
-  //      }
-  //      else if (!netgame && key != 0 && key == key_menu_nextlevel)
-  //      {
-	 //   if (G_GotoNextLevel())
-		//return true;
-  //      }
-
+        // [AP] external map changes not allowed
+#if 0
+        else if (!netgame && key != 0 && key == key_menu_reloadlevel)
+        {
+	    if (G_ReloadLevel())
+		return true;
+        }
+        else if (!netgame && key != 0 && key == key_menu_nextlevel)
+        {
+	    if (G_GotoNextLevel())
+		return true;
+        }
+#endif
     }
 
     // Pop-up menu?

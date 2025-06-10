@@ -31,6 +31,8 @@
 #include "s_sound.h"
 #include "v_video.h"
 
+#include "apdoom.h"
+
 #define QUEUESIZE		128
 #define MESSAGESIZE	128
 #define MESSAGELEN 	265
@@ -317,6 +319,7 @@ void CT_Ticker(void)
                                      DEH_String("-MESSAGE SENT-"), true);
                         S_StartSound(NULL, sfx_chat);
                     }
+#if 0 // [AP] remove chat sfx and message in local game
                     else
                     {
                         P_SetMessage(&players[consoleplayer],
@@ -324,6 +327,7 @@ void CT_Ticker(void)
                                      true);
                         S_StartSound(NULL, sfx_chat);
                     }
+#endif
                 }
                 CT_ClearChatMessage(i);
             }

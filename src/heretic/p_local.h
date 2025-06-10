@@ -276,6 +276,9 @@ boolean P_GiveArtifact(player_t * player, artitype_t arti, mobj_t * mo);
 boolean P_GiveBody(player_t * player, int num);
 boolean P_GivePower(player_t * player, powertype_t power);
 boolean P_ChickenMorphPlayer(player_t * player);
+// [AP] added prototypes
+boolean P_GiveArmor(player_t* player, int armortype);
+boolean P_GiveWeapon(player_t* player, weapontype_t weapon);
 
 // ***** AM_MAP *****
 

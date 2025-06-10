@@ -866,14 +866,15 @@ P_KillMobj_Real // So we can specify death by death link
     else
         return;
 
-	// In AP monsters don't drop weapons
-	switch (item)
-	{
-		case MT_SHOTGUN:
-		case MT_SUPERSHOTGUN: // DOOM II
-		case MT_CHAINGUN: // DOOM II
-			return;
-		// For ultimate doom, are there any other?
+    // In AP monsters don't drop weapons
+    switch (item)
+    {
+        case MT_SHOTGUN:
+        case MT_SUPERSHOTGUN: // DOOM II
+        case MT_CHAINGUN: // DOOM II
+            return;
+        default: // For ultimate doom, are there any other?
+            break;
 	}
 
 

@@ -179,10 +179,6 @@ void on_ap_victory()
 }
 
 
-boolean P_GiveArmor(player_t* player, int armortype);
-boolean P_GiveWeapon(player_t* player, weapontype_t weapon, boolean dropped);
-
-
 boolean is_in_level(int ep, int map)
 {
     ap_level_index_t idx = { ep - 1, map - 1 };
@@ -196,6 +192,13 @@ void on_ap_give_item(int doom_type, int ep, int map)
     player_t* player = &players[consoleplayer];
     int sound = sfx_itemup;
     ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
+
+    // need prototypes for this
+    extern boolean P_GiveArmor (player_t* player, int armortype);
+    extern boolean P_GiveBody  (player_t* player, int num);
+    extern boolean P_GivePower (player_t* player, int power);
+    extern boolean P_GiveWeapon(player_t* player, weapontype_t weapon, boolean dropped);
+    extern boolean P_GiveAmmo  (player_t* player, ammotype_t ammo, int num, boolean dropped);
 
     switch (doom_type)
     {

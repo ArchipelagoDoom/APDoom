@@ -115,11 +115,6 @@ void on_ap_victory()
     F_StartFinale();
 }
 
-
-boolean P_GiveArmor(player_t* player, int armortype);
-boolean P_GiveWeapon(player_t* player, weapontype_t weapon, boolean dropped);
-
-
 boolean is_in_level(int ep, int map)
 {
     ap_level_index_t idx = { ep - 1, map - 1 };
@@ -132,7 +127,8 @@ void on_ap_give_item(int doom_type, int ep, int map)
 {
     player_t* player = &players[consoleplayer];
     int sound = sfx_itemup;
-    ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
+    // unused in heretic, no skull keys
+    //ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
 
     switch (doom_type)
     {
@@ -196,32 +192,32 @@ void on_ap_give_item(int doom_type, int ep, int map)
 
         // Weapons
         case 2005:
-            P_GiveWeapon(player, wp_gauntlets, false);
+            P_GiveWeapon(player, wp_gauntlets);
 	        player->message = DEH_String(TXT_WPNGAUNTLETS);
 	        sound = sfx_wpnup;	
             break;
         case 2001:
-            P_GiveWeapon(player, wp_crossbow, false);
+            P_GiveWeapon(player, wp_crossbow);
 	        player->message = DEH_String(TXT_WPNCROSSBOW);
 	        sound = sfx_wpnup;	
             break;
         case 53:
-            P_GiveWeapon(player, wp_blaster, false);
+            P_GiveWeapon(player, wp_blaster);
 	        player->message = DEH_String(TXT_WPNBLASTER);
 	        sound = sfx_wpnup;	
             break;
         case 2003:
-            P_GiveWeapon(player, wp_phoenixrod, false);
+            P_GiveWeapon(player, wp_phoenixrod);
 	        player->message = DEH_String(TXT_WPNPHOENIXROD);
 	        sound = sfx_wpnup;	
             break;
         case 2002:
-            P_GiveWeapon(player, wp_mace, false);
+            P_GiveWeapon(player, wp_mace);
 	        player->message = DEH_String(TXT_WPNMACE);
 	        sound = sfx_wpnup;	
             break;
         case 2004:
-            P_GiveWeapon(player, wp_skullrod, false);
+            P_GiveWeapon(player, wp_skullrod);
 	        player->message = DEH_String(TXT_WPNSKULLROD);
 	        sound = sfx_wpnup;	
             break;

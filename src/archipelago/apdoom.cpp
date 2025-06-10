@@ -462,7 +462,7 @@ int ap_get_map_count(int ep)
 }
 
 
-int ap_total_check_count(ap_level_info_t *level_info)
+int ap_total_check_count(const ap_level_info_t *level_info)
 {
 	return level_info->check_count - (ap_state.check_sanity ? 0 : level_info->sanity_check_count);
 }

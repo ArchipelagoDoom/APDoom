@@ -1467,7 +1467,7 @@ static void CheatShowFpsFunc(player_t* player, Cheat_t* cheat)
 }
 
 // [crispy] implement boom-style "tntweap?" cheat
-extern boolean P_GiveWeapon(player_t * player, weapontype_t weapon);
+//extern boolean P_GiveWeapon(player_t * player, weapontype_t weapon); // [AP] redundant decl
 extern const char *const WeaponPickupMessages[NUMWEAPONS];
 
 static boolean WeaponAvailable (int w)

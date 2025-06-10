@@ -329,7 +329,7 @@ const ap_notification_icon_t* ap_get_notification_icons(int* count);
 int ap_get_highest_episode();
 int ap_validate_doom_location(ap_level_index_t idx, int doom_type, int index);
 int ap_get_map_count(int ep);
-int ap_total_check_count(ap_level_info_t *level_info);
+int ap_total_check_count(const ap_level_info_t *level_info);
 
 // Deathlink stuff
 void apdoom_on_death();

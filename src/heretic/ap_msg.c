@@ -26,6 +26,8 @@ static ap_message_t ap_messages[HU_MAXLINES];
 static int ap_message_buffer_count = 0;
 static int ap_message_anim = 0;
 
+int HU_GetActiveAPMessageCount(void);
+
 
 void HU_AddAPLine(const char* line, int len)
 {
