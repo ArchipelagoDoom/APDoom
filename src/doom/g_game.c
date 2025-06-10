@@ -2560,9 +2560,9 @@ void G_DoSaveGame (void)
     char filename[260];
 
     if (gamemode != commercial)
-        snprintf(filename, 260, "%s/save_E%iM%i.dsg", apdoom_get_seed(), gameepisode, gamemap);
+        snprintf(filename, 260, "%s/save_E%iM%i.dsg", apdoom_get_save_dir(), gameepisode, gamemap);
     else
-        snprintf(filename, 260, "%s/save_MAP%02i.dsg", apdoom_get_seed(), gamemap);
+        snprintf(filename, 260, "%s/save_MAP%02i.dsg", apdoom_get_save_dir(), gamemap);
 
     char *savegame_file;
     char *temp_savegame_file;

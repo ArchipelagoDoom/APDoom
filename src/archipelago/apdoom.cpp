@@ -190,6 +190,7 @@ static bool ap_was_connected = false; // Got connected at least once. That means
 static std::set<int64_t> ap_progressive_locations;
 static bool ap_initialized = false;
 static std::vector<std::string> ap_cached_messages;
+static std::string ap_seed_string;
 static std::string ap_save_dir_name;
 static std::vector<ap_notification_icon_t> ap_notification_icons;
 
@@ -500,18 +501,6 @@ std::string string_to_hex(const char* str)
 }
 
 
-static unsigned long long hash_seed(const char *str)
-{
-    unsigned long long hash = 5381;
-    int c;
-
-    while ((c = *str++))
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
-}
-
-
 void recalc_max_ammo()
 {
 	for (int i = 0; i < ap_ammo_count; ++i)
@@ -640,7 +629,7 @@ int apdoom_init(ap_settings_t* settings)
 	if (ap_settings.override_reset_level_on_death)
 		ap_state.reset_level_on_death = ap_settings.reset_level_on_death;
 
-	AP_NetworkVersion version = {0, 5, 0};
+	AP_NetworkVersion version = {0, 6, 1};
 	AP_SetClientVersion(&version);
     AP_Init(ap_settings.ip, ap_settings.game, ap_settings.player_name, ap_settings.passwd);
 	AP_SetDeathLinkSupported(ap_settings.force_deathlink_off ? false : true);
@@ -711,11 +700,11 @@ int apdoom_init(ap_settings_t* settings)
 
 				ap_was_connected = true;
 
-				std::string this_game_save_folder = "AP_" + ap_room_info.seed_name + "_" + string_to_hex(ap_settings.player_name);
+				ap_seed_string = "AP_" + ap_room_info.seed_name + "_" + string_to_hex(ap_settings.player_name);
 				if (ap_settings.save_dir != NULL)
-					ap_save_dir_name = std::string(ap_settings.save_dir) + "/" + this_game_save_folder;
+					ap_save_dir_name = std::string(ap_settings.save_dir) + "/" + ap_seed_string;
 				else
-					ap_save_dir_name = this_game_save_folder;
+					ap_save_dir_name = ap_seed_string;
 
 				// Create a directory where saves will go for this AP seed.
 				printf("APDOOM: Save directory: %s\n", ap_save_dir_name.c_str());
@@ -759,9 +748,7 @@ int apdoom_init(ap_settings_t* settings)
 	}
 
 	// Seed for random features
-	auto ap_seed = apdoom_get_seed();
-	unsigned long long seed = hash_seed(ap_seed);
-	srand(seed);
+	ap_srand(31337);
 
 	// Randomly flip levels based on the seed
 	if (ap_state.flip_levels == 1)
@@ -781,7 +768,7 @@ int apdoom_init(ap_settings_t* settings)
 		{
 			int map_count = ap_get_map_count(ep + 1);
 			for (int map = 0; map < map_count; ++map)
-				ap_state.level_states[ep * max_map_count + map].flipped = rand() % 2;
+				ap_state.level_states[ep * max_map_count + map].flipped = ap_rand() % 2;
 		}
 	}
 
@@ -817,7 +804,7 @@ int apdoom_init(ap_settings_t* settings)
 				int map_count = ap_get_map_count(ep + 1);
 				for (int map = 0; map < map_count; ++map)
 				{
-					int rnd = rand() % (int)music_pool.size();
+					int rnd = ap_rand() % (int)music_pool.size();
 					int mus = music_pool[rnd];
 					music_pool.erase(music_pool.begin() + rnd);
 					ap_state.level_states[ep * max_map_count + map].music = mus;
@@ -1454,7 +1441,7 @@ void f_locinfo(std::vector<AP_NetworkItem> loc_infos)
 }
 
 
-const char* apdoom_get_seed()
+const char* apdoom_get_save_dir()
 {
 	return ap_save_dir_name.c_str();
 }
@@ -1810,4 +1797,38 @@ void ap_remote_set(const char *key, int per_slot, int value)
 	rq.want_reply = false;
 
 	AP_SetServerData(&rq);
+}
+
+// Consistent randomness based on seed (xorshift64*)
+static uint64_t xorshift_base = 0;
+static uint64_t xorshift_seed = 1;
+
+static uint64_t hash_seed(const char *str)
+{
+    uint64_t hash = 5381;
+    int c;
+
+    while ((c = *str++))
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
+void ap_srand(int hash)
+{
+	if (!xorshift_base)
+		xorshift_base = hash_seed(ap_seed_string.c_str());
+
+	xorshift_seed = xorshift_base;
+	do {
+		xorshift_seed += (hash * 19937) + 1;
+	} while (!xorshift_seed);
+}
+
+unsigned int ap_rand(void)
+{
+	xorshift_seed ^= xorshift_seed << 17;
+	xorshift_seed ^= xorshift_seed >> 31;
+	xorshift_seed ^= xorshift_seed << 8;
+	return (unsigned int)((xorshift_seed * 1181783497276652981LL) >> 32);
 }

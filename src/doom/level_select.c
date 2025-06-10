@@ -85,9 +85,9 @@ void play_level(int ep, int lvl)
     // Check if level has a save file first
     char filename[260];
     if (gamemode != commercial)
-        snprintf(filename, 260, "%s/save_E%iM%i.dsg", apdoom_get_seed(), ep, lvl);
+        snprintf(filename, 260, "%s/save_E%iM%i.dsg", apdoom_get_save_dir(), ep, lvl);
     else
-        snprintf(filename, 260, "%s/save_MAP%02i.dsg", apdoom_get_seed(), lvl);
+        snprintf(filename, 260, "%s/save_MAP%02i.dsg", apdoom_get_save_dir(), lvl);
 
     if (M_FileExists(filename))
     {

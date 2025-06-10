@@ -80,19 +80,6 @@ fixed_t GetOffset(vertex_t *v1, vertex_t *v2)
 }
 
 
-unsigned long long hash_seed(unsigned char *str)
-{
-    unsigned long long hash = 5381;
-    int c;
-
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
-}
-
-
-
 // [AP PWAD]
 // Functions for tweaking stuff after loading
 static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
@@ -647,11 +634,8 @@ void P_LoadThings(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
     numthings = W_LumpLength(lump) / sizeof(mapthing_t);
 
-    // Generate unique random seed from ap seed + level
-    const char* ap_seed = apdoom_get_seed();
-    unsigned long long seed = hash_seed(ap_seed);
-    seed += gameepisode * 9 + gamemap;
-    srand(seed);
+    // Differ random seeds per map (and also per seed, done in ap_srand)
+    ap_srand(gameepisode * 1000 + gamemap);
 
     int things_type_remap[1024] = {0};
 
@@ -745,12 +729,12 @@ void P_LoadThings(int lump)
 
             while (monster_count < spawn_count)
             {
-                int rnd = rand() % total;
+                int rnd = ap_rand() % total;
                 for (int i = 0; i < NUM_RMC; ++i)
                 {
                     if (rnd < ratios[i])
                     {
-                        rnd = rand() % rmc_ratios[i];
+                        rnd = ap_rand() % rmc_ratios[i];
                         for (int j = 0; j < defs_by_rmc_count[i]; ++j)
                         {
                             if (rnd < defs_by_rmc[i][j]->frequency)
@@ -778,7 +762,7 @@ void P_LoadThings(int lump)
 
             while (monster_count < spawn_count)
             {
-                int rnd = rand() % total;
+                int rnd = ap_rand() % total;
                 for (int i = 0; i < monster_def_count; ++i)
                 {
                     random_monster_def_t* monster = &random_monster_defs[i];
@@ -802,7 +786,7 @@ void P_LoadThings(int lump)
                     iron_lynch_count++;
             while (iron_lynch_count < 2)
             {
-                int i = rand() % monster_count;
+                int i = ap_rand() % monster_count;
                 if (monsters[i]->doom_type != 6)
                 {
                     monsters[i] = &random_monster_defs[12];
@@ -820,7 +804,7 @@ void P_LoadThings(int lump)
                     iron_lynch_count++;
             while (iron_lynch_count < 1)
             {
-                int i = rand() % monster_count;
+                int i = ap_rand() % monster_count;
                 if (monsters[i]->doom_type != 6)
                 {
                     monsters[i] = &random_monster_defs[12];
@@ -832,7 +816,7 @@ void P_LoadThings(int lump)
         // Randomly pick them until empty, and place them in different spots
         for (i = 0; i < spawn_count; i++)
         {
-            int idx = rand() % monster_count;
+            int idx = ap_rand() % monster_count;
             spawns[i].monster = monsters[idx];
             monsters[idx] = monsters[monster_count - 1];
             monster_count--;
@@ -849,7 +833,7 @@ void P_LoadThings(int lump)
                 int tries = 1000;
                 while (tries--)
                 {
-                    int j = rand() % spawn_count;
+                    int j = ap_rand() % spawn_count;
                     if (j == i) continue;
                     monster_spawn_def_t* spawn2 = &spawns[j];
                     if (spawn1->monster->height <= spawn2->fit_height &&
@@ -928,7 +912,7 @@ void P_LoadThings(int lump)
             mt = (mapthing_t *)data;
             for (i = 0; i < index_count; i++)
             {
-                int idx = rand() % item_count;
+                int idx = ap_rand() % item_count;
                 things_type_remap[indices[i]] = items[idx];
                 items[idx] = items[item_count - 1];
                 item_count--;
@@ -1008,10 +992,10 @@ void P_LoadThings(int lump)
                     case 81: // Crystal Vial
                     case 82: // Quartz Flask
                     {
-                        int rnd = rand() % total;
+                        int rnd = ap_rand() % total;
                         if (rnd < ratios[0])
                         {
-                            switch (rand()%3)
+                            switch (ap_rand()%3)
                             {
                                 case 0: things_type_remap[i] = 81; break; // Crystal Vial
                                 case 1: things_type_remap[i] = 10; break; // Wand Crystal
@@ -1020,7 +1004,7 @@ void P_LoadThings(int lump)
                         }
                         else if (rnd < ratios[0] + ratios[1])
                         {
-                            switch (rand()%4)
+                            switch (ap_rand()%4)
                             {
                                 case 0: things_type_remap[i] = 54; break; // Claw Orb
                                 case 1: things_type_remap[i] = 22; break; // Flame Orb
@@ -1030,7 +1014,7 @@ void P_LoadThings(int lump)
                         }
                         else
                         {
-                            switch (rand()%7)
+                            switch (ap_rand()%7)
                             {
                                 case 0: things_type_remap[i] = 12; break; // Crystal Geode
                                 case 1: things_type_remap[i] = 55; break; // Energy Orb

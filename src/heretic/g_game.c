@@ -2909,7 +2909,7 @@ void G_DoSaveGame(void)
     
     cache_ap_player_state();
 
-    snprintf(filename, 260, "%s/save_E%iM%i.dsg", apdoom_get_seed(), gameepisode, gamemap);
+    snprintf(filename, 260, "%s/save_E%iM%i.dsg", apdoom_get_save_dir(), gameepisode, gamemap);
 
     description = savedescription;
 

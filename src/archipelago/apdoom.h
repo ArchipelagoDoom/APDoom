@@ -26,14 +26,15 @@ extern "C"
 
 
 
-#define APDOOM_MAJOR 1
-#define APDOOM_MINOR 2
+#define APDOOM_MAJOR 2
+#define APDOOM_MINOR 0
 #define APDOOM_PATCH 0
 #define APDOOM_STR(x) APDOOM_STR2(x)
 #define APDOOM_STR2(x) #x
 #define APDOOM_VERSION APDOOM_STR(APDOOM_MAJOR) "." APDOOM_STR(APDOOM_MINOR) "." APDOOM_STR(APDOOM_PATCH)
 #define APDOOM_VERSION_TEXT APDOOM_VERSION ""
-#define APDOOM_VERSION_FULL_TEXT "APDOOM " APDOOM_VERSION_TEXT " PWAD"
+#define APDOOM_VERSION_SUFFIX "-BETA1"
+#define APDOOM_VERSION_FULL_TEXT "APDOOM " APDOOM_VERSION_TEXT "" APDOOM_VERSION_SUFFIX
 
 
 #define AP_CHECK_MAX 128 // Arbitrary number (raised from 64)
@@ -319,7 +320,7 @@ void apdoom_check_location(ap_level_index_t idx, int index);
 int apdoom_is_location_progression(ap_level_index_t idx, int index);
 void apdoom_check_victory();
 void apdoom_update();
-const char* apdoom_get_seed();
+const char* apdoom_get_save_dir();
 void apdoom_send_message(const char* msg);
 void apdoom_complete_level(ap_level_index_t idx);
 ap_level_state_t* ap_get_level_state(ap_level_index_t idx); // 1-based
@@ -355,7 +356,10 @@ int ap_preload_defs_for_game(const char *game_name);
 const char *ap_get_iwad_name();
 const char *ap_get_pwad_name(unsigned int id);
 int ap_is_location_type(int doom_type);
-// ============================================================================
+
+// ===== RANDOMNESS ===========================================================
+void ap_srand(int hash);
+unsigned int ap_rand(void);
 
 #ifdef __cplusplus
 }
