@@ -38,6 +38,7 @@
 #include "v_trans.h" // [crispy] dp_translation
 
 #include "crispy.h"
+#include "level_select.h" // [ap]
 #include "apdoom.h"
 
 // Macros
@@ -547,6 +548,8 @@ static Menu_t *Menus[] = {
     &Crispness3Menu
 };
 
+// [AP] crispy-added warping functions, unused because we disallow that behavior
+#if 0
 // [crispy] reload current level / go to next level
 // adapted from prboom-plus/src/e6y.c:369-449
 static int G_ReloadLevel(void)
@@ -601,6 +604,7 @@ static int G_GotoNextLevel(void)
 
   return changed;
 }
+#endif
 
 //---------------------------------------------------------------------------
 //
@@ -667,7 +671,7 @@ static void InitFonts(void)
                 ptr = (byte*)q + q->columnofs[col];
                 while (*ptr != 0xFF)
                 {
-                    post = ptr;
+                    post = (post_t*)ptr;
                     ptr += 3;
                     for (int row = 0; row < post->length; ++row, ++ptr)
                     {
@@ -1261,6 +1265,7 @@ static boolean SCLevelSelect(int option)
     // Was the game quit during a level?
     if (ap_state.ep != 0 && ap_state.map != 0)
     {
+        extern void play_level(int, int);
         play_level(ap_state.ep - 1, ap_state.map - 1);
     }
     else
@@ -1319,6 +1324,7 @@ static boolean SCQuitGame(int option)
     // [AP] Save state if we are currently in a level
     if (!netgame && /*ap_state.ep != 0 && */ap_state.map != 0 && gamestate == GS_LEVEL)
     {
+        extern void G_DoSaveGame(void);
         G_DoSaveGame();
     }
 
@@ -2472,18 +2478,19 @@ boolean MN_Responder(event_t * event)
         }
         // [crispy] those two can be considered as shortcuts for the ENGAGE cheat
         // and should be treated as such, i.e. add "if (!netgame)"
-            // AP Not allowed in AP
-  //      else if (!netgame && key != 0 && key == key_menu_reloadlevel)
-  //      {
-	 //   if (G_ReloadLevel())
-		//return true;
-  //      }
-  //      else if (!netgame && key != 0 && key == key_menu_nextlevel)
-  //      {
-	 //   if (G_GotoNextLevel())
-		//return true;
-  //      }
-
+        // [AP] external map changes not allowed
+#if 0
+        else if (!netgame && key != 0 && key == key_menu_reloadlevel)
+        {
+	    if (G_ReloadLevel())
+		return true;
+        }
+        else if (!netgame && key != 0 && key == key_menu_nextlevel)
+        {
+	    if (G_GotoNextLevel())
+		return true;
+        }
+#endif
     }
 
     if (!MenuActive)

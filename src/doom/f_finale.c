@@ -192,18 +192,15 @@ boolean F_Responder (event_t *event)
     if (finalecount < 35 * 3)
         return false;
 
-    switch (event->type)
+    if (event->type == ev_keydown)
     {
-        case ev_keydown:
+        switch (event->data1)
         {
-            switch (event->data1)
-            {
-                case KEY_ENTER:
-                case 'e':
-                case ' ':
-                    ShowLevelSelect();
-                    return true;
-            }
+            case KEY_ENTER:
+            case 'e':
+            case ' ':
+                ShowLevelSelect();
+                return true;
         }
     }
 	

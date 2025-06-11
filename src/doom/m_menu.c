@@ -205,16 +205,18 @@ menu_t*	currentMenu;
 //
 // PROTOTYPES
 //
-static void M_APLevelSelect(int choice);
 static void M_APPlay(int choice);
+static void M_Kill(int choice);
 
-static void M_NewGame(int choice);
+// [AP] TODO: A lot of these should be cleaned up in the future
+// For now we just comment out unreferenced ones to silence warnings
+
+//static void M_NewGame(int choice);
 static void M_Episode(int choice);
 static void M_ChooseSkill(int choice);
 static void M_LoadGame(int choice);
-static void M_SaveGame(int choice);
+//static void M_SaveGame(int choice);
 static void M_Options(int choice);
-static void M_Kill(int choice);
 static void M_EndGame(int choice);
 static void M_ReadThis(int choice);
 static void M_ReadThis2(int choice);
@@ -236,8 +238,8 @@ static void M_FinishReadThis(int choice);
 static void M_LoadSelect(int choice);
 static void M_SaveSelect(int choice);
 static void M_ReadSaveStrings(void);
-static void M_QuickSave(void);
-static void M_QuickLoad(void);
+//static void M_QuickSave(void);
+//static void M_QuickLoad(void);
 
 static void M_DrawMainMenu(void);
 static void M_InGameMenuDraw(void);
@@ -1106,6 +1108,7 @@ void M_SaveSelect(int choice)
 //
 // Selected from DOOM menu
 //
+#if 0 // [AP] Manual save/load isn't allowed
 void M_SaveGame (int choice)
 {
     if (!usergame)
@@ -1120,13 +1123,14 @@ void M_SaveGame (int choice)
     M_SetupNextMenu(&SaveDef);
     M_ReadSaveStrings();
 }
-
+#endif
 
 
 //
 //      M_QuickSave
 //
 
+#if 0 // [AP] Manual save/load isn't allowed
 void M_QuickSaveResponse(int key)
 {
     if (key == key_menu_confirm)
@@ -1138,7 +1142,6 @@ void M_QuickSaveResponse(int key)
 
 void M_QuickSave(void)
 {
-    return; // AP Not allowed in AP
     if (!usergame)
     {
 	S_StartSoundOptional(NULL, sfx_mnuerr, sfx_oof); // [NS] Optional menu sounds.
@@ -1158,12 +1161,15 @@ void M_QuickSave(void)
     }
     M_QuickSaveResponse(key_menu_confirm);
 }
-
+#endif
 
 
 //
 // M_QuickLoad
 //
+
+// [AP] Manual save/load isn't allowed
+#if 0
 void M_QuickLoadResponse(int key)
 {
     if (key == key_menu_confirm)
@@ -1176,7 +1182,6 @@ void M_QuickLoadResponse(int key)
 
 void M_QuickLoad(void)
 {
-    return; // AP Not allowed in AP
     // [crispy] allow quickloading game while multiplayer demo playback
     if (netgame && !demoplayback)
     {
@@ -1195,7 +1200,7 @@ void M_QuickLoad(void)
     }
     M_QuickLoadResponse(key_menu_confirm);
 }
-
+#endif
 
 
 
@@ -1348,16 +1353,9 @@ void M_InGameMenuDraw(void)
 }
 
 
-
 //
-// M_LevelSelect
+// M_APPlay
 //
-void M_APLevelSelect(int choice)
-{
-}
-
-
-
 void M_APPlay(int choice)
 {
     M_ClearMenus();
@@ -1376,7 +1374,6 @@ void M_APPlay(int choice)
         apdoom_check_victory();
     }
 }
-
 
 
 //
@@ -1846,6 +1843,12 @@ void M_ChangeMessages(int choice)
 //
 // M_EndGame
 //
+#if 1 // [AP] Manual end game disallowed, stub this function
+void M_EndGame(int choice)
+{
+    M_StartMessage("you can't end an archipelago game!\n\n" PRESSKEY, NULL, false);
+}
+#else
 void M_EndGameResponse(int key)
 {
     if (key != key_menu_confirm)
@@ -1879,6 +1882,7 @@ void M_EndGame(int choice)
 	
     M_StartMessage(DEH_String(ENDGAME),M_EndGameResponse,true);
 }
+#endif
 
 
 
@@ -1950,6 +1954,7 @@ void M_QuitResponse(int key)
     // [AP] Save state if we are currently in a level
     if (!netgame && /*ap_state.ep != 0 && */ap_state.map != 0 && gamestate == GS_LEVEL)
     {
+        extern void G_DoSaveGame(void);
         G_DoSaveGame();
     }
 
@@ -2837,18 +2842,20 @@ boolean M_Responder (event_t* ev)
 	}
         else if (key == key_menu_save)     // Save
         {
-        // AP not allowed
-	    //M_StartControlPanel();
-	    //S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-	    //M_SaveGame(0);
+#if 0 // [AP] Manual save/load disallowed
+	    M_StartControlPanel();
+	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+	    M_SaveGame(0);
+#endif
 	    return true;
         }
         else if (key == key_menu_load)     // Load
         {
-        // AP not allowed
-	    //M_StartControlPanel();
-	    //S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-	    //M_LoadGame(0);
+#if 0 // [AP] Manual save/load disallowed
+	    M_StartControlPanel();
+	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+	    M_LoadGame(0);
+#endif
 	    return true;
         }
         else if (key == key_menu_volume)   // Sound Volume
@@ -2867,15 +2874,18 @@ boolean M_Responder (event_t* ev)
         }
         else if (key == key_menu_qsave)    // Quicksave
         {
-	    //S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-	    //M_QuickSave();
+#if 0 // [AP] Manual save/load disallowed
+	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+	    M_QuickSave();
+#endif
 	    return true;
         }
         else if (key == key_menu_endgame)  // End game
         {
-            // AP Not allowed in AP
-	    //S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-	    //M_EndGame(0);
+#if 0 // [AP] Manual end game disallowed
+	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+	    M_EndGame(0);
+#endif
 	    return true;
         }
         else if (key == key_menu_messages) // Toggle messages
@@ -2886,15 +2896,18 @@ boolean M_Responder (event_t* ev)
         }
         else if (key == key_menu_qload)    // Quickload
         {
-	    //S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-	    //M_QuickLoad();
+#if 0 // [AP] Manual save/load disallowed
+	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+	    M_QuickLoad();
+#endif
 	    return true;
         }
         else if (key == key_menu_quit)     // Quit DOOM
         {
-            // AP Not allowed in AP
-	    //S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
-	    //M_QuitDOOM(0);
+#if 0 // [AP] Disallowed, probably to avoid accidents
+	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+	    M_QuitDOOM(0);
+#endif
 	    return true;
         }
         else if (key == key_menu_gamma)    // gamma toggle

@@ -320,6 +320,8 @@ boolean LevelSelectResponder(event_t* ev)
             if (ev->data1 == key_menu_forward || ev->data1 == key_use) level_select_nav_enter();
             break;
         }
+        default:
+            break;
     }
 
     return true;
