@@ -3603,6 +3603,15 @@ void M_Init (void)
 		DEH_AddStringReplacement(string, replace);
 		free(replace);
 	}
+
+    // [AP] "(press y to quit to dos.)"
+    string = "%s\n\n" DOSY;
+    if (!DEH_HasStringReplacement(string))
+    {
+        replace = M_StringReplace(string, " to dos", "");
+        DEH_AddStringReplacement(string, replace);
+        free(replace);
+    }
     }
 
     opldev = M_CheckParm("-opldev") > 0;

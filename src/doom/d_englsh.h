@@ -60,7 +60,9 @@
 #define NETEND	"you can't end a netgame!\n\n"PRESSKEY
 #define ENDGAME	"are you sure you want to end the game?\n\n"PRESSYN
 
-#define DOSY		"(press y to quit.)" // [crispy] remove " to dos.)"
+// [crispy] remove " to dos.)"
+// [AP] put it back, this makes deh string replacements fail.
+#define DOSY		"(press y to quit to dos.)"
 
 #define DETAILHI	"High detail"
 #define DETAILLO	"Low detail"
