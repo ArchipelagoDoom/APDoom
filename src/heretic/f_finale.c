@@ -26,6 +26,7 @@
 #include "am_map.h"
 #include "doomkeys.h"
 #include "apdoom.h"
+#include "level_select.h"
 
 static int finalestage;                // 0 = text, 1 = art screen
 static int finalecount;
@@ -114,18 +115,15 @@ boolean F_Responder(event_t * event)
     if (finalecount < 35 * 3)
         return false;
 
-    switch (event->type)
+    if (event->type == ev_keydown)
     {
-        case ev_keydown:
+        switch (event->data1)
         {
-            switch (event->data1)
-            {
-                case KEY_ENTER:
-                case 'e':
-                case ' ':
-                    ShowLevelSelect();
-                    return true;
-            }
+            case KEY_ENTER:
+            case 'e':
+            case ' ':
+                ShowLevelSelect();
+                return true;
         }
     }
 

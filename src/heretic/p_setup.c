@@ -1042,7 +1042,9 @@ void P_LoadThings(int lump)
         spawnthing.type = SHORT(things_type_remap[i]);
         spawnthing.options = SHORT(mt->options);
        
+#if 0 // Unused, unsure of intent
         int type_before = spawnthing.type;
+#endif
 
         // Replace AP locations with AP item
         if (ap_is_location_type(spawnthing.type))

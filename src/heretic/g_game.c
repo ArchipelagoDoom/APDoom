@@ -1567,7 +1567,7 @@ void G_InitPlayer(int player)
 void G_PlayerFinishLevel(int player)
 {
     player_t *p;
-    int i;
+    //int i; // [AP] no longer needed
 
 /*      // BIG HACK
 	inv_ptr = 0;
@@ -1905,8 +1905,6 @@ void set_ap_player_states()
 
     // Cards
     ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
-    ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
-
     p->keys[0] = level_state->keys[0];
     p->keys[1] = level_state->keys[1];
     p->keys[2] = level_state->keys[2];
@@ -2028,7 +2026,9 @@ static void G_WriteLevelStat(void)
 void G_DoCompleted(void)
 {
     int i;
+#if 0 // [AP] no secret exits, means no tracking the return levels
     static int afterSecret[5] = { 7, 5, 5, 5, 4 };
+#endif
 
     // [AP]
     cache_ap_player_state();
@@ -2896,7 +2896,6 @@ void G_SaveGame(int slot, char *description)
 // Called by G_Ticker based on gameaction.
 //
 //==========================================================================
-void cache_ap_player_state(void);
 
 void G_DoSaveGame(void)
 {

@@ -899,4 +899,7 @@ int MN_TextBWidth(const char *text);
 
 #include "sounds.h"
 
+// [AP]
+void G_LevelSelect(void);
+
 #endif // __DOOMDEF__
