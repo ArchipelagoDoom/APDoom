@@ -585,7 +585,6 @@ void A_RestoreSpecialThing2(mobj_t * thing, player_t *player, pspdef_t *psp)
 // PROC P_TouchSpecialThing
 //
 //---------------------------------------------------------------------------
-extern int leveltimesinceload;
 
 void P_TouchSpecialThing(mobj_t * special, mobj_t * toucher)
 {
@@ -907,7 +906,7 @@ void P_TouchSpecialThing(mobj_t * special, mobj_t * toucher)
 
 	    case SPR_LVST:
 		    // Teleport back to level select!
-		    if (leveltimesinceload > 350)
+		    if (leveltimesinceload > MINHUBTIME)
 		    {
 			    S_StartSound(NULL, sfx_telept);
 			    G_LevelSelect();

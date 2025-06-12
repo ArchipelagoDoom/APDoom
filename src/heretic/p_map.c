@@ -156,7 +156,6 @@ boolean PIT_StompThing(mobj_t * thing)
 ===================
 */
 
-extern int leveltimesinceload;
 boolean P_TeleportMove(mobj_t * thing, fixed_t x, fixed_t y)
 {
     int xl, xh, yl, yh, bx, by;
@@ -221,7 +220,7 @@ boolean P_TeleportMove(mobj_t * thing, fixed_t x, fixed_t y)
 
     // If it's the player, make sure to reset hub timer by like 5sec so we don't accidentally retrigger it
     if (thing == players[consoleplayer].mo)
-        leveltimesinceload = MIN(leveltimesinceload, 175);
+        leveltimesinceload = MIN(leveltimesinceload, MINHUBTIME/2);
 
     return true;
 }

@@ -1191,7 +1191,7 @@ void P_SpawnMapThing(mapthing_t * mthing, int index)
     {                           // Seed random starting index for bobbing motion
         mobj->health = P_Random();
     }
-    if (mobj->tics > 0 && mobj->type != MT_LVSTEL) // [AP] We want the HUB to stay put 10 sec, no random
+    if (mobj->tics > 0)
     {
         mobj->tics = 1 + (P_Random() % mobj->tics);
     }

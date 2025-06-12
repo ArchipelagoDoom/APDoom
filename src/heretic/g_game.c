@@ -1768,7 +1768,6 @@ void G_DeathMatchSpawnPlayer(int playernum)
 ====================
 */
 
-extern int leveltimesinceload;
 boolean killed_from_menu = false;
 
 void on_spawn_ap_states()
@@ -1793,7 +1792,7 @@ void on_spawn_ap_states()
     }
     p->health = 100;
     if (p->mo) p->mo->health = p->health;
-    leveltimesinceload = MIN(leveltimesinceload, 175);
+    leveltimesinceload = MIN(leveltimesinceload, MINHUBTIME/2);
 }
 
 void G_DoReborn(int playernum)
@@ -2151,7 +2150,6 @@ void G_LoadGame(char *name)
 #define VERSIONSIZE 16
 
 extern mobj_t *just_loaded_hub;
-extern int leveltimesinceload;
 void G_DoLoadGame(void)
 {
     int i;

@@ -1810,7 +1810,7 @@ void on_spawn_ap_states()
     set_ap_player_states();
     player_t* p = &players[consoleplayer];
     ap_set_respawning_player_attributes(p);
-    leveltimesinceload = MIN(leveltimesinceload, 175);
+    leveltimesinceload = MIN(leveltimesinceload, MINHUBTIME/2);
 }
 
 //

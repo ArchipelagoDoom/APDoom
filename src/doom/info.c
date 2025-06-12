@@ -28,6 +28,7 @@
 #include "info.h"
 
 #include "p_mobj.h"
+#include "doomstat.h"
 #include "apdoom.h"
 
 const char *sprnames[] = {
@@ -153,11 +154,11 @@ void A_Mushroom();
 void A_BetaSkullAttack();
 
 
-extern int gameepisode;
-extern int gamemap;
-void P_RemoveMobj(mobj_t* mobj);
 
-void A_check_collected(mobj_t* mo)
+extern void P_RemoveMobj(mobj_t*);
+extern void P_SetMobjState(mobj_t*, statenum_t);
+
+void A_CheckCollected(mobj_t* mo)
 {
 	int j, lenj;
 	ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
@@ -171,6 +172,17 @@ void A_check_collected(mobj_t* mo)
     }
 }
 
+void A_EnableHUB(mobj_t *mo)
+{
+    if (leveltimesinceload > MINHUBTIME)
+        P_SetMobjState(mo, mo->info->seestate);
+}
+
+void A_DisableHUB(mobj_t *mo)
+{
+    if (leveltimesinceload <= MINHUBTIME)
+        P_SetMobjState(mo, mo->info->spawnstate);
+}
 
 state_t	states[NUMSTATES] = {
     {SPR_TROO,0,-1,{NULL},S_NULL,0,0},	// S_NULL
@@ -1228,27 +1240,27 @@ state_t	states[NUMSTATES] = {
     {SPR_MISL,32769,8,{A_Mushroom},S_EXPLODE2,0,0},	// S_MUSHROOM
 
 	// [AP]
-	{SPR_APJI,32768,3,{A_check_collected},S_APJIB,0,0}, // S_APJI
-	{SPR_APJI,32769,3,{A_check_collected},S_APJIC,0,0}, // S_APJIB
-	{SPR_APJI,32770,3,{A_check_collected},S_APJID,0,0}, // S_APJIC
-	{SPR_APJI,32771,3,{A_check_collected},S_APJIE,0,0}, // S_APJID
-	{SPR_APJI,32772,3,{A_check_collected},S_APJIF,0,0}, // S_APJIE
-	{SPR_APJI,32773,3,{A_check_collected},S_APJIG,0,0}, // S_APJIF
-	{SPR_APJI,32774,3,{A_check_collected},S_APJI,0,0}, // S_APJIG
+	{SPR_APJI,32768,3,{A_CheckCollected},S_APJIB,0,0}, // S_APJI
+	{SPR_APJI,32769,3,{A_CheckCollected},S_APJIC,0,0}, // S_APJIB
+	{SPR_APJI,32770,3,{A_CheckCollected},S_APJID,0,0}, // S_APJIC
+	{SPR_APJI,32771,3,{A_CheckCollected},S_APJIE,0,0}, // S_APJID
+	{SPR_APJI,32772,3,{A_CheckCollected},S_APJIF,0,0}, // S_APJIE
+	{SPR_APJI,32773,3,{A_CheckCollected},S_APJIG,0,0}, // S_APJIF
+	{SPR_APJI,32774,3,{A_CheckCollected},S_APJI,0,0}, // S_APJIG
 
-	{SPR_APPI,32768,3,{A_check_collected},S_APPIB,0,0}, // S_APJP
-	{SPR_APPI,32769,3,{A_check_collected},S_APPIC,0,0}, // S_APJPB
-	{SPR_APPI,32770,3,{A_check_collected},S_APPID,0,0}, // S_APJPC
-	{SPR_APPI,32771,3,{A_check_collected},S_APPIE,0,0}, // S_APJPD
-	{SPR_APPI,32772,3,{A_check_collected},S_APPIF,0,0}, // S_APJPE
-	{SPR_APPI,32773,3,{A_check_collected},S_APPIG,0,0}, // S_APJPF
-	{SPR_APPI,32774,3,{A_check_collected},S_APPI,0,0}, // S_APJPG
+	{SPR_APPI,32768,3,{A_CheckCollected},S_APPIB,0,0}, // S_APJP
+	{SPR_APPI,32769,3,{A_CheckCollected},S_APPIC,0,0}, // S_APJPB
+	{SPR_APPI,32770,3,{A_CheckCollected},S_APPID,0,0}, // S_APJPC
+	{SPR_APPI,32771,3,{A_CheckCollected},S_APPIE,0,0}, // S_APJPD
+	{SPR_APPI,32772,3,{A_CheckCollected},S_APPIF,0,0}, // S_APJPE
+	{SPR_APPI,32773,3,{A_CheckCollected},S_APPIG,0,0}, // S_APJPF
+	{SPR_APPI,32774,3,{A_CheckCollected},S_APPI,0,0}, // S_APJPG
 	
 	// [AP] Level select teleport "HUB"
-	{SPR_LVST,32768,350,{NULL},S_LVSTB,0,0}, // S_LVST
-	{SPR_LVST,32769,6,{NULL},S_LVSTC,0,0}, // S_LVSTB
-	{SPR_LVST,32770,6,{NULL},S_LVSTD,0,0}, // S_LVSTC
-	{SPR_LVST,32771,6,{NULL},S_LVSTB,0,0}, // S_LVSTD
+	{SPR_LVST,32768,1,{A_EnableHUB},S_LVST,0,0}, // S_LVST
+	{SPR_LVST,32769,6,{A_DisableHUB},S_LVSTC,0,0}, // S_LVSTB
+	{SPR_LVST,32770,6,{A_DisableHUB},S_LVSTD,0,0}, // S_LVSTC
+	{SPR_LVST,32771,6,{A_DisableHUB},S_LVSTB,0,0}, // S_LVSTD
 };
 
 
@@ -5028,6 +5040,7 @@ mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
 	S_NULL		// raisestate
     },
 
+    // [AP] archipelago specific mapthings
     {		// MT_APJI
 	20000,		// doomednum
 	S_APJI,		// spawnstate
@@ -5084,7 +5097,7 @@ mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
 	20002,		// doomednum
 	S_LVST,		// spawnstate
 	1000,		// spawnhealth
-	S_NULL,		// seestate
+	S_LVSTB,		// seestate
 	sfx_None,		// seesound
 	8,		// reactiontime
 	sfx_None,		// attacksound

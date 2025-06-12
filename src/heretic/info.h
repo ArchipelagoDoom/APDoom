@@ -1384,7 +1384,6 @@ typedef enum
 
     // [AP] Level select teleport "HUB"
     S_LVST,
-    S_LVSTT,
     S_LVSTB,
     S_LVSTC,
     S_LVSTD,

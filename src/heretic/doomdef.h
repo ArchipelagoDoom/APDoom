@@ -581,6 +581,8 @@ extern int totalkills, totalitems, totalsecret; // for intermission
 extern int levelstarttic;       // gametic at level start
 extern int leveltime;           // tics in game play for par
 extern int totalleveltimes; // [crispy] total time for all completed levels
+extern int leveltimesinceload; // [AP] For HUB trigger we make sure we don't trigger when reloading level
+#define MINHUBTIME 350 // [AP] Minimum amount of tics needed to wait to use the hub
 
 extern boolean finalintermission; // [crispy] track intermission at end of episode
 
