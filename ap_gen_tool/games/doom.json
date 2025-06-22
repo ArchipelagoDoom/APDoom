@@ -3,56 +3,180 @@
     "world": "doom_1993",
     "codename": "doom",
     "classname": "DOOM1993",
-    "wad": "DOOM.WAD",
+	"iwad": "DOOM.WAD",
+    "load_order": ["DOOM.WAD", "APDOOM.WAD"],
     "item_ids": 350000,
     "loc_ids": 351000,
-    "check_sanity": false,
-    "map_names": [
+    "settings": {},
+
+    "map_info": [
         [
-            "Hangar (E1M1)",
-            "Nuclear Plant (E1M2)",
-            "Toxin Refinery (E1M3)",
-            "Command Control (E1M4)",
-            "Phobos Lab (E1M5)",
-            "Central Processing (E1M6)",
-            "Computer Station (E1M7)",
-            "Phobos Anomaly (E1M8)",
-            "Military Base (E1M9)"
+            {"lump": "E1M1", "name": "Hangar (E1M1)"},
+            {"lump": "E1M2", "name": "Nuclear Plant (E1M2)"},
+            {"lump": "E1M3", "name": "Toxin Refinery (E1M3)"},
+            {"lump": "E1M4", "name": "Command Control (E1M4)"},
+            {"lump": "E1M5", "name": "Phobos Lab (E1M5)"},
+            {"lump": "E1M6", "name": "Central Processing (E1M6)"},
+            {"lump": "E1M7", "name": "Computer Station (E1M7)"},
+            {"lump": "E1M8", "name": "Phobos Anomaly (E1M8)"},
+            {"lump": "E1M9", "name": "Military Base (E1M9)"}
         ],
         [
-            "Deimos Anomaly (E2M1)",
-            "Containment Area (E2M2)",
-            "Refinery (E2M3)",
-            "Deimos Lab (E2M4)",
-            "Command Center (E2M5)",
-            "Halls of the Damned (E2M6)",
-            "Spawning Vats (E2M7)",
-            "Tower of Babel (E2M8)",
-            "Fortress of Mystery (E2M9)"
+            {"lump": "E2M1", "name": "Deimos Anomaly (E2M1)"},
+            {"lump": "E2M2", "name": "Containment Area (E2M2)"},
+            {"lump": "E2M3", "name": "Refinery (E2M3)"},
+            {"lump": "E2M4", "name": "Deimos Lab (E2M4)"},
+            {"lump": "E2M5", "name": "Command Center (E2M5)"},
+            {"lump": "E2M6", "name": "Halls of the Damned (E2M6)"},
+            {"lump": "E2M7", "name": "Spawning Vats (E2M7)"},
+            {"lump": "E2M8", "name": "Tower of Babel (E2M8)"},
+            {"lump": "E2M9", "name": "Fortress of Mystery (E2M9)"}
         ],
         [
-            "Hell Keep (E3M1)",
-            "Slough of Despair (E3M2)",
-            "Pandemonium (E3M3)",
-            "House of Pain (E3M4)",
-            "Unholy Cathedral (E3M5)",
-            "Mt. Erebus (E3M6)",
-            "Limbo (E3M7)",
-            "Dis (E3M8)",
-            "Warrens (E3M9)"
+            {"lump": "E3M1", "name": "Hell Keep (E3M1)"},
+            {"lump": "E3M2", "name": "Slough of Despair (E3M2)"},
+            {"lump": "E3M3", "name": "Pandemonium (E3M3)"},
+            {"lump": "E3M4", "name": "House of Pain (E3M4)"},
+            {"lump": "E3M5", "name": "Unholy Cathedral (E3M5)"},
+            {"lump": "E3M6", "name": "Mt. Erebus (E3M6)"},
+            {"lump": "E3M7", "name": "Limbo (E3M7)"},
+            {"lump": "E3M8", "name": "Dis (E3M8)"},
+            {"lump": "E3M9", "name": "Warrens (E3M9)"}
         ],
         [
-            "Hell Beneath (E4M1)",
-            "Perfect Hatred (E4M2)",
-            "Sever the Wicked (E4M3)",
-            "Unruly Evil (E4M4)",
-            "They Will Repent (E4M5)",
-            "Against Thee Wickedly (E4M6)",
-            "And Hell Followed (E4M7)",
-            "Unto the Cruel (E4M8)",
-            "Fear (E4M9)"
+            {"lump": "E4M1", "name": "Hell Beneath (E4M1)"},
+            {"lump": "E4M2", "name": "Perfect Hatred (E4M2)"},
+            {"lump": "E4M3", "name": "Sever the Wicked (E4M3)"},
+            {"lump": "E4M4", "name": "Unruly Evil (E4M4)"},
+            {"lump": "E4M5", "name": "They Will Repent (E4M5)"},
+            {"lump": "E4M6", "name": "Against Thee Wickedly (E4M6)"},
+            {"lump": "E4M7", "name": "And Hell Followed (E4M7)"},
+            {"lump": "E4M8", "name": "Unto the Cruel (E4M8)"},
+            {"lump": "E4M9", "name": "Fear (E4M9)"}
         ]
     ],
+    "game_info":{
+        "ammo": [
+            {"name": "Bullets", "max": 200},
+            {"name": "Shells", "max": 50},
+            {"name": "Cells", "max": 300},
+            {"name": "Rockets", "max": 50}
+        ],
+        "weapons": [
+            {"name": "Fist"},
+            {"name": "Pistol", "ammo_type": "Bullets", "starting_ammo": 50},
+            {"name": "Shotgun", "ammo_type": "Shells", "starting_ammo": 30},
+            {"name": "Chaingun", "ammo_type": "Bullets"},
+            {"name": "Rocket launcher", "ammo_type": "Rockets", "starting_ammo": 10},
+            {"name": "Plasma gun", "ammo_type": "Cells", "starting_ammo": 150},
+            {"name": "BFG9000", "ammo_type": "Cells", "starting_ammo": 150},
+            {"name": "Chainsaw"}
+        ],
+
+        "hint_auto_complete":{
+            "BLUE": ["Blue keycard", "Blue skull key"],
+            "YELLOW": ["Yellow keycard", "Yellow skull key"],
+            "RED": ["Red keycard", "Red skull key"],
+            "MAP": "Computer area map"
+        }
+    },
+    "map_tweaks":{
+        "E2M6":{
+            "linedefs":{
+                "620":{"special": 27} // Yellow keycard
+            }
+        },
+        "E3M9":{
+            "linedefs":{
+                "195":{"special": 32} // Blue keycard
+            }
+        },
+        "E2M8":{
+            "linedefs":{
+                // Can be softlocked if coming back to that level after boss is dead,
+                // make sure to disable it's triggers that closes the doors
+                "140": {"special": 0, "tag": 0},
+                "141": {"special": 0, "tag": 0},
+                "142": {"special": 0, "tag": 0},
+                "143": {"special": 0, "tag": 0}
+            }
+        },
+        "E4M8":{
+            "linedefs":{
+                // We can get stuck and not able to come back to the HUB.
+                // Make sure the entrance door can be re-openned from the other side
+                "96": {"special": 61} // Stay open
+            }
+        }
+    },
+    "level_select":{
+        "defaults":{
+            "map_name_position": "top",
+            "maps":{
+                "keys": {"use_checkmark": true, "spacing_y": 8, "align_y": -4, "checkmark_x": 12, "checkmark_y": -1},
+                "checks": {"x": -4, "y": 10}
+            }
+        },
+        "episodes":[
+            {
+                "background_image": "WIMAP0",
+                "maps":[
+                    {"x":185, "y":174, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV00"}, "keys":{"x": 22} },
+                    {"x":148, "y":143, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV01"}, "keys":{"x": 18} },
+                    {"x": 69, "y":122, "cursor":{"graphic":"WIURH1", "x":-2, "y":-2}, "map_name":{"graphic":"WILV02"}, "keys":{"x": 18} },
+                    {"x":229, "y":102, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV03"}, "keys":{"x": 22} },
+                    {"x":116, "y": 89, "cursor":{"graphic":"WIURH2", "x": 2, "y":16}, "map_name":{"graphic":"WILV04"}, "keys":{"x": 26} },
+                    {"x":176, "y": 53, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV05"}, "keys":{"x": 22} },
+                    {"x": 71, "y": 56, "cursor":{"graphic":"WIURH1", "x":-2, "y":-2}, "map_name":{"graphic":"WILV06"}, "keys":{"x": 18} },
+                    {"x":135, "y": 29, "cursor":{"graphic":"WIURH0", "x": 0, "y": 2}, "map_name":{"graphic":"WILV07"}, "keys":{"x": 18} },
+                    {"x": 70, "y": 24, "cursor":{"graphic":"WIURH1", "x":-2, "y":-2}, "map_name":{"graphic":"WILV08"}, "keys":{"x": 22} }
+                ]
+            },
+            {
+                "background_image": "WIMAP1",
+                "maps":[
+                    {"x":254, "y": 25, "cursor":{"graphic":"WIURH2", "x": 2, "y":16}, "map_name":{"graphic":"WILV10"}, "keys":{"x": 18} },
+                    {"x": 97, "y": 50, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV11"}, "keys":{"x": 22} },
+                    {"x":188, "y": 64, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV12"}, "keys":{"x": 18} },
+                    {"x":128, "y": 83, "cursor":{"graphic":"WIURH3", "x": 2, "y":16}, "map_name":{"graphic":"WILV13"}, "keys":{"x": 22} },
+                    {"x":214, "y": 92, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV14"}, "keys":{"x": 22} },
+                    {"x":133, "y":130, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV15"}, "keys":{"x": 20} },
+                    {"x":208, "y":135, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV16"}, "keys":{"x": 18} },
+                    {"x":148, "y":160, "cursor":{"graphic":"WIURH2", "x": 2, "y":16}, "map_name":{"graphic":"WILV17"}, "keys":{"x": 22} },
+                    {"x":235, "y":168, "cursor":{"graphic":"WIURH2", "x": 2, "y":16}, "map_name":{"graphic":"WILV18"}, "keys":{"x": 18} }
+                ]
+            },
+            {
+                "background_image": "WIMAP2",
+                "maps":[
+                    {"x":156, "y":168, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV20"}, "keys":{"x": 22} },
+                    {"x": 48, "y":154, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV21"}, "keys":{"x": 22} },
+                    {"x":174, "y": 95, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV22"}, "keys":{"x":-26, "checkmark_x":-12} },
+                    {"x":265, "y": 75, "cursor":{"graphic":"WIURH3", "x": 2, "y":16}, "map_name":{"graphic":"WILV23"}, "keys":{"x": 22} },
+                    {"x":130, "y": 52, "cursor":{"graphic":"WIURH3", "x": 2, "y":16}, "map_name":{"graphic":"WILV24"}, "keys":{"x":-24, "checkmark_x":-12} },
+                    {"x":279, "y": 23, "cursor":{"graphic":"WIURH1", "x": 6, "y":-2}, "map_name":{"graphic":"WILV25"}, "keys":{"x":-26, "checkmark_x":-12} },
+                    {"x":198, "y": 48, "cursor":{"graphic":"WIURH3", "x": 2, "y":16}, "map_name":{"graphic":"WILV26"}, "keys":{"x": 18} },
+                    {"x":140, "y": 25, "cursor":{"graphic":"WIURH1", "x":-2, "y":-2}, "map_name":{"graphic":"WILV27"}, "keys":{"x": 22} },
+                    {"x":281, "y":136, "cursor":{"graphic":"WIURH3", "x": 2, "y":16}, "map_name":{"graphic":"WILV28"}, "keys":{"x":-26, "checkmark_x":-12} }
+                ]
+            },
+            {
+                "background_image": "WIMAP3",
+                "maps":[
+                    {"x":101, "y":177, "cursor":{"graphic":"WIURH1", "x":-2, "y":-2}, "map_name":{"graphic":"WILV30"}, "keys":{"x": 22} },
+                    {"x":183, "y":148, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV31"}, "keys":{"x": 18} },
+                    {"x":172, "y": 97, "cursor":{"graphic":"WIURH2", "x": 2, "y":16}, "map_name":{"graphic":"WILV32"}, "keys":{"x": 18} },
+                    {"x": 78, "y": 86, "cursor":{"graphic":"WIURH2", "x": 2, "y":16}, "map_name":{"graphic":"WILV33"}, "keys":{"x": 22} },
+                    {"x":251, "y": 85, "cursor":{"graphic":"WIURH2", "x": 2, "y":16}, "map_name":{"graphic":"WILV34"}, "keys":{"x": 26} },
+                    {"x": 37, "y": 24, "cursor":{"graphic":"WIURH2", "x": 5, "y":-4}, "map_name":{"graphic":"WILV35"}, "keys":{"x":-24, "checkmark_x":-12} },
+                    {"x":260, "y": 47, "cursor":{"graphic":"WIURH0", "x":-3, "y":-6}, "map_name":{"graphic":"WILV36"}, "keys":{"x": 18} },
+                    {"x":194, "y": 25, "cursor":{"graphic":"WIURH3", "x": 2, "y":16}, "map_name":{"graphic":"WILV37"}, "keys":{"x": 24} },
+                    {"x": 88, "y": 58, "cursor":{"graphic":"WIURH0", "x": 2, "y":-2}, "map_name":{"graphic":"WILV38"}, "keys":{"x": 17} }
+                ]
+            }
+        ]
+    },
+
     "location_doom_types": {
         "5": "Blue keycard",
         "40": "Blue skull key",

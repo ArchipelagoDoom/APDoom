@@ -93,6 +93,10 @@ extern  skill_t         gameskill;
 extern  int		gameepisode;
 extern  int		gamemap;
 
+// [AP PWAD] allow levels to behave as other levels
+extern  int     metaepisode;
+extern  int     metamap;
+
 // If non-zero, exit the level after this number of minutes
 extern  int             timelimit;
 

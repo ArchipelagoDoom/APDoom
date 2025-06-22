@@ -1076,7 +1076,7 @@ void HU_InitAPMessages()
                         HU_FONTSTART, &ap_message_ons[i]);
 }
 
-
+#include "i_system.h"
 void HU_AddAPLine(const char* line, int len)
 {
     char baked_line[HU_MAXLINELENGTH + 1];

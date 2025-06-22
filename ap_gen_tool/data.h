@@ -4,6 +4,7 @@
 #include <onut/Maths.h>
 #include <onut/Vector2.h>
 #include <onut/Texture.h>
+#include <json/json.h>
 #include <string>
 #include <vector>
 #include <set>
@@ -179,6 +180,8 @@ struct map_history_t
 struct meta_t // Bad name, but everything about a level
 {
     std::string name;
+    std::string lump_name;
+
     map_t map; // As loaded from the wad
     map_state_t state; // What we play with
     map_state_t state_new; // For diffing
@@ -209,11 +212,14 @@ struct ap_key_def_t
 
 struct game_t
 {
+    std::string iwad_name; // Name of IWAD file that this WAD needs to run
+    std::string wad_name; // Wad file to load and analyze for this game
+    std::vector<std::string> pwad_load_order; // All wad files that need to be loaded for the mod to run properly, and in which order
+
     std::string name; // Official name used on websites. i.e. "DOOM 1993"
     std::string world; // World folder name. i.e. "doom_1993", which will result in a world placed in "Archipelago/worlds/doom_1993/"
     std::string codename; // Used for C and C++ function/struct names. i.e. "doom", which will result in things like "ap_doom_location_table[]"
     std::string classname; // Class name prefixed to classes in Archipelago. i.e. "DOOM1993", which result in "DOOM1993World", "DOOM1993Web", etc.
-    std::string wad_name; // Wad file to load and analyze for this game. i.e. "DOOM.WAD"
     int64_t item_ids = 0;
     int64_t loc_ids = 0;
     std::map<int, std::string> location_doom_types;
@@ -231,8 +237,16 @@ struct game_t
     int ep_count = -1;
     std::vector<std::vector<meta_t>> episodes;
     std::vector<ap_item_def_t> item_requirements;
-    bool check_sanity = false;
     std::map<int, int> total_doom_types; // Count of every doom types in the game
+
+    // Settings
+    bool check_sanity = false;
+    bool extended_names = false;
+
+    // JSON structures which need to be preserved unchanged and put in output
+    Json::Value json_game_info;
+    Json::Value json_map_tweaks;
+    Json::Value json_level_select;
 };
 
 

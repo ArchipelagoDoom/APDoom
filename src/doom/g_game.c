@@ -113,6 +113,10 @@ boolean		respawnmonsters;
 int             gameepisode; 
 int             gamemap; 
 
+// [AP PWAD] allow levels to behave as other levels
+int             metaepisode;
+int             metamap;
+
 // If non-zero, exit the level after this number of minutes.
 
 int             timelimit;
@@ -1232,6 +1236,31 @@ static void G_CrispyScreenShot()
 	crispy->screenshotmsg = 2;
 }
 
+void ap_set_respawning_player_attributes(player_t *p)
+{
+    for (int i = 0; i < NUMWEAPONS; ++i)
+    {
+        p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
+        if (p->weaponowned[i] && i < ap_game_info.named_weapon_count)
+        {
+            const int ammo_type = ap_game_info.weapons[i].ammo_type;
+            const int ammo_replenish = ap_game_info.weapons[i].start_ammo;
+
+            if (ammo_type >= 0 && ammo_type < NUMAMMO)
+                p->ammo[ammo_type] = MAX(p->ammo[ammo_type], ammo_replenish);
+        }
+    }
+
+    p->neghealth = p->health = ap_game_info.start_health;
+    if (p->mo) p->mo->health = p->health;
+
+    if (p->armorpoints < ap_game_info.start_armor)
+    {
+        p->armortype = 1;
+        p->armorpoints = ap_game_info.start_armor;
+    }
+}
+
 void set_ap_player_states()
 {
     //G_PlayerReborn(consoleplayer); // This will reset the player completely (Nah, this crashes)
@@ -1275,7 +1304,7 @@ void set_ap_player_states()
 
     // respawn would-be zombies, if ap health somehow becomes zero
     if (p->playerstate == PST_LIVE && p->health == 0)
-        p->health = 100;
+        ap_set_respawning_player_attributes(p);
 
     // mo
     if (p->mo)
@@ -1310,23 +1339,7 @@ void G_Ticker (void)
 	    G_DoLoadLevel(); 
         set_ap_player_states();
         p = &players[consoleplayer];
-        for (i = 0; i < NUMWEAPONS; ++i)
-        {
-            p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
-            if (p->weaponowned[i])
-            {
-                switch (i)
-                {
-                    case wp_pistol: p->ammo[am_clip] = MAX(p->ammo[am_clip], deh_initial_bullets); break;
-                    case wp_shotgun: p->ammo[am_shell] = MAX(p->ammo[am_shell], 30); break;
-                    case wp_missile: p->ammo[am_misl] = MAX(p->ammo[am_misl], 10); break;
-                    case wp_plasma: p->ammo[am_cell] = MAX(p->ammo[am_cell], 150); break;
-                    case wp_bfg: p->ammo[am_cell] = MAX(p->ammo[am_cell], 150); break;
-                }
-            }
-        }
-        p->neghealth = p->health = deh_initial_health;
-        if (p->mo) p->mo->health = p->health;
+        ap_set_respawning_player_attributes(p);
 	    break;
 	  case ga_newgame: 
 	    // [crispy] re-read game parameters from command line
@@ -1622,8 +1635,12 @@ void G_PlayerReborn (int player)
     players[player].secretcount = secretcount; 
  
     p->usedown = p->attackdown = true;	// don't do anything immediately 
-    p->playerstate = PST_LIVE;       
-    p->health = deh_initial_health;     // Use dehacked value
+    p->playerstate = PST_LIVE;
+
+    p->health = ap_game_info.start_health;
+    p->armorpoints = ap_game_info.start_armor;
+    p->armortype = 1;
+
     // [crispy] negative player health
     p->neghealth = p->health;
     p->readyweapon = p->pendingweapon = wp_pistol; 
@@ -1792,23 +1809,7 @@ void on_spawn_ap_states()
 {
     set_ap_player_states();
     player_t* p = &players[consoleplayer];
-    for (int i = 0; i < NUMWEAPONS; ++i)
-    {
-        p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
-        if (p->weaponowned[i])
-        {
-            switch (i)
-            {
-                case wp_pistol: p->ammo[am_clip] = MAX(p->ammo[am_clip], deh_initial_bullets); break;
-                case wp_shotgun: p->ammo[am_shell] = MAX(p->ammo[am_shell], 30); break;
-                case wp_missile: p->ammo[am_misl] = MAX(p->ammo[am_misl], 10); break;
-                case wp_plasma: p->ammo[am_cell] = MAX(p->ammo[am_cell], 150); break;
-                case wp_bfg: p->ammo[am_cell] = MAX(p->ammo[am_cell], 150); break;
-            }
-        }
-    }
-    p->neghealth = p->health = deh_initial_health;
-    if (p->mo) p->mo->health = p->health;
+    ap_set_respawning_player_attributes(p);
     leveltimesinceload = MIN(leveltimesinceload, 175);
 }
 
@@ -1889,7 +1890,7 @@ void G_LevelSelect(void)
 }
  
 
-
+#if 0 // Par times are never referenced
 // DOOM Par Times
 static const int pars[6][10] =
 { 
@@ -1923,12 +1924,13 @@ static const int npars[9] =
 {
     75,105,120,105,210,105,165,105,135
 };
+#endif
 
 //
 // G_DoCompleted 
 //
 boolean		secretexit; 
- 
+
 void G_ExitLevel (void) 
 { 
     secretexit = false; 
@@ -2551,8 +2553,6 @@ G_SaveGame
     sendsave = true;
 }
 
-void cache_ap_player_state(void);
-
 void G_DoSaveGame (void) 
 { 
     cache_ap_player_state();
@@ -2722,8 +2722,10 @@ G_InitNew
   int		episode,
   int		map )
 {
-    ap_state.ep = episode;
-    ap_state.map = map;
+    // [AP PWAD]
+    ap_level_index_t idx = ap_make_level_index(episode, map);
+    ap_state.ep = idx.ep + 1;
+    ap_state.map = idx.map + 1;
 
     const char *skytexturename;
     int             i;

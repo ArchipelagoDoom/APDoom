@@ -1862,6 +1862,7 @@ void set_ap_player_states()
 
     // [AP] If player is this player, then override with ap_state.
     //      We don't support multiplayer anyway.
+    p->health = ap_state.player_state.health;
     p->armorpoints = ap_state.player_state.armor_points;
     p->armortype = ap_state.player_state.armor_type;
     if (!was_in_level)
@@ -1917,6 +1918,10 @@ void set_ap_player_states()
         p->inventory[p->inventorySlotNum].count = 1;
         ++p->inventorySlotNum;
     }
+
+    // respawn would-be zombies, if ap health somehow becomes zero
+    if (p->playerstate == PST_LIVE && p->health == 0)
+        p->health = 100;
 
     // mo
     if (p->mo)

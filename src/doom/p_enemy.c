@@ -1680,14 +1680,14 @@ static boolean CheckBossEnd(mobjtype_t motype)
 {
     if (gameversion < exe_ultimate)
     {
-        if (gamemap != 8)
+        if (metamap /* gamemap */ != 8)
         {
             return false;
         }
 
         // Baron death on later episodes is nothing special.
 
-        if (motype == MT_BRUISER && gameepisode != 1)
+        if (motype == MT_BRUISER && metaepisode /* gameepisode */ != 1)
         {
             return false;
         }
@@ -1701,27 +1701,27 @@ static boolean CheckBossEnd(mobjtype_t motype)
         // episode 4 support.  Now bosses only trigger on their
         // specific episode.
 
-	switch(gameepisode)
+	switch(metaepisode /* gameepisode */)
 	{
             case 1:
-                return gamemap == 8 && motype == MT_BRUISER;
+                return metamap /* gamemap */ == 8 && motype == MT_BRUISER;
 
             case 2:
-                return gamemap == 8 && motype == MT_CYBORG;
+                return metamap /* gamemap */ == 8 && motype == MT_CYBORG;
 
             case 3:
-                return gamemap == 8 && motype == MT_SPIDER;
+                return metamap /* gamemap */ == 8 && motype == MT_SPIDER;
 
 	    case 4:
-                return (gamemap == 6 && motype == MT_CYBORG)
-                    || (gamemap == 8 && motype == MT_SPIDER);
+                return (metamap /* gamemap */ == 6 && motype == MT_CYBORG)
+                    || (metamap /* gamemap */ == 8 && motype == MT_SPIDER);
 
             // [crispy] no trigger for auto-loaded Sigil E5
             case 5:
-                return (gamemap == 8 && !critical->havesigil);
+                return (metamap /* gamemap */ == 8 && !critical->havesigil);
 
             default:
-                return gamemap == 8;
+                return metamap /* gamemap */ == 8;
 	}
     }
 }
@@ -1740,9 +1740,13 @@ void A_BossDeath (mobj_t* mo)
 		
     if ( gamemode == commercial)
     {
+#if 1
+	if (metamap != 7)
+#else
 	if (gamemap != 7 &&
 	// [crispy] Master Levels in PC slot 7
 	!(gamemission == pack_master && (gamemap == 14 || gamemap == 15 || gamemap == 16)))
+#endif
 	    return;
 		
 	if ((mo->type != MT_FATSO)
@@ -1785,9 +1789,13 @@ void A_BossDeath (mobj_t* mo)
     // victory!
     if ( gamemode == commercial)
     {
+#if 1
+	if (metamap == 7)
+#else
 	if (gamemap == 7 ||
 	// [crispy] Master Levels in PC slot 7
 	(gamemission == pack_master && (gamemap == 14 || gamemap == 15 || gamemap == 16)))
+#endif
 	{
 	    if (mo->type == MT_FATSO)
 	    {
@@ -1806,7 +1814,7 @@ void A_BossDeath (mobj_t* mo)
     }
     else
     {
-	switch(gameepisode)
+	switch(metaepisode /* gameepisode */)
 	{
 	  case 1:
 	    junk.tag = 666;
@@ -1815,7 +1823,7 @@ void A_BossDeath (mobj_t* mo)
 	    break;
 	    
 	  case 4:
-	    switch(gamemap)
+	    switch(metamap /* gamemap */)
 	    {
 	      case 6:
 		junk.tag = 666;

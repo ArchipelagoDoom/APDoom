@@ -26,7 +26,8 @@
 
 // Add a new WAD and merge it into the main directory
 
-void W_MergeFile(const char *filename);
+// [AP PWAD] Made boolean so failure can be detected and errored out of
+boolean W_MergeFile(const char *filename);
 
 // NWT-style merging
 

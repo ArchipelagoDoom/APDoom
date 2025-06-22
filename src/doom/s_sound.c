@@ -577,7 +577,7 @@ static int S_AdjustSoundParams(mobj_t *listener, mobj_t *source,
     angle_t        angle;
 
     // [crispy] proper sound clipping in Doom 2 MAP08 and The Ultimate Doom E4M8 / Sigil E5M8
-    const boolean doom1map8 = (gamemap == 8 && ((gamemode != commercial && gameepisode < 4) || !crispy->soundfix));
+    const boolean doom1map8 = (metamap /* gamemap */ == 8 && ((gamemode != commercial && gameepisode < 4) || !crispy->soundfix));
 
     // calculate the distance to sound origin
     //  and clip it if necessary
@@ -735,14 +735,33 @@ void S_StartSound(void *origin_p, int sfx_id)
     }
     pitch = Clamp(pitch);
 
-    // kill old sound
-    if (!crispy->soundfull || origin || gamestate != GS_LEVEL)
+    // [AP PWAD] handle the chat sfx special, always last channel
+    if (sfx_id == sfx_tink)
     {
-    S_StopSound(origin);
+        cnum = snd_channels - 1;
+        if (channels[cnum].sfxinfo)
+        {
+            // overwrite only other chat sounds, otherwise discard and play nothing
+            if (channels[cnum].sfxinfo != &S_sfx[sfx_tink])
+                return;
+            S_StopChannel(cnum);
+        }
+
+        channels[cnum].sfxinfo = sfx;
+        channels[cnum].origin = origin;
+    }
+    else
+    {
+        // kill old sound
+        if (!crispy->soundfull || origin || gamestate != GS_LEVEL)
+        {
+        S_StopSound(origin);
+        }        
+
+        // try to find a channel
+        cnum = S_GetChannel(origin, sfx);
     }
 
-    // try to find a channel
-    cnum = S_GetChannel(origin, sfx);
 
     if (cnum < 0)
     {

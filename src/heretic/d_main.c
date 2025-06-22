@@ -49,9 +49,10 @@
 #include "v_trans.h" // [crispy] dp_translation
 
 #include "heretic_icon.c"
-#include "apdoom.h"
 
+#include "ap_basic.h"
 #include "level_select.h" // [ap]
+#include "apdoom.h"
 #include "ap_msg.h"
 #include "ap_notif.h"
 
@@ -119,6 +120,13 @@ boolean P_GiveArmor(player_t* player, int armortype);
 boolean P_GiveWeapon(player_t* player, weapontype_t weapon, boolean dropped);
 
 
+boolean is_in_level(int ep, int map)
+{
+    ap_level_index_t idx = { ep - 1, map - 1 };
+    return gameepisode == ap_index_to_ep(idx) && gamemap == ap_index_to_map(idx);
+}
+
+
 // Kind of a copy of P_TouchSpecialThing
 void on_ap_give_item(int doom_type, int ep, int map)
 {
@@ -130,7 +138,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
     {
         // Level specifics
         case 79:
-            if (ep == gameepisode && map == gamemap)
+            if (is_in_level(ep, map))
             {
                 if (!player->keys[key_blue])
                 {
@@ -141,7 +149,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
             }
             break;
         case 80:
-            if (ep == gameepisode && map == gamemap)
+            if (is_in_level(ep, map))
             {
                 if (!player->keys[key_yellow])
                 {
@@ -152,7 +160,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
             }
             break;
         case 73:
-            if (ep == gameepisode && map == gamemap)
+            if (is_in_level(ep, map))
             {
                 if (!player->keys[key_green])
                 {
@@ -163,7 +171,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
             }
             break;
         case 35: // Map
-            if (ep == gameepisode && map == gamemap)
+            if (is_in_level(ep, map))
             {
 	            if (P_GivePower(player, pw_allmap))
                 {
@@ -1155,12 +1163,17 @@ void D_DoomMain(void)
     int p;
     char file[256];
     char demolumpname[9];
+
     ap_settings_t ap_settings;
     memset(&ap_settings, 0, sizeof(ap_settings));
 
     I_PrintBanner(PACKAGE_STRING);
 
     I_AtExit(D_Endoom, false);
+
+    // Handle Archipelago settings / setup.
+    APC_ParseCommandLine(&ap_settings, "heretic");
+    ap_settings.override_flip_levels = false; // Not supported by Heretic
 
     //!
     // @category game
@@ -1322,102 +1335,7 @@ void D_DoomMain(void)
     DEH_printf("Z_Init: Init zone memory allocation daemon.\n");
     Z_Init();
 
-    
-    // Grab parameters for AP
-    int apserver_arg_id = M_CheckParmWithArgs("-apserver", 1);
-    if (!apserver_arg_id)
-	    I_Error("Make sure to launch the game using APDoomLauncher.exe.\nThe '-apserver' parameter requires an argument.");
-
-    int player_is_hex = 0;
-    int applayer_arg_id = M_CheckParmWithArgs("-applayer", 1);
-    if (!applayer_arg_id)
-    {
-        applayer_arg_id = M_CheckParmWithArgs("-applayerhex", 1);
-        if (!applayer_arg_id)
-        {
-	        I_Error("Make sure to launch the game using APDoomLauncher.exe.\nThe '-applayer' parameter requires an argument.");
-        }
-        player_is_hex = 1;
-    }
-
-    const char* password = "";
-    if (M_CheckParm("-password"))
-    {
-        int password_arg_id = M_CheckParmWithArgs("-password", 1);
-        if (!password_arg_id)
-	        I_Error("Make sure to launch the game using APDoomLauncher.exe.\nThe '-password' parameter requires an argument.");
-        password = myargv[password_arg_id + 1];
-    }
-
-    GameMission_t mission = heretic;
-    if (M_CheckParm("-game"))
-    {
-        int game_arg_id = M_CheckParmWithArgs("-game", 1);
-        if (!game_arg_id)
-	        I_Error("Make sure to launch the game using APDoomLauncher.exe.\nThe '-game' parameter requires an argument.");
-        const char* game_name = myargv[game_arg_id + 1];
-        if (strcmp(game_name, "heretic") == 0) mission = heretic;
-    }
-
-    int monster_rando_id = M_CheckParmWithArgs("-apmonsterrando", 1);
-    if (monster_rando_id)
-    {
-        ap_settings.override_monster_rando = 1;
-        ap_settings.monster_rando = atoi(myargv[monster_rando_id + 1]);
-    }
-
-    int item_rando_id = M_CheckParmWithArgs("-apitemrando", 1);
-    if (item_rando_id)
-    {
-        ap_settings.override_item_rando = 1;
-        ap_settings.item_rando = atoi(myargv[item_rando_id + 1]);
-    }
-
-    int music_rando_id = M_CheckParmWithArgs("-apmusicrando", 1);
-    if (music_rando_id)
-    {
-        ap_settings.override_music_rando = 1;
-        ap_settings.music_rando = atoi(myargv[music_rando_id + 1]);
-    }
-
-    // Not supported by heretic
-    //int flip_levels_id = M_CheckParmWithArgs("-apfliplevels", 1);
-    //if (flip_levels_id)
-    //{
-    //    ap_settings.override_flip_levels = 1;
-    //    ap_settings.flip_levels = myargv[flip_levels_id + 1];
-    //}
-
-    if (M_CheckParm("-apdeathlinkoff"))
-        ap_settings.force_deathlink_off = 1;
-
-    int reset_level_on_death_id = M_CheckParmWithArgs("-apresetlevelondeath", 1);
-    if (reset_level_on_death_id)
-    {
-        ap_settings.override_reset_level_on_death = 1;
-        ap_settings.reset_level_on_death = atoi(myargv[reset_level_on_death_id + 1]) ? 1 : 0;
-    }
-
     // Initialize AP
-    ap_settings.ip = myargv[apserver_arg_id + 1];
-    if (mission == heretic)
-        ap_settings.game = "Heretic";
-
-    char* player_name = myargv[applayer_arg_id + 1];
-    if (player_is_hex)
-    {
-        int len = strlen(player_name) / 2;
-        char byte_str[3] = {0};
-        for (int i = 0; i < len; ++i)
-        {
-            memcpy(byte_str, player_name + (i * 2), 2);
-            player_name[i] = strtol(byte_str, NULL, 16);
-        }
-        player_name[len] = '\0';
-    }
-    ap_settings.player_name = player_name;
-
-    ap_settings.passwd = password;
     ap_settings.message_callback = on_ap_message;
     ap_settings.give_item_callback = on_ap_give_item;
     ap_settings.victory_callback = on_ap_victory;
@@ -1513,10 +1431,10 @@ void D_DoomMain(void)
     // Load dehacked patches specified on the command line.
     DEH_ParseCommandLine();
     
-    // Always merge Archipelago WAD
-    W_MergeFile("APHERETIC.WAD");
+    // Load PWAD files required to play the specified game.
+    W_ParseAPDefinitions();
 
-    // Load PWAD files.
+    // Load additional PWAD files from command line.
     W_ParseCommandLine();
 
     // [crispy] add wad files from autoload PWAD directories

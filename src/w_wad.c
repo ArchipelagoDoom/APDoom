@@ -172,8 +172,12 @@ wad_file_t *W_AddFile (const char *filename)
         // Name the lump after the base of the filename (without the
         // extension).
 
-	M_ExtractFileBase (filename, fileinfo->name);
-	numfilelumps = 1;
+    // [AP PWAD] if the extension is .DEH, then load it with the name DEHACKED
+    if (!strcasecmp(filename+strlen(filename)-3 , "deh" ) )
+        memcpy(fileinfo->name, "DEHACKED", 8); // don't use strncpy to silence compiler warnings
+    else
+        M_ExtractFileBase (filename, fileinfo->name);
+    numfilelumps = 1;
     }
     else
     {

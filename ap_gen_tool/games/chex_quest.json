@@ -3,18 +3,46 @@
     "world": "chex_quest",
     "codename": "chex_quest",
     "classname": "ChexQuest",
-    "wad": "CHEX.WAD",
+    "iwad": "CHEX.WAD",
+    "load_order": ["CHEX.WAD", "APCHEX.WAD"],
     "item_ids": 380000,
     "loc_ids": 381000,
-    "map_names": [
+    "settings": {},
+
+    "map_info": [
         [
-            "Landing Zone (E1M1)",
-            "Storage Facility (E1M2)",
-            "Laboratory (E1M3)",
-            "Arboretum (E1M4)",
-            "Caverns of Bazoik (E1M5)"
+            {"lump": "E1M1", "name": "Landing Zone (E1M1)"},
+            {"lump": "E1M2", "name": "Storage Facility (E1M2)"},
+            {"lump": "E1M3", "name": "Laboratory (E1M3)"},
+            {"lump": "E1M4", "name": "Arboretum (E1M4)"},
+            {"lump": "E1M5", "name": "Caverns of Bazoik (E1M5)"}
         ]
     ],
+    "game_info":{
+        "ammo": [
+            {"name": "Mini", "max": 200},
+            {"name": "Large", "max": 50},
+            {"name": "Phasing", "max": 300},
+            {"name": "Propulsor", "max": 50}
+        ],
+        "weapons": [
+            {"name": "Bootspoon"},
+            {"name": "Mini zorcher", "ammo_type": "Mini", "starting_ammo": 50},
+            {"name": "Large zorcher", "ammo_type": "Large", "starting_ammo": 30},
+            {"name": "Rapid zorcher", "ammo_type": "Mini"},
+            {"name": "Zorch propulsor", "ammo_type": "Propulsor", "starting_ammo": 10},
+            {"name": "Phasing zorcher", "ammo_type": "Phasing", "starting_ammo": 150},
+            {"name": "LAZ device", "ammo_type": "Phasing", "starting_ammo": 150},
+            {"name": "Super bootspork"}
+        ],
+
+        "hint_auto_complete":{
+            "BLUE": "Blue key",
+            "YELLOW": "Yellow key",
+            "RED": "Red key",
+            "MAP": "Computer area map"
+        }
+    },
     "location_doom_types": {
         "5": "Blue key",
         "6": "Yellow key",

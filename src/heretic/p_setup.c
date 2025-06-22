@@ -28,7 +28,6 @@
 #include "s_sound.h"
 #include "p_extnodes.h"
 
-#include "apheretic_c_def.h"
 #include "apdoom.h"
 
 void P_SpawnMapThing(mapthing_t * mthing, int index);
@@ -91,6 +90,77 @@ unsigned long long hash_seed(unsigned char *str)
 
     return hash;
 }
+
+
+
+// [AP PWAD]
+// Functions for tweaking stuff after loading
+static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_SECTOR_SPECIAL:     sector->special = tweak->value;               break;
+        case TWEAK_SECTOR_TAG:         sector->tag = tweak->value;                   break;
+        case TWEAK_SECTOR_FLOOR:       sector->floorheight = tweak->value;           break;
+        case TWEAK_SECTOR_FLOOR_PIC:   memcpy(sector->floorpic, tweak->string, 8);   break;
+        case TWEAK_SECTOR_CEILING:     sector->ceilingheight = tweak->value;         break;
+        case TWEAK_SECTOR_CEILING_PIC: memcpy(sector->ceilingpic, tweak->string, 8); break;
+        default: break;
+    }
+    printf("P_TweakSector: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakMapThing(mapthing_t *thing, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_MAPTHING_X:     thing->x = tweak->value;     break;
+        case TWEAK_MAPTHING_Y:     thing->y = tweak->value;     break;
+        case TWEAK_MAPTHING_TYPE:  thing->type = tweak->value;  break;
+        case TWEAK_MAPTHING_ANGLE: thing->angle = tweak->value; break;
+        default: break;
+    }
+    printf("P_TweakMapThing: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_HUB_X: hub->x = tweak->value; break;
+        case TWEAK_HUB_Y: hub->y = tweak->value; break;
+        default: break;
+    }
+    printf("P_TweakHub: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_LINEDEF_SPECIAL: linedef->special = tweak->value; break;
+        case TWEAK_LINEDEF_TAG:     linedef->tag = tweak->value;     break;
+        case TWEAK_LINEDEF_FLAGS:   linedef->flags = tweak->value;   break;
+        default: break;
+    }
+    printf("P_TweakLinedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakSidedef(mapsidedef_t *sidedef, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_SIDEDEF_LOWER:  memcpy(sidedef->bottomtexture, tweak->string, 8); break;
+        case TWEAK_SIDEDEF_MIDDLE: memcpy(sidedef->midtexture, tweak->string, 8);    break;
+        case TWEAK_SIDEDEF_UPPER:  memcpy(sidedef->toptexture, tweak->string, 8);    break;
+        case TWEAK_SIDEDEF_X:      sidedef->textureoffset = tweak->value;            break;
+        case TWEAK_SIDEDEF_Y:      sidedef->rowoffset = tweak->value;                break;
+        default: break;
+    }
+    printf("P_TweakSidedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+
 
 /*
 =================
@@ -269,11 +339,12 @@ void P_LoadSectors(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
 
     ms = (mapsector_t *) data;
+    { // [AP PWAD] Alter sector data
+        ap_maptweak_t *tweak;
 
-    if (gameepisode == 1 && gamemap == 7)
-    {
-        ms[74].tag = 3333;
-        sprintf(ms[74].floorpic, "FLOOR28");
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SECTOR_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakSector(&ms[tweak->target], tweak);
     }
 
     ss = sectors;
@@ -584,6 +655,14 @@ void P_LoadThings(int lump)
     int things_type_remap[1024] = {0};
 
     mt = (mapthing_t *)data;
+    { // [AP PWAD] Alter mapthing data
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), MAPTHING_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakMapThing(&mt[tweak->target], tweak);
+    }
+
     for (i = 0; i < numthings; i++, mt++)
     {
         things_type_remap[i] = mt->type;
@@ -977,15 +1056,11 @@ void P_LoadThings(int lump)
         spawnthing.angle = SHORT(mt->angle);
         spawnthing.type = SHORT(things_type_remap[i]);
         spawnthing.options = SHORT(mt->options);
-
-        // [AP] Rarely, but sometimes we need to move the spawning at the bottom of a clift.
-        if (spawnthing.type == 1 && gamemap == 3 && gameepisode == 3) spawnthing.y = -1088;
-        if (spawnthing.type == 1 && gamemap == 5 && gameepisode == 5) spawnthing.x = 320;
-        
+       
         int type_before = spawnthing.type;
 
         // Replace AP locations with AP item
-        if (is_heretic_type_ap_location(spawnthing.type))
+        if (ap_is_location_type(spawnthing.type))
         {
             // Validate that the location index matches what we have in our data. If it doesn't then the WAD is not the same, we can't continue
             int ret = ap_validate_doom_location(ap_make_level_index(gameepisode, gamemap), spawnthing.type, i);
@@ -1022,11 +1097,19 @@ void P_LoadThings(int lump)
         if (spawnthing.type == 1)
             spawnthing_player1_start = spawnthing;
 
-	    P_SpawnMapThing(&spawnthing, i);
+        P_SpawnMapThing(&spawnthing, i);
     }
     
     // [AP] Spawn level select teleport "HUB"
     spawnthing_player1_start.type = 20002;
+    { // [AP PWAD] Alter hub data
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), HUB_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakHub(&spawnthing_player1_start, tweak);
+    }
+
     P_SpawnMapThing(&spawnthing_player1_start, i);
 
     if (!deathmatch)
@@ -1069,18 +1152,15 @@ void P_LoadLineDefs(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
 
     mld = (maplinedef_t *) data;
-    ld = lines;
+    { // [AP PWAD] Alter linedef data
+        ap_maptweak_t *tweak;
 
-
-    // [AP] Add special line changes
-    if (gameepisode == 1 && gamemap == 7)
-    {
-        mld[779].special = 62;
-        mld[779].tag = 3333;
-        mld[779].flags &= ~0x0010; // LINE_FLAGS_LOWER_UNPEGGED;
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), LINEDEF_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakLinedef(&mld[tweak->target], tweak);
     }
 
-
+    ld = lines;
     for (i = 0; i < numlines; i++, mld++, ld++)
     {
         ld->flags = (unsigned short)SHORT(mld->flags); // [crispy] extended nodes
@@ -1159,12 +1239,12 @@ void P_LoadSideDefs(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
 
     msd = (mapsidedef_t *) data;
-    
-    if (gameepisode == 1 && gamemap == 7)
-    {
-        sprintf(msd[1119].bottomtexture, "%s", "METL2");
-        sprintf(msd[1533].bottomtexture, "%s", "METL2");
-        sprintf(msd[2223].bottomtexture, "%s", "METL2");
+    { // [AP PWAD] Alter sidedef data
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SIDEDEF_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakSidedef(&msd[tweak->target], tweak);
     }
 
     sd = sides;

@@ -28,6 +28,37 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
+#include "apdoom.h"
+
+// [AP PWAD]
+boolean W_ParseAPDefinitions(void)
+{
+    int num_pwads = 0;
+
+    while (true)
+    {
+        const char *pwad_name = ap_get_pwad_name(num_pwads);
+        if (!pwad_name)
+        {
+            break;
+        }
+        else
+        {
+            char *filename = D_TryFindWADByName(pwad_name);
+
+            printf(" [AP game definitions] merging %s\n", filename);
+            if (!W_MergeFile(filename))
+                I_Error("Required PWAD file '%s' not found!", pwad_name);
+
+            free(filename);
+            ++num_pwads;
+        }
+    }
+
+    // Don't consider AP*.wad "modifying" the game.
+    return num_pwads > 1;
+}
+
 // Parse the command line, merging WAD files that are sppecified.
 // Returns true if at least one file was added.
 boolean W_ParseCommandLine(void)

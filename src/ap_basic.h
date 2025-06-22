@@ -1,5 +1,6 @@
 //
-// Copyright(C) 2005-2014 Simon Howard
+// Copyright(C) 2023 David St-Louis
+// Copyright(C) 2024 Kay "Kaito" Sinclaire
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -11,24 +12,15 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
-// DESCRIPTION:
-//     Common code to parse command line, identifying WAD files to load.
+//
+// C side AP functions available to all games
 //
 
-#ifndef W_MAIN_H
-#define W_MAIN_H
+#ifndef __AP_BASIC_H__
+#define __AP_BASIC_H__
 
-#include "d_mode.h"
+#include "apdoom.h"
 
-boolean W_ParseAPDefinitions(void);
-boolean W_ParseCommandLine(void);
-void W_CheckCorrectIWAD(GameMission_t mission);
+void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_defs);
 
-int W_MergeDump (const char *file);
-int W_LumpDump (const char *lumpname);
-
-// Autoload all .wad files from the given directory:
-void W_AutoLoadWADs(const char *path);
-
-#endif /* #ifndef W_MAIN_H */
-
+#endif //__AP_BASIC_H__

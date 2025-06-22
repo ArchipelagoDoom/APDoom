@@ -304,6 +304,9 @@ static void triangulate_sector(const std::vector<wall_t>& map_walls, map_t* map,
 }
 
 
+// Used by below two functions if file not present in PWAD
+static std::string fallback_iwad_name;
+
 std::vector<uint8_t> load_lump(const std::vector<map_directory_t>& directory, const char* lump_name, FILE* f)
 {
     for (const auto& dir_entry : directory)
@@ -314,6 +317,36 @@ std::vector<uint8_t> load_lump(const std::vector<map_directory_t>& directory, co
             ret.resize(dir_entry.size);
             fseek(f, dir_entry.offset, SEEK_SET);
             fread(ret.data(), 1, dir_entry.size, f);
+            return ret;
+        }
+    }
+
+    // Presume it's a PWAD and load the IWAD
+    printf("Falling back to IWAD (%s) for %s\n", fallback_iwad_name.c_str(), lump_name);
+    FILE* iwad_f = fopen(fallback_iwad_name.c_str(), "rb");
+    if (!iwad_f)
+    {
+        onut::showMessageBox("Error", std::string("Cannot open file: ") + fallback_iwad_name);
+        exit(1); // Hard kill
+    }
+    
+    // Read header
+    map_header_t iwad_header;
+    fread(&iwad_header, sizeof(iwad_header), 1, iwad_f);
+    
+    // Read directory
+    std::vector<map_directory_t> iwad_directory(iwad_header.num_lumps);
+    fseek(iwad_f, iwad_header.directory_offset, SEEK_SET);
+    fread(iwad_directory.data(), sizeof(map_directory_t), iwad_header.num_lumps, iwad_f);
+
+    for (const auto& dir_entry : iwad_directory)
+    {
+        if (strncmp(dir_entry.name, lump_name, 8) == 0)
+        {
+            std::vector<uint8_t> ret;
+            ret.resize(dir_entry.size);
+            fseek(iwad_f, dir_entry.offset, SEEK_SET);
+            fread(ret.data(), 1, dir_entry.size, iwad_f);
             return ret;
         }
     }
@@ -514,6 +547,8 @@ Color get_color_for_line_type(int special)
 
 void init_wad(const char* filename, game_t& game)
 {
+    fallback_iwad_name = game.iwad_name;
+
     // Load DOOM.WAD
     FILE* f = fopen(filename, "rb");
     if (!f)
@@ -536,7 +571,9 @@ void init_wad(const char* filename, game_t& game)
     fseek(f, header.directory_offset, SEEK_SET);
     fread(directory.data(), sizeof(map_directory_t), header.num_lumps, f);
 
+#if 0
     bool is_doom2 = (game.codename == "doom2" || game.codename == "tnt" || game.codename == "plutonia");
+#endif
 
     // loop directory and find levels, then load them all. YOLO
     for (int i = 0, len = (int)directory.size(); i < len; ++i)
@@ -545,6 +582,7 @@ void init_wad(const char* filename, game_t& game)
         {
             map_t* map = nullptr;
 
+#if 0
             if (is_doom2)
             {
                 // DOOM 2 style
@@ -583,6 +621,28 @@ void init_wad(const char* filename, game_t& game)
                     }
                 }
             }
+#else
+            // Possible future support for EnMnn, MAPnnM, MAPnnN, ?
+            if (!(strlen(dir_entry.name) >= 5 && strncmp(dir_entry.name, "MAP", 3) == 0) &&
+                !(strlen(dir_entry.name) >= 4 && dir_entry.name[0] == 'E' && dir_entry.name[2] == 'M'))
+            {
+                continue;
+            }
+            for (auto& episode : game.episodes)
+            {
+                for (auto& level : episode)
+                {
+                    if (!level.lump_name.compare(dir_entry.name))
+                    {
+                        map = &level.map;
+                        break;
+                    }
+                }
+
+                if (map)
+                    break;
+            }
+#endif
 
             if (!map) continue;
 

@@ -20,16 +20,39 @@ void init_data()
 
         game_t game;
 
+        game.iwad_name = game_json["iwad"].asString(); // The IWAD, lumps get loaded from this if missing in PWAD
+        if (!game_json["pwad"].isNull()) // Making definitions for a PWAD?
+            game.wad_name = game_json["pwad"].asString();
+        else // If not specified, assume the IWAD.
+            game.wad_name = game.iwad_name;
+
+        if (!game_json["load_order"].isNull())
+        {
+            game.pwad_load_order.resize(game_json["load_order"].size());
+            for (int i = 0; i < game_json["load_order"].size(); ++i)
+                game.pwad_load_order[i] = game_json["load_order"][i].asString();
+        }
+
+
         game.name = game_json["name"].asString();
         game.world = game_json["world"].asString();
         game.codename = game_json["codename"].asString();
         game.classname = game_json["classname"].asString();
-        game.wad_name = game_json["wad"].asString();
         game.item_ids = game_json["item_ids"].asInt64();
         game.loc_ids = game_json["loc_ids"].asInt64();
-        game.check_sanity = game_json["check_sanity"].asBool();
 
-        const auto& episodes_json = game_json["map_names"];
+        if (!game_json["settings"].isNull())
+        {
+            game.check_sanity = game_json["settings"].get("check_sanity", false).asBool();
+            game.extended_names = game_json["settings"].get("extended_names", false).asBool();
+        }
+
+        // Sections reserved unchanged
+        game.json_game_info = game_json["game_info"];
+        game.json_map_tweaks = game_json["map_tweaks"];
+        game.json_level_select = game_json["level_select"];
+
+        const auto& episodes_json = game_json["map_info"];
         if (!episodes_json.empty())
         {
             if (episodes_json[0].isArray()) // Episodic
@@ -43,7 +66,8 @@ void init_data()
                     int map = 0;
                     for (const auto& mapname_json : episode_json)
                     {
-                        game.episodes[ep][map].name = mapname_json.asString();
+                        game.episodes[ep][map].name = mapname_json["name"].asString();
+                        game.episodes[ep][map].lump_name = mapname_json["lump"].asString();
                         ++map;
                     }
                     ++ep;

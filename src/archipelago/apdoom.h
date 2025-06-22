@@ -33,12 +33,11 @@ extern "C"
 #define APDOOM_STR2(x) #x
 #define APDOOM_VERSION APDOOM_STR(APDOOM_MAJOR) "." APDOOM_STR(APDOOM_MINOR) "." APDOOM_STR(APDOOM_PATCH)
 #define APDOOM_VERSION_TEXT APDOOM_VERSION ""
-#define APDOOM_VERSION_FULL_TEXT "APDOOM " APDOOM_VERSION_TEXT
+#define APDOOM_VERSION_FULL_TEXT "APDOOM " APDOOM_VERSION_TEXT " PWAD"
 
 
-#define AP_CHECK_MAX 64 // Arbitrary number
-#define AP_MAX_THING 1024 // Twice more than current max for every level
-
+#define AP_CHECK_MAX 128 // Arbitrary number (raised from 64)
+#define AP_MAX_THING 10240 // List is dynamically allocated; this is more to guard against malformed defs
 
 typedef struct
 {
@@ -56,9 +55,11 @@ typedef struct
     int use_skull[3];
     int check_count;
     int thing_count;
-    ap_thing_info_t thing_infos[AP_MAX_THING];
+    ap_thing_info_t* thing_infos; // Dynamically allocated
     int sanity_check_count;
 
+    int game_episode;
+    int game_map;
 } ap_level_info_t;
 
 
@@ -136,6 +137,8 @@ typedef struct
     void (*give_item_callback)(int doom_type, int ep, int map);
     void (*victory_callback)();
 
+    const char* save_dir;
+
     int override_skill; int skill;
     int override_monster_rando; int monster_rando;
     int override_item_rando; int item_rando;
@@ -173,10 +176,146 @@ typedef struct
 } ap_level_index_t;
 
 
+// Map item id
+typedef struct
+{
+    int doom_type;
+    int ep; // If doom_type is a keycard
+    int map; // If doom_type is a keycard
+} ap_item_t;
+
+// ===== PWAD version specific structures =====================================
+// Info on basic game data
+typedef struct {
+    const char *name;
+    int max_ammo;
+} ap_ammo_info_t;
+
+typedef struct {
+    const char *name;
+    int ammo_type;
+    int start_ammo;
+} ap_weapon_info_t;
+
+typedef struct {
+    ap_ammo_info_t *ammo_types;
+    ap_weapon_info_t *weapons;
+
+    int named_ammo_count;
+    int named_weapon_count;
+
+    int start_health;
+    int start_armor;
+
+    const char *pausepic;
+} ap_gameinfo_t;
+
+// All info for a single map on the level select screen
+typedef struct { // All info for a specific map on the level select screen
+    int x;
+    int y;
+
+    struct { // Selection cursor / "You are here"
+        char graphic[9]; // Lump name to display when this map is selected
+        int x;           // Added to base X coordinate of map
+        int y;           // Added to base Y coordinate of map
+    } cursor;
+
+    struct { // Image or text of map name
+        const char *text; // Name of map to display; use either this, or lump name below
+        char graphic[9];  // Lump name to display; use either this, or text above
+        int x;            // Added to base X coordinate of map, in individual mode
+        int y;            // Added to base Y coordinate of map, in individual mode
+    } map_name;
+
+    struct { // Display of keys in map
+        int relative_to;   // 0 == map, 1 == image, 2 == image-right
+        int x;             // Added to base X coordinate of relative choice above
+        int y;             // Added to base Y coordinate of relative choice above
+        int spacing_x;     // Added to each additional key's X coordinate after the first
+        int spacing_y;     // Added to each additional key's Y coordinate after the first
+        int align_x;       // Added to the base X coordinate, multiplied by number of keys
+        int align_y;       // Added to the base Y coordinate, multiplied by number of keys
+        int checkmark_x;   // If checkmark is enabled, added to each additional key's X coordinate
+        int checkmark_y;   // If checkmark is enabled, added to each additional key's Y coordinate
+        int use_checkmark; // 1 == shows all keys, and a checkmark shows if obtained, 0 == only shows obtained keys
+    } keys;
+
+    struct { // Display of check count
+        int relative_to; // 0 == map, 1 == image, 2 == image-right, 3 == keys, 4 == keys-last
+        int x;           // Added to base X coordinate of relative choice above
+        int y;           // Added to base Y coordinate of relative choice above
+    } checks;
+} ap_levelselect_map_t;
+
+// A single screen for the level select
+typedef struct
+{
+    char background_image[9]; // Lump name to use as background
+    int map_names; // negative for upper, positive for lower, zero for individual display
+
+    ap_levelselect_map_t map_info[12];
+} ap_levelselect_t;
+
+// List of all tweaks we allow definitions JSONs to do.
+// X_TWEAKS is used as a mask.
+typedef enum
+{
+    HUB_TWEAKS = 0x00,
+    TWEAK_HUB_X,
+    TWEAK_HUB_Y,
+
+    MAPTHING_TWEAKS = 0x10,
+    TWEAK_MAPTHING_X,
+    TWEAK_MAPTHING_Y,
+    TWEAK_MAPTHING_TYPE,
+    TWEAK_MAPTHING_ANGLE,
+
+    SECTOR_TWEAKS = 0x20,
+    TWEAK_SECTOR_SPECIAL,
+    TWEAK_SECTOR_TAG,
+    TWEAK_SECTOR_FLOOR,
+    TWEAK_SECTOR_FLOOR_PIC,
+    TWEAK_SECTOR_CEILING,
+    TWEAK_SECTOR_CEILING_PIC,
+
+    LINEDEF_TWEAKS = 0x30,
+    TWEAK_LINEDEF_SPECIAL,
+    TWEAK_LINEDEF_TAG,
+    TWEAK_LINEDEF_FLAGS,
+
+    SIDEDEF_TWEAKS = 0x40,
+    TWEAK_SIDEDEF_LOWER,
+    TWEAK_SIDEDEF_MIDDLE,
+    TWEAK_SIDEDEF_UPPER,
+    TWEAK_SIDEDEF_X,
+    TWEAK_SIDEDEF_Y,
+
+    META_TWEAKS = 0xA0,
+    TWEAK_META_BEHAVES_AS,
+
+    TWEAK_TYPE_MASK = 0xF0,
+} allowed_tweaks_t;
+
+typedef struct
+{
+    allowed_tweaks_t type;
+    int target;
+    int value;
+    char string[9];
+} ap_maptweak_t;
+
+typedef struct {
+    const char *input;
+    const char *replace_normal;
+    const char *replace_skull;
+    int key_id;
+} ap_hint_autocomplete_t;
+// ============================================================================
+
 extern ap_state_t ap_state;
 extern int ap_is_in_game; // Don't give items when in menu (Or when dead on the ground).
 extern int ap_episode_count;
-
 
 int apdoom_init(ap_settings_t* settings);
 void apdoom_shutdown();
@@ -201,12 +340,27 @@ void apdoom_on_death();
 void apdoom_clear_death();
 int apdoom_should_die();
 
+ap_level_index_t ap_try_make_level_index(int ep /* 1-based */, int map /* 1-based */);
 ap_level_index_t ap_make_level_index(int ep /* 1-based */, int map /* 1-based */);
 int ap_index_to_ep(ap_level_index_t idx);
 int ap_index_to_map(ap_level_index_t idx);
 
 // Remote data storage (global, or just for our slot if per_slot)
 void ap_remote_set(const char *key, int per_slot, int value);
+
+// ===== PWAD SUPPORT =========================================================
+extern ap_gameinfo_t ap_game_info;
+
+ap_levelselect_t *ap_get_level_select_info(unsigned int ep);
+
+void ap_init_map_tweaks(ap_level_index_t idx, allowed_tweaks_t type_mask);
+ap_maptweak_t *ap_get_map_tweaks();
+
+int ap_preload_defs_for_game(const char *game_name);
+const char *ap_get_iwad_name();
+const char *ap_get_pwad_name(unsigned int id);
+int ap_is_location_type(int doom_type);
+// ============================================================================
 
 #ifdef __cplusplus
 }

@@ -23,10 +23,14 @@
 #include <map>
 #include <set>
 #include <fstream>
-#include <json/json.h>
+#include <onut/Json.h>
 #include <onut/onut.h>
 #include <onut/Strings.h>
 #include <onut/Log.h>
+
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
 
 #include "maps.h"
 #include "generate.h"
@@ -115,6 +119,7 @@ std::map<std::string, std::set<std::string>> item_name_groups;
 std::map<uintptr_t, std::map<int, int64_t>> level_to_keycards;
 std::map<std::string, ap_item_t*> item_map;
 
+static bool use_extended_names = false; // gross hack, but whatever
 
 const char* get_doom_type_name(int doom_type);
 
@@ -146,18 +151,26 @@ bool loc_name_taken(const std::string& name)
     return false;
 }
 
-
 void add_loc(const std::string& name, const map_thing_t& thing, level_t* level, int index, int x, int y)
 {
     // Make sure it's not unreachable
     if (level->map_state->locations[index].unreachable) return;
 
     int count = 0;
+
+    std::string extended_name = level->map_state->locations[index].name;
+
     std::string loc_name = name;
+    if (use_extended_names && extended_name.length() > 0)
+        loc_name = name + " (" + extended_name + ")";
+
     while (loc_name_taken(loc_name))
     {
         ++count;
-        loc_name = name + " " + std::to_string(count + 1);
+        if (use_extended_names && extended_name.length() > 0)
+            loc_name = name + " " + std::to_string(count + 1) + " (" + extended_name + ")";
+        else
+            loc_name = name + " " + std::to_string(count + 1);
     }
 
     ap_location_t loc;
@@ -272,6 +285,7 @@ int generate(game_t* game)
 {
     OLog("AP Gen Tool");
 
+#ifdef _WIN32
     if (OArguments.size() != 3) // Minimum effort validation
     {
         OLogE("Usage: ap_gen_tool.exe python_py_out_dir cpp_py_out_dir poptracker_data_dir\n  i.e: ap_gen_tool.exe C:\\github\\Archipelago\\worlds C:\\github\\apdoom\\src\\archipelago C:\\github\\apdoom\\data\\poptracker");
@@ -279,6 +293,18 @@ int generate(game_t* game)
     }
 
     std::string py_out_dir = OArguments[0] + "\\" + game->world + "\\";
+    std::string cpp_out_dir = OArguments[1] + std::string("\\");
+    std::string pop_tracker_data_dir = OArguments[2] + std::string("\\");
+#else
+    std::string base_path = (OArguments.size() >= 2) ? OArguments[1] : "";
+
+    std::string py_out_dir = base_path + std::string("/") + game->world + std::string("/");
+    std::string cpp_out_dir = base_path + std::string("/") + game->world + std::string("/");
+    std::string pop_tracker_data_dir = base_path + std::string("/") + game->world + std::string("/");
+
+    mkdir(py_out_dir.c_str(), 0755);
+#endif
+
     item_id_base = game->item_ids;
     item_next_id = item_id_base;
     location_next_id = game->loc_ids;
@@ -291,11 +317,10 @@ int generate(game_t* game)
     level_to_keycards.clear();
     item_map.clear();
 
-    std::string cpp_out_dir = OArguments[1] + std::string("\\");
-    std::string pop_tracker_data_dir = OArguments[2] + std::string("\\");
-
     ap_locations.reserve(1000);
     ap_items.reserve(1000);
+
+    use_extended_names = game->extended_names;
 
     for (const auto& def : game->progressions)
         add_item(def.name, def.doom_type, 1, PROGRESSION, def.group);
@@ -775,6 +800,7 @@ class LocationDict(TypedDict, total=False): \n\
     }
 
     // Now generate apdoom_def.h so the game can map the IDs
+#if 0
     {
         FILE* fout = fopen((cpp_out_dir + "ap" + game->codename + "_def.h").c_str(), "w");
         
@@ -909,6 +935,137 @@ class LocationDict(TypedDict, total=False): \n\
         fprintf(fout, "#endif\n");
         fclose(fout);
     }
+#else
+    {
+        Json::Value defs_json;
+
+        defs_json["_game_name"] = game->name;
+        defs_json["_iwad"] = game->iwad_name;
+
+        {
+            int idx = 0;
+            for (std::string &pwad : game->pwad_load_order)
+            {
+                // If we see the IWAD, omit it, because it's implicitly loaded before all
+                if (pwad == game->iwad_name)
+                    continue;
+                defs_json["_pwads"][idx++] = pwad;
+            }
+        }
+
+        // Output location table
+        {
+            std::string episode;
+            std::string map;
+            std::string thing_id;
+            for (const auto& loc : ap_locations)
+            {
+                episode = std::to_string(loc.idx.ep + 1);
+                map = std::to_string(loc.idx.map + 1);
+                thing_id = std::to_string(loc.doom_thing_index);
+                defs_json["location_table"][episode][map][thing_id] = loc.id;
+            }
+        }
+
+        // Output item table
+        {
+            std::string item_id;
+            for (const auto& item : ap_items)
+            {
+                item_id = std::to_string(item.id);
+                defs_json["item_table"][item_id][0] = item.doom_type;
+                if (item.idx.ep >= 0)
+                {
+                    defs_json["item_table"][item_id][1] = item.idx.ep + 1;
+                    defs_json["item_table"][item_id][2] = item.idx.map + 1;
+                }
+            }
+        }
+
+        // Output level info
+        for (int ep = 0; ep < game->ep_count; ++ep)
+        {
+            int map = 0;
+            for (const auto& meta : game->episodes[ep])
+            {
+                auto level = get_level({game->name, ep, map});
+                Json::Value json_level;
+
+                json_level["_name"] = level->name;
+                json_level["key"][0] = level->keys[0];
+                json_level["key"][1] = level->keys[1];
+                json_level["key"][2] = level->keys[2];
+                json_level["use_skull"][0] = level->use_skull[0];
+                json_level["use_skull"][1] = level->use_skull[1];
+                json_level["use_skull"][2] = level->use_skull[2];
+
+                // Split out lump name into gameepisode/gamemap that can easily be used by APDoom
+                const char *lump_name = meta.lump_name.c_str();
+                if (strncmp(lump_name, "MAP", 3) == 0)
+                    json_level["game_map"][0] = 1;
+                else
+                    json_level["game_map"][0] = (lump_name[1] - '0');
+                json_level["game_map"][1] = std::atoi(lump_name + 3);
+
+                Json::Value json_mts;
+                int idx = 0;
+                for (const auto& thing : level->map->things)
+                {
+                    for (const auto& loc : ap_locations)
+                    {
+                        if (loc.idx == level->idx && loc.doom_thing_index == idx)
+                        {
+                            json_mts[idx][0] = thing.type;
+                            json_mts[idx][1] = loc.check_sanity;
+                            break;
+                        }
+                    }
+                    if (json_mts[idx].isNull())
+                        json_mts[idx] = thing.type;
+
+                    ++idx;
+                }
+                json_level["thing_list"] = json_mts;
+
+                defs_json["level_info"][ep][map++] = json_level;
+            }
+        }
+
+        // Output item sprites (used by notification icons)
+        {
+            for (const auto& item : game->progressions)
+                defs_json["type_sprites"][std::to_string(item.doom_type)] = item.sprite;
+            for (const auto& item : game->fillers)
+                defs_json["type_sprites"][std::to_string(item.doom_type)] = item.sprite;
+            for (const auto& item : game->unique_progressions)
+                defs_json["type_sprites"][std::to_string(item.doom_type)] = item.sprite;
+            for (const auto& item : game->unique_fillers)
+                defs_json["type_sprites"][std::to_string(item.doom_type)] = item.sprite;
+            for (const auto& item : game->capacity_upgrades)
+                defs_json["type_sprites"][std::to_string(item.doom_type)] = item.sprite;
+            for (const auto& item : game->keys)
+                defs_json["type_sprites"][std::to_string(item.item.doom_type)] = item.item.sprite;
+        }
+
+        // Output AP location types
+        {
+            int idx = 0;
+            for (const auto& location_doom_type_kv : game->location_doom_types)
+                defs_json["ap_location_types"][idx++] = location_doom_type_kv.first;
+        }
+
+        // Extra structures in data JSON file intended for use in APDoom
+        if (!game->json_game_info.isNull())
+            defs_json["game_info"] = game->json_game_info;
+        if (!game->json_map_tweaks.isNull())
+            defs_json["map_tweaks"] = game->json_map_tweaks;
+        if (!game->json_level_select.isNull())
+            defs_json["level_select"] = game->json_level_select;
+
+        std::string filename = cpp_out_dir + game->codename + ".json";
+        onut::saveJson(defs_json, filename, false);
+    }
+#endif
 
     // Generate Rules.py from regions.json (Manually entered data)
     {

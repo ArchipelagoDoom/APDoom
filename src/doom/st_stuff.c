@@ -649,9 +649,13 @@ static int ST_cheat_spechits()
     dummy.tag = 666;
     if (gamemode == commercial)
     {
+#if 1
+	if (metamap == 7)
+#else
 	if (gamemap == 7 ||
 	// [crispy] Master Levels in PC slot 7
 	(gamemission == pack_master && (gamemap == 14 || gamemap == 15 || gamemap == 16)))
+#endif
 	{
 	    // Mancubi
 	    speciallines += EV_DoFloor(&dummy, lowerFloorToLowest);
@@ -664,17 +668,17 @@ static int ST_cheat_spechits()
     }
     else
     {
-	if (gameepisode == 1)
+	if (metaepisode /* gameepisode */ == 1)
 	    // Barons of Hell
 	    speciallines += EV_DoFloor(&dummy, lowerFloorToLowest);
 	else
-	if (gameepisode == 4)
+	if (metaepisode /* gameepisode */ == 4)
 	{
-	     if (gamemap == 6)
+	     if (metamap /* gamemap */ == 6)
 		// Cyberdemons
 		speciallines += EV_DoDoor(&dummy, vld_blazeOpen);
 	    else
-	    if (gamemap == 8)
+	    if (metamap /* gamemap */ == 8)
 		// Spider Masterminds
 		speciallines += EV_DoFloor(&dummy, lowerFloorToLowest);
 	}

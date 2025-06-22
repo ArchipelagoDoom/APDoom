@@ -45,8 +45,6 @@
 
 #include "p_extnodes.h" // [crispy] support extended node formats
 
-#include "apdoom_c_def.h"
-#include "apdoom2_c_def.h"
 #include "apdoom.h"
 
 void	P_SpawnMapThing (mapthing_t*	mthing, int index);
@@ -131,6 +129,105 @@ fixed_t GetOffset(vertex_t *v1, vertex_t *v2)
     return r;
 }
 
+
+
+// [AP PWAD]
+// Functions for tweaking stuff after loading
+static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_SECTOR_SPECIAL:     sector->special = tweak->value;               break;
+        case TWEAK_SECTOR_TAG:         sector->tag = tweak->value;                   break;
+        case TWEAK_SECTOR_FLOOR:       sector->floorheight = tweak->value;           break;
+        case TWEAK_SECTOR_FLOOR_PIC:   memcpy(sector->floorpic, tweak->string, 8);   break;
+        case TWEAK_SECTOR_CEILING:     sector->ceilingheight = tweak->value;         break;
+        case TWEAK_SECTOR_CEILING_PIC: memcpy(sector->ceilingpic, tweak->string, 8); break;
+        default: break;
+    }
+    printf("P_TweakSector: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakMapThing(mapthing_t *thing, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_MAPTHING_X:     thing->x = tweak->value;     break;
+        case TWEAK_MAPTHING_Y:     thing->y = tweak->value;     break;
+        case TWEAK_MAPTHING_TYPE:  thing->type = tweak->value;  break;
+        case TWEAK_MAPTHING_ANGLE: thing->angle = tweak->value; break;
+        default: break;
+    }
+    printf("P_TweakMapThing: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_HUB_X: hub->x = tweak->value; break;
+        case TWEAK_HUB_Y: hub->y = tweak->value; break;
+        default: break;
+    }
+    printf("P_TweakHub: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_LINEDEF_SPECIAL: linedef->special = tweak->value; break;
+        case TWEAK_LINEDEF_TAG:     linedef->tag = tweak->value;     break;
+        case TWEAK_LINEDEF_FLAGS:   linedef->flags = tweak->value;   break;
+        default: break;
+    }
+    printf("P_TweakLinedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakSidedef(mapsidedef_t *sidedef, ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_SIDEDEF_LOWER:  memcpy(sidedef->bottomtexture, tweak->string, 8); break;
+        case TWEAK_SIDEDEF_MIDDLE: memcpy(sidedef->midtexture, tweak->string, 8);    break;
+        case TWEAK_SIDEDEF_UPPER:  memcpy(sidedef->toptexture, tweak->string, 8);    break;
+        case TWEAK_SIDEDEF_X:      sidedef->textureoffset = tweak->value;            break;
+        case TWEAK_SIDEDEF_Y:      sidedef->rowoffset = tweak->value;                break;
+        default: break;
+    }
+    printf("P_TweakSidedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
+
+static void P_TweakMeta(ap_maptweak_t *tweak)
+{
+    switch (tweak->type)
+    {
+        case TWEAK_META_BEHAVES_AS:
+            // Let any arbitrary map have normally hardcoded hacks applied to it
+            if (strncmp(tweak->string, "MAP", 3) == 0)
+            {
+                metaepisode = 1;
+                metamap = atoi(&tweak->string[3]);
+            }
+            else if (tweak->string[0] == 'E'
+                && tweak->string[1] >= '1' && tweak->string[1] <= '9'
+                && tweak->string[2] == 'M')
+            {
+                metaepisode = (tweak->string[1] - '0');
+                metamap = atoi(&tweak->string[3]);
+            }
+            else if (strncmp(tweak->string, "NORMAL", 6) == 0)
+            { // Ignore normally present hacks
+                metaepisode = 1;
+                metamap = 1;
+            }
+            break;
+
+        default:
+            break;
+    }
+    printf("P_TweakMeta: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+}
 
 
 
@@ -396,15 +493,12 @@ void P_LoadSectors (int lump)
 	I_Error("P_LoadSectors: No sectors in map!");
 
     ms = (mapsector_t *)data;
+    { // [AP PWAD] Alter sector data
+        ap_maptweak_t *tweak;
 
-    if (gamemode == commercial)
-    {
-        // Doom II
-        if (gamemap == 12)
-        {
-            ms[132].tag = 42;
-            sprintf(ms[132].floorpic, "STEP1");
-        }
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SECTOR_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakSector(&ms[tweak->target], tweak);
     }
 
     ss = sectors;
@@ -750,6 +844,14 @@ void P_LoadThings (int lump)
     int things_type_remap[1024] = {0};
 
     mt = (mapthing_t *)data;
+    { // [AP PWAD] Alter mapthing data
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), MAPTHING_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakMapThing(&mt[tweak->target], tweak);
+    }
+
     for (i = 0; i < numthings; i++, mt++)
     {
         things_type_remap[i] = mt->type;
@@ -758,7 +860,9 @@ void P_LoadThings (int lump)
 #define E1M8_CUTOFF_OFFSET 6176
 
     int do_random_monsters = ap_state.random_monsters;
-    if (gamemode == commercial && gamemap == 7) do_random_monsters = 0;
+
+    // [AP PWAD] allow random monsters on DoomII Map7s that don't use tags 666 and 667
+    if (gamemode == commercial && metamap /* gamemap */ == 7) do_random_monsters = 0;
 
     if (do_random_monsters > 0)
     {
@@ -1111,6 +1215,7 @@ void P_LoadThings (int lump)
     }
 	
     mt = (mapthing_t *)data;
+
     for (i=0 ; i<numthings ; i++, mt++)
     {
 	spawn = true;
@@ -1144,11 +1249,10 @@ void P_LoadThings (int lump)
 	spawnthing.type = SHORT(things_type_remap[i]);
 	spawnthing.options = SHORT(mt->options);
 	
-    auto type_before = spawnthing.type;
+    int type_before = spawnthing.type;
 
         // Replace AP locations with AP item
-        if ((gamemode != commercial && is_doom_type_ap_location(spawnthing.type)) ||
-            (gamemode == commercial && is_doom2_type_ap_location(spawnthing.type)))
+        if (ap_is_location_type(spawnthing.type))
         {
             // Validate that the location index matches what we have in our data. If it doesn't then the WAD is not the same, we can't continue
             int ret = ap_validate_doom_location(ap_make_level_index(gameepisode, gamemap), spawnthing.type, i);
@@ -1191,6 +1295,14 @@ void P_LoadThings (int lump)
 
     // [AP] Spawn level select teleport "HUB"
     spawnthing_player1_start.type = 20002;
+    { // [AP PWAD] Alter hub data
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), HUB_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakHub(&spawnthing_player1_start, tweak);
+    }
+
     P_SpawnMapThing(&spawnthing_player1_start, i);
 
     if (!deathmatch)
@@ -1229,50 +1341,16 @@ void P_LoadLineDefs (int lump)
     data = W_CacheLumpNum (lump,PU_STATIC);
 	
     mld = (maplinedef_t *)data;
+    { // [AP PWAD] Alter linedef data
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), LINEDEF_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakLinedef(&mld[tweak->target], tweak);
+    }
+
     ld = lines;
     warn = warn2 = 0; // [crispy] warn about invalid linedefs
-
-
-
-    // [AP] If the multiworld was generacted with 2 way keydoors, we need to fix those doors to be 2 ways
-    if (gamemode == commercial)
-    {
-        // Doom II
-        if (gamemap == 2)
-        {
-            mld[390].special = 1;
-        }
-        else if (gamemap == 12)
-        {
-            mld[271].special = 62;
-            mld[271].tag = 42;
-            mld[271].flags &= ~0x0010; // LINE_FLAGS_LOWER_UNPEGGED;
-        }
-    }
-    else
-    {
-        // Ultimate Doom
-        if (gameepisode == 2 && gamemap == 6 && ap_state.two_ways_keydoors)
-            mld[620].special = 27; // Yellow keycard
-        else if (gameepisode == 3 && gamemap == 9 && ap_state.two_ways_keydoors)
-            mld[195].special = 32; // Blue keycard
-
-        // [AP] Can be softlocked if coming back to that level after boss is dead, make sure to disable it's triggers that closes the doors
-        else if (gameepisode == 2 && gamemap == 8)
-        {
-            for (i = 140; i <= 143; ++i)
-            {
-                mld[i].special = 0;
-                mld[i].tag = 0;
-            }
-        }
-
-        // [AP] We can get stuck and not able to come back to the HUB. Make sure the entrance door can be re-openned from the other side
-        else if (gameepisode == 4 && gamemap == 8)
-            mld[96].special = 61; // Stay open
-    }
-
-
 
     for (i=0 ; i<numlines ; i++, mld++, ld++)
     {
@@ -1414,20 +1492,12 @@ void P_LoadSideDefs (int lump)
     data = W_CacheLumpNum (lump,PU_STATIC);
 	
     msd = (mapsidedef_t *)data;
+    { // [AP PWAD] Alter sidedef data
+        ap_maptweak_t *tweak;
 
-    if (gamemode == commercial)
-    {
-        // Doom II
-        if (gamemap == 2)
-        {
-            sprintf(msd[584].midtexture, "%s", "SHAWN2");
-            sprintf(msd[589].midtexture, "%s", "SHAWN2");
-        }
-        else if (gamemap == 12)
-        {
-            memcpy(msd[366].bottomtexture, "SUPPORT2", 8);
-            memcpy(msd[316].bottomtexture, "SUPPORT2", 8);
-        }
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SIDEDEF_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakSidedef(&msd[tweak->target], tweak);
     }
 
     sd = sides;
@@ -1833,6 +1903,17 @@ P_SetupLevel
     int		lumpnum;
     boolean	crispy_validblockmap;
     mapformat_t	crispy_mapformat;
+
+    // [AP PWAD] map metadata
+    metaepisode = gameepisode;
+    metamap = gamemap;
+    {
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), META_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakMeta(tweak);
+    }
 	
     totalkills = totalitems = totalsecret = wminfo.maxfrags = 0;
     // [crispy] count spawned monsters
