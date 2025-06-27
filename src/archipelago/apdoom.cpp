@@ -41,6 +41,7 @@
 #include <set>
 
 #include "apdoom_pwad.hpp"
+#include "autodefs.hpp"
 
 #if defined(_WIN32)
 static wchar_t *ConvertMultiByteToWide(const char *str, UINT code_page)
@@ -266,20 +267,47 @@ static type_sprites_storage_t preloaded_type_sprites; // <int doomednum, std::st
 
 // ----------------------------------------------------------------------------
 
+static Json::Value open_defs(const char *game_name)
+{
+	Json::Value retval;
+
+	std::string filename = std::string("games/") + game_name + std::string(".json");
+	std::ifstream f(filename);
+
+	// Prefer external game json, when it's available.
+	if (f.is_open())
+	{
+		f >> retval;
+		f.close();
+		printf("APDOOM: Loading game \"%s\" from %s\n", game_name, filename.c_str());
+	}
+
+	// If not available externally, maybe we have it in autodefs?
+	else
+	{
+		for (int i = 0; autodefs[i].name; ++i)
+		{
+			if (!strcasecmp(autodefs[i].name, game_name))
+			{
+				std::istringstream af(autodefs[i].raw_json);
+				af >> retval;
+				printf("APDOOM: Loading game \"%s\" from internal games list\n", game_name);
+				break;
+			}
+		}
+	}
+
+	if (retval.isNull())
+		printf("APDOOM: Can't find a suitable game file for \"%s\"\n", game_name);
+	return retval;
+}
+
 // Returns positive on successful load, 0 for failure.
 int ap_preload_defs_for_game(const char *game_name)
 {
-	std::string filename = std::string("defs/") + game_name + std::string(".json");
-	std::ifstream f(filename);
-	if (!f.is_open())
-	{
-		printf("APDOOM: Can't find a definitions file for \"%s\" in the \"defs\" folder\n", game_name);
+	Json::Value defs_json = open_defs(game_name);
+	if (defs_json.isNull())
 		return 0;
-	}
-
-	Json::Value defs_json;
-	f >> defs_json;
-	f.close();
 
 	archipelago_game_name = defs_json["_game_name"].asString();
 
@@ -311,7 +339,7 @@ int ap_preload_defs_for_game(const char *game_name)
 		|| !json_parse_game_info(defs_json["game_info"], ap_game_info)
 	)
 	{
-		printf("APDOOM: Errors occurred while loading \"%s\".\n", filename.c_str());
+		printf("APDOOM: Errors occurred while loading \"%s\".\n", game_name);
 		return 0;
 	}
 	return 1;
