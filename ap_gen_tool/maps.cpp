@@ -2,6 +2,7 @@
 
 #include <onut/onut.h>
 #include <onut/Dialogs.h>
+#include <onut/Strings.h>
 #include <onut/Point.h>
 
 #include "earcut.hpp"
@@ -32,10 +33,9 @@ struct nth<1, Point> {
 } // namespace mapbox
 
 
-#define	NF_SUBSECTOR_VANILLA	0x8000
-#define	NF_SUBSECTOR	0x80000000 // [crispy] extended nodes
-#define	NO_INDEX	((unsigned short)-1) // [crispy] extended nodes
-
+// ============================================================================
+// Loading WADs, and lumps from them
+// ============================================================================
 
 struct map_header_t
 {
@@ -44,13 +44,125 @@ struct map_header_t
     int32_t directory_offset;
 };
 
-
 struct map_directory_t
 {
     int32_t offset;
     int32_t size;
     char name[8];
 };
+
+struct remap_entry_t
+{
+    char _from[8]; // not null terminated
+    char _to[8]; // not null terminated
+
+    remap_entry_t(const char *from, const char *to)
+    {
+        strncpy(_from, from, 8);
+        strncpy(_to, to, 8);
+    }
+
+    bool rename(map_directory_t& entry)
+    {
+        char copy[8]; // not null terminated
+
+        for (int i = 0, copy_pos = 0; i < 8; ++i)
+        {
+            if (_from[i] == '?')
+                copy[copy_pos++] = entry.name[i];
+            else if (_from[i] != entry.name[i])
+                return false;
+            else if (_from[i] == '\0')
+                break;
+        }
+        for (int i = 0, copy_pos = 0; i < 8; ++i)
+        {
+            entry.name[i] = (_to[i] == '?' ? copy[copy_pos++] : _to[i]);
+            if (_to[i] == '\0')
+                break;
+        }
+        return true;
+    }
+};
+
+struct game_wad_t
+{
+    std::string filename;
+    FILE *handle;
+    std::vector<map_directory_t> directory;
+
+    game_wad_t(std::string& fn) : filename(fn)
+    {
+        handle = fopen(filename.c_str(), "rb");
+        if (!handle)
+            handle = fopen(("wads/"+filename).c_str(), "rb");
+        if (!handle)
+            throw std::runtime_error(std::string("Cannot open file: ") + filename);
+
+        // Read header
+        map_header_t header;
+        fread(&header, sizeof(header), 1, handle);
+        if (strncmp(header.identification, "PWAD", 4) != 0 && strncmp(header.identification, "IWAD", 4) != 0)
+        {
+            fclose(handle);
+            throw std::runtime_error(std::string("Invalid IWAD or PWAD: ") + filename);
+        }
+
+        directory.resize(header.num_lumps);
+        fseek(handle, header.directory_offset, SEEK_SET);
+        fread(directory.data(), sizeof(map_directory_t), header.num_lumps, handle);
+    }
+
+    void rename_lumps(std::vector<remap_entry_t>& remap_table)
+    {
+        if (remap_table.empty())
+            return;
+        for (map_directory_t &entry : directory)
+        {
+            for (remap_entry_t &remap : remap_table)
+            {
+                if (remap.rename(entry))
+                    break;
+            }
+        }
+    }
+};
+
+int find_lump_in_directory(const std::vector<map_directory_t>& directory, const char* lump_name)
+{
+    int len = directory.size();
+    for (int i = 0; i < len; ++i)
+    {
+        if (!strncmp(directory[i].name, lump_name, 8))
+            return i;
+    }
+    return -1;
+}
+
+std::vector<uint8_t> load_lump(const std::vector<game_wad_t>& wad_list, const char* lump_name)
+{
+    // Load from last wad to first, as that's how it's handled in game
+    for (int i = wad_list.size() - 1; i >= 0; --i)
+    {
+        int result = find_lump_in_directory(wad_list[i].directory, lump_name);
+        if (result < 0)
+            continue;
+
+        const map_directory_t &dir_entry = wad_list[i].directory[result];
+        std::vector<uint8_t> ret;
+        ret.resize(dir_entry.size);
+        fseek(wad_list[i].handle, dir_entry.offset, SEEK_SET);
+        fread(ret.data(), 1, dir_entry.size, wad_list[i].handle);
+        return ret;
+    }
+    return {};
+}
+
+// ============================================================================
+
+#define	NF_SUBSECTOR_VANILLA	0x8000
+#define	NF_SUBSECTOR	0x80000000 // [crispy] extended nodes
+#define	NO_INDEX	((unsigned short)-1) // [crispy] extended nodes
 
 
 struct patch_header_t
@@ -178,7 +290,7 @@ static void create_wall(std::vector<wall_t>& map_walls, map_t* map, int16_t line
 {
     const auto &linedef = map->linedefs[linedef_idx];
     const auto &sidedef = map->sidedefs[sidedef_idx];
-    const auto &sectordef = map->sectors[sidedef.sector];
+    //const auto &sectordef = map->sectors[sidedef.sector]; // note: unused?
 
     auto &sector = map->sectors[sidedef.sector];
 
@@ -303,60 +415,9 @@ static void triangulate_sector(const std::vector<wall_t>& map_walls, map_t* map,
     }
 }
 
-
-// Used by below two functions if file not present in PWAD
-static std::string fallback_iwad_name;
-
-std::vector<uint8_t> load_lump(const std::vector<map_directory_t>& directory, const char* lump_name, FILE* f)
+OTextureRef load_sprite(const std::vector<game_wad_t>& wad_list, const char* lump_name, const uint8_t* pal)
 {
-    for (const auto& dir_entry : directory)
-    {
-        if (strncmp(dir_entry.name, lump_name, 8) == 0)
-        {
-            std::vector<uint8_t> ret;
-            ret.resize(dir_entry.size);
-            fseek(f, dir_entry.offset, SEEK_SET);
-            fread(ret.data(), 1, dir_entry.size, f);
-            return ret;
-        }
-    }
-
-    // Presume it's a PWAD and load the IWAD
-    printf("Falling back to IWAD (%s) for %s\n", fallback_iwad_name.c_str(), lump_name);
-    FILE* iwad_f = fopen(fallback_iwad_name.c_str(), "rb");
-    if (!iwad_f)
-    {
-        onut::showMessageBox("Error", std::string("Cannot open file: ") + fallback_iwad_name);
-        exit(1); // Hard kill
-    }
-    
-    // Read header
-    map_header_t iwad_header;
-    fread(&iwad_header, sizeof(iwad_header), 1, iwad_f);
-    
-    // Read directory
-    std::vector<map_directory_t> iwad_directory(iwad_header.num_lumps);
-    fseek(iwad_f, iwad_header.directory_offset, SEEK_SET);
-    fread(iwad_directory.data(), sizeof(map_directory_t), iwad_header.num_lumps, iwad_f);
-
-    for (const auto& dir_entry : iwad_directory)
-    {
-        if (strncmp(dir_entry.name, lump_name, 8) == 0)
-        {
-            std::vector<uint8_t> ret;
-            ret.resize(dir_entry.size);
-            fseek(iwad_f, dir_entry.offset, SEEK_SET);
-            fread(ret.data(), 1, dir_entry.size, iwad_f);
-            return ret;
-        }
-    }
-    return {};
-}
-
-
-OTextureRef load_sprite(const std::vector<map_directory_t>& directory, const char* lump_name, FILE* f, const uint8_t* pal)
-{
-    auto raw_data = load_lump(directory, lump_name, f);
+    auto raw_data = load_lump(wad_list, lump_name);
     if (raw_data.empty()) return nullptr;
 
     patch_header_t header;
@@ -392,7 +453,6 @@ OTextureRef load_sprite(const std::vector<map_directory_t>& directory, const cha
     delete[] columnofs;
     return OTexture::createFromData(img_data.data(), {header.width, header.height}, false);
 }
-
 
 Color get_color_for_line_type(int special)
 {
@@ -544,109 +604,84 @@ Color get_color_for_line_type(int special)
     return Color(1, 1, 1);
 }
 
-
-void init_wad(const char* filename, game_t& game)
+bool init_maps(game_t& game)
 {
-    fallback_iwad_name = game.iwad_name;
+    std::vector<game_wad_t> wad_list;
 
-    // Load DOOM.WAD
-    FILE* f = fopen(filename, "rb");
-    if (!f)
+    try
     {
-        onut::showMessageBox("Error", std::string("Cannot open file: ") + filename);
-        exit(1); // Hard kill
-    }
-    
-    // Read header
-    map_header_t header;
-    fread(&header, sizeof(header), 1, f);
-    if (strncmp(header.identification, "PWAD", 4) != 0 && strncmp(header.identification, "IWAD", 4) != 0)
-    {
-        onut::showMessageBox("Error", std::string("Invalid IWAD or PWAD: ") + filename);
-        exit(1); // Hard kill
-    }
-    
-    // Read directory
-    std::vector<map_directory_t> directory(header.num_lumps);
-    fseek(f, header.directory_offset, SEEK_SET);
-    fread(directory.data(), sizeof(map_directory_t), header.num_lumps, f);
-
-#if 0
-    bool is_doom2 = (game.codename == "doom2" || game.codename == "tnt" || game.codename == "plutonia");
-#endif
-
-    // loop directory and find levels, then load them all. YOLO
-    for (int i = 0, len = (int)directory.size(); i < len; ++i)
-    {
-        const auto &dir_entry = directory[i];
+        // Load IWAD first, then any required PWADs in order
+        wad_list.push_back(game.iwad_name);
+        for (std::string &pwad : game.required_wads)
         {
-            map_t* map = nullptr;
+            // Do not attempt to load non-WADs! (e.g. STRAIN.DEH)
+            if (onut::toLower(pwad.substr(pwad.size() - 4)) == ".wad")
+                wad_list.push_back(pwad);
+        }
+    }
+    catch (const std::runtime_error& e)
+    {
+        for (game_wad_t &wad : wad_list)
+        {
+            if (wad.handle)
+                fclose(wad.handle);
+        }
+        return false;
+    }
 
-#if 0
-            if (is_doom2)
-            {
-                // DOOM 2 style
-                if (strlen(dir_entry.name) == 5 && strncmp(dir_entry.name, "MAP", 3) == 0)
-                {
-                    auto lvl = std::atoi(dir_entry.name + 3) - 1;
-                    if (lvl >= 0)
-                    {
-                        for (auto& episode : game.episodes)
-                        {
-                            if (lvl < (int)episode.size())
-                            {
-                                map = &episode[lvl].map;
-                                break;
-                            }
-                            lvl -= (int)episode.size();
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // DOOM 1 style
-                if (strlen(dir_entry.name) == 4 && dir_entry.name[0] == 'E' && dir_entry.name[2] == 'M')
-                {
-                    // That's a level!
-                    auto ep = dir_entry.name[1] - '1';
-                    auto lvl = dir_entry.name[3] - '1';
+    if (game.json_rename_lumps.isObject())
+    {
+        const auto &rename_lumps_wad_list = game.json_rename_lumps.getMemberNames();
+        for (const std::string& remap_wad_name : rename_lumps_wad_list)
+        {
+            Json::Value& json_remap_table = game.json_rename_lumps[remap_wad_name];
+            std::vector<remap_entry_t> remap_table;
 
-                    if (ep >= 0 && ep < game.ep_count)
-                    {
-                        if (lvl >= 0 && lvl < (int)game.episodes[ep].size())
-                        {
-                            map = &game.episodes[ep][lvl].map;
-                        }
-                    }
-                }
-            }
-#else
-            // Possible future support for EnMnn, MAPnnM, MAPnnN, ?
-            if (!(strlen(dir_entry.name) >= 5 && strncmp(dir_entry.name, "MAP", 3) == 0) &&
-                !(strlen(dir_entry.name) >= 4 && dir_entry.name[0] == 'E' && dir_entry.name[2] == 'M'))
+            for (game_wad_t &wad : wad_list)
             {
-                continue;
-            }
-            for (auto& episode : game.episodes)
-            {
-                for (auto& level : episode)
-                {
-                    if (!level.lump_name.compare(dir_entry.name))
-                    {
-                        map = &level.map;
-                        break;
-                    }
-                }
+                if (wad.filename != remap_wad_name)
+                    continue;
 
-                if (map)
+                const auto &remap_table_list = json_remap_table.getMemberNames();
+                for (const std::string& remap_key : remap_table_list)
+                {
+                    std::string remap_value = json_remap_table[remap_key].asString();
+                    remap_table.push_back({remap_key.c_str(), remap_value.c_str()});
+                }
+                wad.rename_lumps(remap_table);
+                break;
+            }            
+        }
+
+    }
+
+    for (auto& episode : game.episodes)
+    {
+        for (auto& level : episode)
+        {
+            map_t *map = &level.map;
+            const std::vector<map_directory_t> *d_ptr;
+            FILE *f;
+
+            int dir_ent_num = -1;
+            for (game_wad_t &wad : wad_list)
+            {
+                if (wad.filename == level.wad_name)
+                {
+                    d_ptr = &wad.directory;
+                    f = wad.handle;
+                    dir_ent_num = find_lump_in_directory(wad.directory, level.lump_name.c_str());
                     break;
+                }
             }
-#endif
 
-            if (!map) continue;
+            if (dir_ent_num < 0)
+                continue;
+            const std::vector<map_directory_t> &directory = *d_ptr;
 
-            ++i;
+            int i = dir_ent_num + 1;
+            int len = directory.size();
+
             for (; i < len; ++i)
             {
                 const auto &dir_entry = directory[i];
@@ -665,7 +700,7 @@ void init_wad(const char* filename, game_t& game)
             }
 
             // Adjust things based on map tweaks. Only things matter enough to do this for
-            const Json::Value &tweaks = game.json_map_tweaks.get(dir_entry.name, {});
+            const Json::Value &tweaks = game.json_map_tweaks.get(level.lump_name, {});
             const auto& tweak_thing_ids = tweaks.get("things", {}).getMemberNames();
             for (const auto& tweak_id : tweak_thing_ids)
             {
@@ -815,25 +850,24 @@ void init_wad(const char* filename, game_t& game)
     }
 
     // Load palette
-    auto pal = load_lump(directory, "PLAYPAL", f);
+    auto pal = load_lump(wad_list, "PLAYPAL");
 
     // Load sprites for item requirements
     for (auto& item_requirement : game.item_requirements)
     {
         if (item_requirement.sprite != "")
         {
-            item_requirement.icon = load_sprite(directory, item_requirement.sprite.c_str(), f, pal.data());
+            item_requirement.icon = load_sprite(wad_list, item_requirement.sprite.c_str(), pal.data());
         }
     }
 
     // close file
-    fclose(f);
-}
-
-
-void init_maps(game_t& game)
-{
-    init_wad(game.wad_name.c_str(), game);
+    for (game_wad_t &wad : wad_list)
+    {
+        if (wad.handle)
+            fclose(wad.handle);
+    }
+    return true;
 }
 
 

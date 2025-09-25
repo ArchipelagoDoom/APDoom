@@ -1145,11 +1145,6 @@
                      {
                         "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 3
-                     },
-                     {
-                        "requirements_and" : [],
-                        "requirements_or" : [ 6, 5 ],
                         "target_region" : 0
                      }
                   ],
@@ -1206,11 +1201,6 @@
                "name" : "Ledge",
                "rules" : {
                   "connections" : [
-                     {
-                        "requirements_and" : [],
-                        "requirements_or" : [],
-                        "target_region" : 0
-                     },
                      {
                         "requirements_and" : [],
                         "requirements_or" : [],
@@ -5160,12 +5150,12 @@
                      {
                         "requirements_and" : [ 39 ],
                         "requirements_or" : [],
-                        "target_region" : 1
+                        "target_region" : 3
                      },
                      {
-                        "requirements_and" : [ 39 ],
+                        "requirements_and" : [ -4 ],
                         "requirements_or" : [],
-                        "target_region" : 3
+                        "target_region" : 4
                      }
                   ],
                   "x" : -4753,
@@ -5318,39 +5308,20 @@
                "tint" : [ 1, 1, 1, 1 ]
             },
             {
-               "name" : "Yellow",
+               "name" : "Yellow + OoB",
                "rules" : {
                   "connections" : [
                      {
-                        "requirements_and" : [],
+                        "requirements_and" : [ 39 ],
                         "requirements_or" : [],
-                        "target_region" : 0
+                        "target_region" : 3
                      }
                   ],
-                  "x" : -4759,
-                  "y" : 1771
+                  "x" : -6541,
+                  "y" : 1572
                },
-               "sectors" : [
-                  32,
-                  33,
-                  34,
-                  35,
-                  36,
-                  39,
-                  43,
-                  44,
-                  45,
-                  46,
-                  47,
-                  48,
-                  49,
-                  50,
-                  51,
-                  52,
-                  53,
-                  54
-               ],
-               "tint" : [ 1, 0.91176474094390869, 0, 1 ]
+               "sectors" : [ 39, 43, 44, 45, 46, 47, 48, 51, 52, 53, 54 ],
+               "tint" : [ 1, 0.5, 0, 1 ]
             },
             {
                "name" : "Blue Yellow Red",
@@ -5374,20 +5345,67 @@
                "tint" : [ 1, 0, 0.91176509857177734, 1 ]
             },
             {
-               "name" : "One way Yellow",
+               "name" : "Yellow",
                "rules" : {
                   "connections" : [
                      {
                         "requirements_and" : [ 39 ],
                         "requirements_or" : [],
                         "target_region" : 0
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 1
                      }
                   ],
                   "x" : -6544,
                   "y" : 615
                },
-               "sectors" : [ 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 80, 82 ],
-               "tint" : [ 1, 0.44117647409439087, 0, 1 ]
+               "sectors" : [
+                  32,
+                  33,
+                  34,
+                  35,
+                  36,
+                  49,
+                  50,
+                  68,
+                  69,
+                  70,
+                  71,
+                  72,
+                  73,
+                  74,
+                  75,
+                  76,
+                  77,
+                  78,
+                  80,
+                  82
+               ],
+               "tint" : [ 1, 0.97058826684951782, 0, 1 ]
+            },
+            {
+               "name" : "Void Glide",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : -4760,
+                  "y" : 1565
+               },
+               "sectors" : [],
+               "tint" : [ 0.029411792755126953, 1, 0, 1 ]
             }
          ],
          "world_rules" : {
@@ -5581,7 +5599,7 @@
                         "target_region" : 2
                      },
                      {
-                        "requirements_and" : [ 2003, -2 ],
+                        "requirements_and" : [ 2003, -4 ],
                         "requirements_or" : [],
                         "target_region" : 5
                      }
@@ -6245,6 +6263,11 @@
                         "requirements_and" : [ 39 ],
                         "requirements_or" : [],
                         "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
                   "x" : 2841,
@@ -6305,6 +6328,32 @@
                },
                "sectors" : [ 15, 16 ],
                "tint" : [ 1, 1, 0, 1 ]
+            },
+            {
+               "name" : "Item Grabs",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : 4476,
+                  "y" : 903
+               },
+               "sectors" : [],
+               "tint" : [ 0, 1, 0.029411554336547852, 1 ]
             }
          ],
          "world_rules" : {
@@ -8489,7 +8538,7 @@
                         "target_region" : 3
                      },
                      {
-                        "requirements_and" : [],
+                        "requirements_and" : [ -3 ],
                         "requirements_or" : [],
                         "target_region" : 5
                      }
@@ -9472,7 +9521,7 @@
                "rules" : {
                   "connections" : [
                      {
-                        "requirements_and" : [],
+                        "requirements_and" : [ -3 ],
                         "requirements_or" : [],
                         "target_region" : 3
                      },
@@ -9686,6 +9735,11 @@
                         "requirements_and" : [],
                         "requirements_or" : [],
                         "target_region" : -1
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 2
                      }
                   ],
                   "x" : -3732,
@@ -10161,8 +10215,8 @@
          "ep" : 3,
          "exit_rules" : {
             "connections" : [],
-            "x" : -7175,
-            "y" : -63
+            "x" : -8695,
+            "y" : 816
          },
          "locations" : [
             {
@@ -10362,13 +10416,18 @@
                      {
                         "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 3
+                        "target_region" : -2
+                     },
+                     {
+                        "requirements_and" : [ 39 ],
+                        "requirements_or" : [],
+                        "target_region" : 2
                      }
                   ],
-                  "x" : -5525,
-                  "y" : 977
+                  "x" : -8697,
+                  "y" : -82
                },
-               "sectors" : [ 130 ],
+               "sectors" : [ 125, 126, 127, 128, 130, 133, 134 ],
                "tint" : [ 1, 0.94117647409439087, 0, 1 ]
             },
             {
@@ -10376,15 +10435,55 @@
                "rules" : {
                   "connections" : [
                      {
-                        "requirements_and" : [],
+                        "requirements_and" : [ 39 ],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     },
+                     {
+                        "requirements_and" : [ 40 ],
                         "requirements_or" : [],
                         "target_region" : 3
                      }
                   ],
-                  "x" : -5531,
-                  "y" : -993
+                  "x" : -7103,
+                  "y" : -88
                },
-               "sectors" : [ 144 ],
+               "sectors" : [
+                  110,
+                  111,
+                  112,
+                  113,
+                  114,
+                  115,
+                  116,
+                  117,
+                  118,
+                  119,
+                  120,
+                  121,
+                  124,
+                  129,
+                  131,
+                  132,
+                  136,
+                  137,
+                  138,
+                  139,
+                  140,
+                  141,
+                  143,
+                  144,
+                  145,
+                  146,
+                  147,
+                  148,
+                  149,
+                  150,
+                  151,
+                  152,
+                  153,
+                  154
+               ],
                "tint" : [ 0.14705848693847656, 0, 1, 1 ]
             },
             {
@@ -10397,23 +10496,18 @@
                         "target_region" : 0
                      },
                      {
-                        "requirements_and" : [ 39 ],
-                        "requirements_or" : [],
-                        "target_region" : 1
-                     },
-                     {
                         "requirements_and" : [ 40 ],
                         "requirements_or" : [],
                         "target_region" : 2
                      },
                      {
-                        "requirements_and" : [],
+                        "requirements_and" : [ -3 ],
                         "requirements_or" : [],
-                        "target_region" : -2
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -5534,
-                  "y" : -74
+                  "x" : -5505,
+                  "y" : -90
                },
                "sectors" : [
                   47,
@@ -10445,46 +10539,7 @@
                   83,
                   84,
                   85,
-                  110,
-                  111,
-                  112,
-                  113,
-                  114,
-                  115,
-                  116,
-                  117,
-                  118,
-                  119,
-                  120,
-                  121,
-                  124,
-                  125,
-                  126,
-                  127,
-                  128,
-                  129,
-                  131,
-                  132,
-                  133,
-                  134,
-                  136,
-                  137,
-                  138,
-                  139,
-                  140,
-                  141,
                   142,
-                  143,
-                  145,
-                  146,
-                  147,
-                  148,
-                  149,
-                  150,
-                  151,
-                  152,
-                  153,
-                  154,
                   155,
                   156,
                   157,
@@ -10502,6 +10557,27 @@
                   169
                ],
                "tint" : [ 1, 0, 0, 1 ]
+            },
+            {
+               "name" : "Trivial Movement",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : -7098,
+                  "y" : 783
+               },
+               "sectors" : [],
+               "tint" : [ 0, 1, 0.26470565795898438, 1 ]
             }
          ],
          "world_rules" : {
@@ -10960,7 +11036,7 @@
                   219,
                   220
                ],
-               "tint" : [ 1, 0.098039209842681885, 0.44290649890899658, 1 ]
+               "tint" : [ 0.93137252330780029, 0.09587656706571579, 0.53819835186004639, 1 ]
             },
             {
                "name" : "Yellow",
@@ -12406,8 +12482,8 @@
          "world_rules" : {
             "connections" : [
                {
-                  "requirements_and" : [ 2001, 2002, 2003, 2004, 2006 ],
-                  "requirements_or" : [],
+                  "requirements_and" : [ 2001, 2002, 2003 ],
+                  "requirements_or" : [ 2006, 2004 ],
                   "target_region" : 0
                }
             ],

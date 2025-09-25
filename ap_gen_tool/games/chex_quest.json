@@ -1,23 +1,44 @@
 {
-    "name": "Chex Quest",
-    "world": "chex_quest",
-    "codename": "chex_quest",
+    "full_name": "Chex Quest",
+    "short_name": "chex",
+    "ap_name": "Chex Quest",
+    "ap_world_name": "chexquest",
     "classname": "ChexQuest",
+
     "iwad": "CHEX.WAD",
-    "load_order": ["CHEX.WAD", "APCHEX.WAD"],
-    "item_ids": 380000,
-    "loc_ids": 381000,
     "settings": {},
 
-    "map_info": [
-        [
-            {"lump": "E1M1", "name": "Landing Zone (E1M1)"},
-            {"lump": "E1M2", "name": "Storage Facility (E1M2)"},
-            {"lump": "E1M3", "name": "Laboratory (E1M3)"},
-            {"lump": "E1M4", "name": "Arboretum (E1M4)"},
-            {"lump": "E1M5", "name": "Caverns of Bazoik (E1M5)"}
-        ]
+    "episodes": [
+        {
+            "maps": [
+                {"lump": "E1M1", "name": "Landing Zone (E1M1)"},
+                {"lump": "E1M2", "name": "Storage Facility (E1M2)"},
+                {"lump": "E1M3", "name": "Laboratory (E1M3)"},
+                {"lump": "E1M4", "name": "Arboretum (E1M4)"},
+                {"lump": "E1M5", "name": "Caverns of Bazoik (E1M5)"}
+            ]
+        }
     ],
+    "world_info":{
+        "world_options":[
+            {
+                "name": "Difficulty", 
+                "list":[
+                    {"full_name": "Easy does it", "aliases": ["itytd"]},
+                    {"full_name": "Not so sticky", "aliases": ["hntr"]},
+                    {"full_name": "Gobs of goo", "aliases": ["hmp"]},
+                    {"full_name": "Extreme ooze", "aliases": ["uv"]},
+                    {"full_name": "Super slimey!", "option_name": "super slimey", "aliases": ["nm"]}
+                ]
+            },
+            {"name": "Start with Maps"}
+        ],
+        "filler_item_weight":{
+            "Chex armor": 10,
+            "Super Chex armor": 8,
+            "Supercharge breakfast": 6
+        }
+    },
     "game_info":{
         "ammo": [
             {"name": "Mini", "max": 200},
@@ -53,10 +74,12 @@
         "2026": "Computer area map"
     },
     "extra_connection_requirements": [
-        {"doom_type": -1, "name": "deathlogic", "sprite": "STFDEAD0" },
-        {"doom_type": -2, "name": "pro", "sprite": "STFGOD0" }
+        {"doom_type": -1, "name": "deathlogic",    "sprite": "STFDEAD0"},
+        {"doom_type": -3, "name": "trick_basic",   "sprite": "STFKILL1"},
+        {"doom_type": -2, "name": "trick_pro",     "sprite": "STFKILL3"},
+        {"doom_type": -4, "name": "trick_extreme", "sprite": "STFKILL4"}
     ],
-    "progressions": [
+    "progression": [
         {"doom_type": 2001, "name": "Large zorcher",   "group": ["Weapons"], "sprite": "SHOTA0"},
         {"doom_type": 2003, "name": "Zorch propulsor", "group": ["Weapons"], "sprite": "LAUNA0"},
         {"doom_type": 2004, "name": "Phasing zorcher", "group": ["Weapons"], "sprite": "PLASA0"},
@@ -64,30 +87,26 @@
         {"doom_type": 2002, "name": "Rapid zorcher",   "group": ["Weapons"], "sprite": "MGUNA0"},
         {"doom_type": 2006, "name": "LAZ device",      "group": ["Weapons"], "sprite": "BFUGA0"}
     ],
-    "fillers": [
-        {"doom_type": 2018, "name": "Chex armor",            "group": ["Powerups"], "sprite": "ARM1A0"},
-        {"doom_type": 2019, "name": "Super chex armor",      "group": ["Powerups"], "sprite": "ARM2A0"},
-        {"doom_type": 2023, "name": "Berserk",               "group": ["Powerups"], "sprite": "PSTRA0"},
-        {"doom_type": 2013, "name": "Supercharge breakfast", "group": ["Powerups"], "sprite": "SOULA0"},
-        {"doom_type": 2012, "name": "Bowl of vegetables",    "group": [], "sprite": "MEDIA0"},
-        {"doom_type": 2048, "name": "Mini zorch pack",       "group": ["Ammos"], "sprite": "AMMOA0"},
-        {"doom_type": 2046, "name": "Zorch propulsor pack",  "group": ["Ammos"], "sprite": "BROKA0"},
-        {"doom_type": 2049, "name": "Large zorcher pack",    "group": ["Ammos"], "sprite": "SBOXA0"},
-        {"doom_type": 17,   "name": "Phasing zorcher pack",  "group": ["Ammos"], "sprite": "CELPA0"}
-    ],
-    "unique_progressions": [
-    ],
-    "unique_fillers": [
-        {"doom_type": 2026, "name": "Computer area map", "group": ["Computer area maps", "%MAP% Map"], "sprite": "PMAPA0"}
-    ],
-    "capacity_upgrades": [
+    "useful": [
         {"doom_type": 8, "name": "Zorchpak", "group": ["Capacity upgrades"], "sprite": "BPAKA0"}
+    ],
+    "filler": [
+        {"doom_type": 2018, "name": "Chex armor",            "group": ["Powerups"],      "sprite": "ARM1A0"},
+        {"doom_type": 2019, "name": "Super Chex armor",      "group": ["Powerups"],      "sprite": "ARM2A0"},
+        {"doom_type": 2013, "name": "Supercharge breakfast", "group": ["Powerups"],      "sprite": "SOULA0"},
+        {"doom_type": 2012, "name": "Bowl of vegetables",    "group": ["Junk"],          "sprite": "MEDIA0"},
+        {"doom_type": 2048, "name": "Mini zorch pack",       "group": ["Junk", "Ammos"], "sprite": "AMMOA0"},
+        {"doom_type": 2046, "name": "Zorch propulsor pack",  "group": ["Junk", "Ammos"], "sprite": "BROKA0"},
+        {"doom_type": 2049, "name": "Large zorcher pack",    "group": ["Junk", "Ammos"], "sprite": "SBOXA0"},
+        {"doom_type": 17,   "name": "Phasing zorcher pack",  "group": ["Junk", "Ammos"], "sprite": "CELPA0"},
+        {"doom_type": 2025, "name": "Slimeproof suit",       "group": ["Powerups"],      "sprite": "SUITA0", "count": 0}
+    ],
+    "unique_filler": [
+        {"doom_type": 2026, "name": "Computer area map", "group": ["Computer area maps", "%MAP% Map"], "sprite": "PMAPA0"}
     ],
     "keys": [
         {"doom_type": 5,  "name": "Blue key",   "group": ["Keys", "%MAP% Keys", "%MAP% Blue"],   "key": 0, "use_skull": false, "region_name": "Blue",   "color": [0, 0, 1], "sprite": "BKEYB0"},
         {"doom_type": 6,  "name": "Yellow key", "group": ["Keys", "%MAP% Keys", "%MAP% Yellow"], "key": 1, "use_skull": false, "region_name": "Yellow", "color": [1, 1, 0], "sprite": "YKEYB0"},
         {"doom_type": 13, "name": "Red key",    "group": ["Keys", "%MAP% Keys", "%MAP% Red"],    "key": 2, "use_skull": false, "region_name": "Red",    "color": [1, 0, 0], "sprite": "RKEYB0"}
-    ],
-    "loc_remap": {},
-    "item_remap": {}
+    ]
 }

@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_CXX_STANDARD 17) # C++17
 if (MSVC)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" "/MP /FS")
+else()
+    # Spare me -Wall's wrath
+    add_compile_options("-Wno-class-memaccess" "-Wno-pessimizing-move")
 endif()
 
 # Project name
@@ -22,14 +25,16 @@ list(APPEND includes PUBLIC ./thirdparty/onut/include/)
 
 # ${PROJECT_NAME}.exe, use WinMain on Windows
 add_executable(${PROJECT_NAME} WIN32 
-    generate.h
-    generate.cpp
+    generate.cpp       generate.h
+    maps.cpp           maps.h
+    data.cpp           data.h
     open_world.cpp
-    maps.h
-    maps.cpp
-    defs.h
-    data.h
-    data.cpp
+    world_opts.cpp
+                       defs.h
+    python.cpp         python.hpp
+                       message.hpp
+                       earcut.hpp
+                       zip.hpp
 )
 
 # Work dir

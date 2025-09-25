@@ -155,6 +155,6 @@ struct map_t
 
 struct game_t;
 
-void init_maps(game_t& game);
+bool init_maps(game_t& game);
 int sector_at(int x, int y, map_t* map);
 subsector_t* point_in_subsector(int x, int y, map_t* map);

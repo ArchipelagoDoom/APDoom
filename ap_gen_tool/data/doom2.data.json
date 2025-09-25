@@ -133,11 +133,6 @@
                   "requirements_and" : [],
                   "requirements_or" : [],
                   "target_region" : 0
-               },
-               {
-                  "requirements_and" : [],
-                  "requirements_or" : [],
-                  "target_region" : 0
                }
             ],
             "x" : -2503,
@@ -202,6 +197,11 @@
                         "requirements_and" : [ 13 ],
                         "requirements_or" : [],
                         "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [ -4 ],
+                        "requirements_or" : [],
+                        "target_region" : 3
                      }
                   ],
                   "x" : -1145,
@@ -345,6 +345,22 @@
                   96
                ],
                "tint" : [ 1, 0, 0, 1 ]
+            },
+            {
+               "name" : "Guideless Glide",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 2
+                     }
+                  ],
+                  "x" : -2632,
+                  "y" : 1952
+               },
+               "sectors" : [],
+               "tint" : [ 0, 1, 0, 1 ]
             }
          ],
          "world_rules" : {
@@ -574,11 +590,6 @@
                         "requirements_and" : [ 13 ],
                         "requirements_or" : [],
                         "target_region" : 2
-                     },
-                     {
-                        "requirements_and" : [],
-                        "requirements_or" : [],
-                        "target_region" : 3
                      }
                   ],
                   "x" : 985,
@@ -641,7 +652,7 @@
                "tint" : [ 1, 0, 0, 1 ]
             },
             {
-               "name" : "Blue Pro Jump",
+               "name" : "Window Jump",
                "rules" : {
                   "connections" : [
                      {
@@ -2279,7 +2290,6 @@
                   64,
                   65,
                   66,
-                  67,
                   68,
                   69,
                   70,
@@ -2291,7 +2301,6 @@
                   76,
                   77,
                   78,
-                  81,
                   82,
                   97,
                   98,
@@ -2339,7 +2348,7 @@
                   "x" : -369,
                   "y" : 4351
                },
-               "sectors" : [ 79, 80, 83, 84, 90, 91, 92, 93, 94, 95, 96 ],
+               "sectors" : [ 67, 79, 80, 83, 84, 90, 91, 92, 93, 94, 95, 96 ],
                "tint" : [ 1, 1, 0, 1 ]
             },
             {
@@ -2360,7 +2369,7 @@
                   "x" : -2202,
                   "y" : 3339
                },
-               "sectors" : [ 38, 39, 40, 41, 43, 54, 85, 86, 87, 88, 89 ],
+               "sectors" : [ 38, 39, 40, 41, 43, 54, 81, 85, 86, 87, 88, 89 ],
                "tint" : [ 1, 0, 0, 1 ]
             }
          ],
@@ -2622,7 +2631,13 @@
             {
                "name" : "Blue",
                "rules" : {
-                  "connections" : [],
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     }
+                  ],
                   "x" : -6106,
                   "y" : 2056
                },
@@ -4427,8 +4442,8 @@
          "ep" : 1,
          "exit_rules" : {
             "connections" : [],
-            "x" : -1544,
-            "y" : -1298
+            "x" : -1573,
+            "y" : -1301
          },
          "locations" : [
             {
@@ -4527,10 +4542,20 @@
                         "requirements_and" : [ 38 ],
                         "requirements_or" : [],
                         "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [ -1, -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -3165,
-                  "y" : -1314
+                  "x" : -3178,
+                  "y" : -1294
                },
                "sectors" : [
                   0,
@@ -4787,8 +4812,8 @@
                         "target_region" : 3
                      }
                   ],
-                  "x" : -1554,
-                  "y" : 13
+                  "x" : -1570,
+                  "y" : 19
                },
                "sectors" : [
                   15,
@@ -4973,7 +4998,7 @@
                   "target_region" : 0
                }
             ],
-            "x" : -3162,
+            "x" : -3181,
             "y" : -2466
          }
       },
@@ -5176,75 +5201,21 @@
                         "target_region" : -1
                      },
                      {
-                        "requirements_and" : [ 6 ],
+                        "requirements_and" : [ 13 ],
                         "requirements_or" : [],
-                        "target_region" : 2
+                        "target_region" : 4
                      },
                      {
-                        "requirements_and" : [ 6 ],
+                        "requirements_and" : [ -3 ],
                         "requirements_or" : [],
-                        "target_region" : 3
+                        "target_region" : 5
                      }
                   ],
-                  "x" : -4364,
-                  "y" : -1049
+                  "x" : -4339,
+                  "y" : -95
                },
                "sectors" : [
-                  18,
-                  19,
-                  20,
-                  26,
-                  27,
-                  28,
-                  52,
-                  53,
-                  54,
-                  55,
-                  56,
-                  57,
-                  58,
-                  59,
-                  60,
-                  61,
-                  62,
-                  63,
-                  74,
-                  75,
-                  76,
-                  77,
-                  78,
-                  79,
-                  80,
                   81,
-                  82,
-                  83,
-                  84,
-                  85,
-                  86,
-                  87,
-                  88,
-                  89,
-                  90,
-                  91,
-                  92,
-                  93,
-                  94,
-                  95,
-                  96,
-                  97,
-                  98,
-                  99,
-                  100,
-                  101,
-                  102,
-                  103,
-                  104,
-                  105,
-                  106,
-                  107,
-                  108,
-                  109,
-                  110,
                   111,
                   113,
                   114,
@@ -5269,14 +5240,6 @@
                   133,
                   134,
                   135,
-                  136,
-                  137,
-                  139,
-                  142,
-                  143,
-                  207,
-                  219,
-                  220,
                   221,
                   222,
                   223,
@@ -5286,21 +5249,8 @@
                   227,
                   228,
                   229,
-                  230,
                   231,
-                  232,
-                  233,
-                  234,
                   235,
-                  236,
-                  237,
-                  238,
-                  239,
-                  240,
-                  241,
-                  242,
-                  243,
-                  244,
                   245,
                   246,
                   247,
@@ -5393,7 +5343,7 @@
                      {
                         "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 0
+                        "target_region" : 4
                      }
                   ],
                   "x" : -3470,
@@ -5455,7 +5405,7 @@
                      {
                         "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 0
+                        "target_region" : 4
                      }
                   ],
                   "x" : -5198,
@@ -5541,6 +5491,124 @@
                   218
                ],
                "tint" : [ 1, 0.55882352590560913, 0, 1 ]
+            },
+            {
+               "name" : "Red",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     },
+                     {
+                        "requirements_and" : [ 6 ],
+                        "requirements_or" : [],
+                        "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [ 6 ],
+                        "requirements_or" : [],
+                        "target_region" : 3
+                     }
+                  ],
+                  "x" : -4337,
+                  "y" : -1159
+               },
+               "sectors" : [
+                  18,
+                  19,
+                  20,
+                  26,
+                  27,
+                  28,
+                  52,
+                  53,
+                  54,
+                  55,
+                  56,
+                  57,
+                  58,
+                  59,
+                  60,
+                  61,
+                  62,
+                  63,
+                  74,
+                  75,
+                  76,
+                  77,
+                  78,
+                  79,
+                  80,
+                  82,
+                  83,
+                  84,
+                  85,
+                  86,
+                  87,
+                  88,
+                  89,
+                  90,
+                  91,
+                  92,
+                  93,
+                  94,
+                  95,
+                  96,
+                  97,
+                  98,
+                  99,
+                  100,
+                  101,
+                  102,
+                  103,
+                  104,
+                  105,
+                  106,
+                  107,
+                  108,
+                  109,
+                  110,
+                  136,
+                  137,
+                  139,
+                  142,
+                  143,
+                  207,
+                  219,
+                  220,
+                  230,
+                  232,
+                  233,
+                  234,
+                  236,
+                  237,
+                  238,
+                  239,
+                  240,
+                  241,
+                  242,
+                  243,
+                  244
+               ],
+               "tint" : [ 1, 0, 0, 1 ]
+            },
+            {
+               "name" : "Thru Lava",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 4
+                     }
+                  ],
+                  "x" : -5888,
+                  "y" : -1161
+               },
+               "sectors" : [],
+               "tint" : [ 0, 1, 0, 1 ]
             }
          ],
          "world_rules" : {
@@ -5551,8 +5619,8 @@
                   "target_region" : 0
                }
             ],
-            "x" : -4396,
-            "y" : -153
+            "x" : -4363,
+            "y" : 1066
          }
       },
       {
@@ -5895,11 +5963,6 @@
                         "requirements_and" : [],
                         "requirements_or" : [],
                         "target_region" : 0
-                     },
-                     {
-                        "requirements_and" : [],
-                        "requirements_or" : [],
-                        "target_region" : 3
                      }
                   ],
                   "x" : -3432,
@@ -5909,7 +5972,7 @@
                "tint" : [ 1, 0, 0, 1 ]
             },
             {
-               "name" : "Pro Exit",
+               "name" : "Guided Glide (Easy)",
                "rules" : {
                   "connections" : [
                      {
@@ -6943,6 +7006,11 @@
                         "requirements_and" : [ 38 ],
                         "requirements_or" : [ 40, 39 ],
                         "target_region" : 1
+                     },
+                     {
+                        "requirements_and" : [ -4 ],
+                        "requirements_or" : [],
+                        "target_region" : 2
                      }
                   ],
                   "x" : -4992,
@@ -7205,8 +7273,8 @@
                         "target_region" : -2
                      },
                      {
-                        "requirements_and" : [ 38 ],
-                        "requirements_or" : [ 39, 40 ],
+                        "requirements_and" : [],
+                        "requirements_or" : [],
                         "target_region" : 0
                      }
                   ],
@@ -7215,6 +7283,22 @@
                },
                "sectors" : [ 11, 12, 13, 14, 15, 16, 17, 18 ],
                "tint" : [ 1, 0, 0, 1 ]
+            },
+            {
+               "name" : "Guideless Glide",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [ 38 ],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : -6434,
+                  "y" : 1430
+               },
+               "sectors" : [],
+               "tint" : [ 0.14705884456634521, 1, 0, 1 ]
             }
          ],
          "world_rules" : {
@@ -7586,8 +7670,8 @@
          "ep" : 2,
          "exit_rules" : {
             "connections" : [],
-            "x" : -871,
-            "y" : 7133
+            "x" : -1658,
+            "y" : 7151
          },
          "locations" : [
             {
@@ -7665,10 +7749,15 @@
                         "requirements_and" : [ 82, 2002, 39 ],
                         "requirements_or" : [ 2004, 2006 ],
                         "target_region" : 1
+                     },
+                     {
+                        "requirements_and" : [ -4 ],
+                        "requirements_or" : [],
+                        "target_region" : 5
                      }
                   ],
-                  "x" : -875,
-                  "y" : 3967
+                  "x" : -1649,
+                  "y" : 4067
                },
                "sectors" : [
                   0,
@@ -7722,13 +7811,18 @@
                         "target_region" : 2
                      },
                      {
-                        "requirements_and" : [ -2 ],
+                        "requirements_and" : [ -3 ],
                         "requirements_or" : [],
                         "target_region" : 4
+                     },
+                     {
+                        "requirements_and" : [ -4 ],
+                        "requirements_or" : [],
+                        "target_region" : 6
                      }
                   ],
-                  "x" : -876,
-                  "y" : 5257
+                  "x" : -1653,
+                  "y" : 5212
                },
                "sectors" : [
                   13,
@@ -7766,15 +7860,10 @@
                         "requirements_and" : [],
                         "requirements_or" : [],
                         "target_region" : -2
-                     },
-                     {
-                        "requirements_and" : [],
-                        "requirements_or" : [],
-                        "target_region" : 4
                      }
                   ],
-                  "x" : -1878,
-                  "y" : 6248
+                  "x" : -1658,
+                  "y" : 6377
                },
                "sectors" : [ 27, 28, 29, 42 ],
                "tint" : [ 0.99999964237213135, 0.19607841968536377, 1, 1 ]
@@ -7794,14 +7883,14 @@
                         "target_region" : 0
                      }
                   ],
-                  "x" : -906,
-                  "y" : 3137
+                  "x" : -1638,
+                  "y" : 3200
                },
                "sectors" : [ 17, 18, 19, 20, 21 ],
                "tint" : [ 0, 1, 1, 1 ]
             },
             {
-               "name" : "Pro Magenta",
+               "name" : "Ignore Blue",
                "rules" : {
                   "connections" : [
                      {
@@ -7810,11 +7899,43 @@
                         "target_region" : 2
                      }
                   ],
-                  "x" : 94,
-                  "y" : 6245
+                  "x" : -3544,
+                  "y" : 6385
                },
                "sectors" : [],
-               "tint" : [ 0, 1, 0, 1 ]
+               "tint" : [ 0, 1, 0.82352924346923828, 1 ]
+            },
+            {
+               "name" : "Yellow Glide",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [ 2002, 82 ],
+                        "requirements_or" : [ 2004, 2006 ],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : 19,
+                  "y" : 5207
+               },
+               "sectors" : [],
+               "tint" : [ 0.3252595067024231, 1, 0.23529410362243652, 1 ]
+            },
+            {
+               "name" : "Red Glide+Blast",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [ 2003 ],
+                        "requirements_or" : [],
+                        "target_region" : 2
+                     }
+                  ],
+                  "x" : 31,
+                  "y" : 6372
+               },
+               "sectors" : [],
+               "tint" : [ 0, 1, 0.44117641448974609, 1 ]
             }
          ],
          "world_rules" : {
@@ -7825,8 +7946,8 @@
                   "target_region" : 3
                }
             ],
-            "x" : -2631,
-            "y" : 3137
+            "x" : -3522,
+            "y" : 3213
          }
       },
       {
@@ -7924,6 +8045,11 @@
                         "requirements_and" : [],
                         "requirements_or" : [],
                         "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [ -4 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
                   "x" : -3253,
@@ -8133,6 +8259,22 @@
                   139
                ],
                "tint" : [ 0.50490200519561768, 1, 0.75245088338851929, 1 ]
+            },
+            {
+               "name" : "Squeeze Glide",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : -4664,
+                  "y" : 1182
+               },
+               "sectors" : [],
+               "tint" : [ 0, 1, 0.058823585510253906, 1 ]
             }
          ],
          "world_rules" : {
@@ -8508,7 +8650,7 @@
                         "target_region" : 2
                      },
                      {
-                        "requirements_and" : [ -2 ],
+                        "requirements_and" : [ -3 ],
                         "requirements_or" : [],
                         "target_region" : 3
                      }
@@ -8663,11 +8805,6 @@
                         "requirements_and" : [],
                         "requirements_or" : [],
                         "target_region" : 0
-                     },
-                     {
-                        "requirements_and" : [],
-                        "requirements_or" : [],
-                        "target_region" : 3
                      }
                   ],
                   "x" : -6657,
@@ -8740,7 +8877,7 @@
                "tint" : [ 0, 0.11764693260192871, 1, 1 ]
             },
             {
-               "name" : "Blue Pro",
+               "name" : "Thru Nukage",
                "rules" : {
                   "connections" : [
                      {

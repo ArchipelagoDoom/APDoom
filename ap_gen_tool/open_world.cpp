@@ -22,6 +22,8 @@
 #include "defs.h"
 #include "data.h"
 
+#include "message.hpp"
+
 
 enum class state_t
 {
@@ -32,7 +34,7 @@ enum class state_t
     move_bb,
     move_rule,
     connecting_rule,
-    set_rules
+    //set_rules
 };
 
 
@@ -112,7 +114,7 @@ static int mouse_hover_rule = -3;
 static int connecting_rule_from = -3;
 static int set_rule_rule = -3;
 static int set_rule_connection = -1;
-static int mouse_hover_access = -1;
+//static int mouse_hover_access = -1;
 static int mouse_hover_location = -1;
 
 
@@ -305,19 +307,22 @@ void save(game_t* game)
 
     _json["maps"] = eps_json;
 
-    std::string filename = "data/" + game->name + ".json";
+    std::string filename = "data/" + game->short_name + ".data.json";
     // Output styled, for ease of source control
     onut::saveJson(_json, filename, true);
+
+    OnScreenMessages::Add("Saved '" + filename + "'.", ImColor(0.0f, 0.3f, 0.0f));
 }
 
 
 void load(game_t* game)
 {
     Json::Value json;
-    std::string filename = "data/" + game->name + ".json";
+    std::string filename = "data/" + game->short_name + ".data.json";
     if (!onut::loadJson(json, filename))
     {
-        onut::showMessageBox("Warning", "Warning: File not found. (If you just created this game, then it's fine. Otherwise, scream).\n" + filename);
+        OnScreenMessages::Add("WARNING: " + filename + " not found.\n(If you just created this game, then it's fine. Otherwise, scream.)", ImColor(0.3f, 0.3f, 0.0f));
+        //onut::showMessageBox("Warning", "Warning: File not found. (If you just created this game, then it's fine. Otherwise, scream).\n" + filename);
         return;
     }
 
@@ -340,7 +345,7 @@ void load(game_t* game)
                 ++ep;
             }
         }
-        auto meta = get_meta({game->name, ep, lvl});
+        auto meta = get_meta({game->short_name, ep, lvl});
         auto _map_state = &meta->state;
 
         const auto& bbs_json = _map_json["bbs"];
@@ -420,13 +425,28 @@ void load(game_t* game)
 
 void update_window_title()
 {
-    oWindow->setCaption(get_meta(active_level)->name.c_str());
+    std::string title;
+
+    if (active_level.ep != -1)
+    {
+        game_t *game = get_game(active_level);
+        meta_t *meta = get_meta(active_level);
+        title += game->full_name;
+        title += " - ";
+        title += meta->name;
+        title += " - ";
+    }
+    title += oSettings->getGameName();
+
+    oWindow->setCaption(title.c_str());
 }
 
 
 // Undo/Redo shit
 void push_undo()
 {
+    if (map_history == nullptr)
+        return;
     if (map_history->history_point < (int)map_history->history.size() - 1)
         map_history->history.erase(map_history->history.begin() + (map_history->history_point + 1), map_history->history.end());
     map_history->history.push_back(*map_state);
@@ -434,7 +454,7 @@ void push_undo()
 }
 
 
-void select_map(game_t* game, int ep, int map)
+void clear_map()
 {
     mouse_hover_sector = -1;
     mouse_hover_bb = -1;
@@ -442,7 +462,17 @@ void select_map(game_t* game, int ep, int map)
     set_rule_connection = -1;
     mouse_hover_location = -1;
 
-    active_level = {game->name, ep, map};
+    active_level = {"", -1, -1};
+    map_state = nullptr;
+    map_view = nullptr;
+    map_history = nullptr;
+}
+
+void select_map(game_t* game, int ep, int map)
+{
+    clear_map();
+
+    active_level = {game->short_name, ep, map};
     map_state = get_state(active_level, active_source);
     map_view = get_view(active_level);
     map_history = get_history(active_level);
@@ -455,6 +485,8 @@ void select_map(game_t* game, int ep, int map)
 
 void undo()
 {
+    if (map_history == nullptr)
+        return;
     if (map_history->history_point > 0)
     {
         map_history->history_point--;
@@ -462,24 +494,33 @@ void undo()
 
         map_state->check_sanity_count = 0;
         for (const auto& loc : map_state->locations)
+        {
+            (void)loc;
             map_state->check_sanity_count++;
+        }
     }
+    else
+        OnScreenMessages::Add("No action to undo");
 }
 
 
 void redo()
 {
+    if (map_history == nullptr)
+        return;
     if (map_history->history_point < (int)map_history->history.size() - 1)
     {
         map_history->history_point++;
         *map_state = map_history->history[map_history->history_point];
     }
+    else
+        OnScreenMessages::Add("No action to redo");
 }
 
 
 void initSettings()
 {
-    oSettings->setGameName("APDOOM Gen Tool");
+    oSettings->setGameName("APDoom Gen Tool v2.0");
     oSettings->setResolution({ 1600, 900 });
     oSettings->setBorderlessFullscreen(false);
     oSettings->setIsResizableWindow(true);
@@ -487,7 +528,11 @@ void initSettings()
     oSettings->setShowFPS(false);
     oSettings->setAntiAliasing(true);
     oSettings->setShowOnScreenLog(false);
+#ifdef WIN32
     oSettings->setStartMaximized(true);
+#else
+    oSettings->setStartMaximized(false);
+#endif
 }
 
 
@@ -562,9 +607,12 @@ void init()
     //    a->different = !(*a == *b);
     //}
 
-    select_map(&games.begin()->second, 0, 0);
+    clear_map();
+    //select_map(&games.begin()->second, 0, 0);
 
     regen();
+
+    OnScreenMessages::Add("Welcome to the APDoom Gen Tool");
 }
 
 
@@ -617,6 +665,8 @@ void delete_selected()
                     push_undo();
                 }
             }
+            break;
+        default:
             break;
     }
 }
@@ -699,15 +749,27 @@ void reset_level()
         }
     }
 
+    OnScreenMessages::Add("Initialized default region/rules for level.");
     push_undo();
 }
 
 
 void update_shortcuts()
 {
+    if (active_level.ep == -1)
+        return;
+
     auto ctrl = OInputPressed(OKeyLeftControl);
     auto shift = OInputPressed(OKeyLeftShift);
     auto alt = OInputPressed(OKeyLeftAlt);
+
+    if (!ctrl && !shift && !alt && OInputJustPressed(OKey1)) { tool = tool_t::bb;        OnScreenMessages::Add("New tool: Bounding Box"); }
+    if (!ctrl && !shift && !alt && OInputJustPressed(OKey2)) { tool = tool_t::region;    OnScreenMessages::Add("New tool: Region");       }
+    if (!ctrl && !shift && !alt && OInputJustPressed(OKey3)) { tool = tool_t::rules;     OnScreenMessages::Add("New tool: Rules");        }
+    if (!ctrl && !shift && !alt && OInputJustPressed(OKey4)) { tool = tool_t::locations; OnScreenMessages::Add("New tool: Locations");    }
+#if 0 // Hidden, apparently unused?
+    if (!ctrl && !shift && !alt && OInputJustPressed(OKey5)) { tool = tool_t::access;    OnScreenMessages::Add("New tool: Access");       }
+#endif
 
     if (ctrl && !shift && !alt && OInputJustPressed(OKeyZ)) undo();
     if (ctrl && shift && !alt && OInputJustPressed(OKeyZ)) redo();
@@ -1004,6 +1066,9 @@ void update_gen()
 
 void update()
 {
+    if (map_view == nullptr)
+        return;
+
     // Update mouse pos in world
     auto cam_matrix = Matrix::Create2DTranslationZoom(OScreenf, map_view->cam_pos, map_view->cam_zoom);
     auto inv_cam_matrix = cam_matrix.Invert();
@@ -1256,7 +1321,7 @@ void update()
                 if (mouse_hover_rule != -3 && connecting_rule_from != mouse_hover_rule)
                 {
                     auto rules_from = get_rules(connecting_rule_from);
-                    auto rules_to = get_rules(mouse_hover_rule);
+                    //auto rules_to = get_rules(mouse_hover_rule); // Unnecessary
 
                     // Check if connection not already there
                     bool already_connected = false;
@@ -1595,7 +1660,7 @@ void draw_level(const level_index_t& idx, const Vector2& pos, float angle, bool 
 
     // Geometry
     int i = 0;
-    bool is_heretic = game->codename == "heretic";
+    bool is_heretic = game->iwad_name == "HERETIC.WAD";
     for (const auto& line : map->linedefs)
     {
         Color color = bound_color;
@@ -1784,7 +1849,7 @@ void draw_level(const level_index_t& idx, const Vector2& pos, float angle, bool 
         {
             sb->drawSprite(ap_player_start_icon, Vector2(thing.x, -thing.y), Color::White, 0.0f, 2.5f);
         }
-        else if (thing.type == 83 && game->codename == "heretic") // Wings
+        else if (thing.type == 83 && game->iwad_name == "HERETIC.WAD") // Wings
         {
             sb->drawSprite(ap_wing_icon, Vector2(thing.x, -thing.y), Color::White, 0.0f, 2.5f);
         }
@@ -1797,6 +1862,10 @@ void render()
 {
     oRenderer->clear(Color::Black);
     oRenderer->renderStates.sampleFiltering = OFilterNearest;
+
+    if (map_view == nullptr)
+        return;
+
     auto pb = oPrimitiveBatch.get();
     auto sb = oSpriteBatch.get();
 
@@ -1839,6 +1908,7 @@ void render()
 }
 
 
+#if 0 // unused function?
 std::string unique_name(const Json::Value& dict, const std::string& name)
 {
     auto names = dict.getMemberNames();
@@ -1860,65 +1930,17 @@ std::string unique_name(const Json::Value& dict, const std::string& name)
     }
     return new_name;
 }
+#endif
 
-
-void renderUI()
+static void renderGames(bool is_in_submenu)
 {
-    ImGui::BeginMainMenuBar();
-    if (ImGui::BeginMenu("File"))
-    {
-        if (ImGui::MenuItem("Save")) save(get_game(active_level));
-        ImGui::Separator();
-        for (auto& kv : games)
-        {
-            auto game = &kv.second;
-            if (ImGui::MenuItem(("Generate " + game->name).c_str()))
-            {
-                save(game);
-                generate(game);
-            }
-        }
-        ImGui::Separator();
-        if (ImGui::MenuItem("Exit")) OQuit();
-        ImGui::EndMenu();
-    }
-    if (ImGui::BeginMenu("Edit"))
-    {
-        if (ImGui::MenuItem("Add Bounding Box")) add_bounding_box();
-        ImGui::EndMenu();
-    }
-    if (ImGui::BeginMenu("Diff"))
-    {
-        {
-            bool selected = active_source == active_source_t::current;
-            if (ImGui::MenuItem("Show Current", "F1", &selected))
-            {
-                active_source = active_source_t::current;
-                map_state = get_state(active_level, active_source);
-            }
-        }
-        {
-            bool selected = active_source == active_source_t::target;
-            if (ImGui::MenuItem("Show Target", "F2", &selected))
-            {
-                active_source = active_source_t::target;
-                map_state = get_state(active_level, active_source);
-            }
-        }
-        ImGui::Separator();
-        if (ImGui::MenuItem("Apply Target"))
-        {
-            *get_state(active_level, active_source_t::current) = *get_state(active_level, active_source_t::target);
-            map_state = get_state(active_level);
-            push_undo();
-        }
-        ImGui::EndMenu();
-    }
     for (auto& kv : games)
     {
+        if (!is_in_submenu)
+            ImGui::Separator();
+
         auto game = &kv.second;
-        ImGui::Separator();
-        if (ImGui::BeginMenu((game->name + " Maps").c_str()))
+        if (ImGui::BeginMenu(game->full_name.c_str()))
         {
             int episode_check_count = 0;
             int episode_check_sanity_count = 0;
@@ -1940,7 +1962,9 @@ void renderUI()
                     }
                     episode_check_count += meta.map.check_count;
                     episode_check_sanity_count += meta.state.check_sanity_count;
-                    if (ImGui::MenuItem((meta.name + (map_state->different ? "*" : "") + " - " + std::to_string(meta.map.check_count) + "-" + std::to_string(meta.state.check_sanity_count) + "=(" + std::to_string(meta.map.check_count - meta.state.check_sanity_count) + ")").c_str(), nullptr, &selected))
+                    std::string displayed_checks = std::to_string(meta.map.check_count) + "-" + std::to_string(meta.state.check_sanity_count) + "=(" + std::to_string(meta.map.check_count - meta.state.check_sanity_count) + ")";
+
+                    if (ImGui::MenuItem((meta.name + (map_state->different ? "*" : "")).c_str(), displayed_checks.c_str(), &selected))
                         select_map(game, ep, map);
                     ++map;
                 }
@@ -1950,17 +1974,124 @@ void renderUI()
             ImGui::EndMenu();
         }
     }
+}
+
+void renderUI()
+{
+    bool game_loaded = (active_level.ep != -1);
+
+    ImGui::BeginMainMenuBar();
+    if (ImGui::BeginMenu("File"))
+    {
+        //ImGui::MenuItem("Open...", "Ctrl+O", false, false);
+
+        if (!game_loaded)
+            ImGui::MenuItem("Save", "Ctrl+S", false, false);
+        else if (ImGui::MenuItem(("Save " + get_game(active_level)->full_name).c_str(), "Ctrl+S"))
+            save(get_game(active_level));
+
+        ImGui::Separator();
+
+        if (ImGui::BeginMenu("Generate APWorld..."))
+        {
+            if (games.empty())
+                ImGui::MenuItem("No games are loaded", NULL, false, false);
+            else for (auto& kv : games)
+            {
+                auto game = &kv.second;
+                if (ImGui::MenuItem(("Generate " + game->full_name).c_str()))
+                {
+                    save(game);
+                    generate(game);
+                }
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("Exit"))
+            OQuit();
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Tools"))
+    {
+        if (ImGui::MenuItem("Bounding Box", "1", tool == tool_t::bb))        tool = tool_t::bb;
+        if (ImGui::MenuItem("Region",       "2", tool == tool_t::region))    tool = tool_t::region;
+        if (ImGui::MenuItem("Rules",        "3", tool == tool_t::rules))     tool = tool_t::rules;
+        if (ImGui::MenuItem("Location",     "4", tool == tool_t::locations)) tool = tool_t::locations;
+#if 0 // Hidden, apparently unused?
+        if (ImGui::MenuItem("Access",       "5", tool == tool_t::access))    tool = tool_t::access;
+#endif
+
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Edit"))
+    {
+        if (ImGui::MenuItem("Undo", "Ctrl+Z",             false, game_loaded)) undo();
+        if (ImGui::MenuItem("Redo", "Ctrl+Shift+Z",       false, game_loaded)) redo();
+        ImGui::Separator();
+        if (ImGui::MenuItem("Add Bounding Box", "B",      false, game_loaded)) add_bounding_box();
+        ImGui::Separator();
+        if (ImGui::MenuItem("Initialize Level", "Ctrl-R", false, game_loaded)) reset_level();
+
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Diff"))
+    {
+        {
+            bool selected = active_source == active_source_t::current;
+            if (ImGui::MenuItem("Show Current", "F1", &selected, game_loaded))
+            {
+                active_source = active_source_t::current;
+                map_state = get_state(active_level, active_source);
+            }
+        }
+        {
+            bool selected = active_source == active_source_t::target;
+            if (ImGui::MenuItem("Show Target", "F2", &selected, game_loaded))
+            {
+                active_source = active_source_t::target;
+                map_state = get_state(active_level, active_source);
+            }
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Apply Target", NULL, false, game_loaded))
+        {
+            *get_state(active_level, active_source_t::current) = *get_state(active_level, active_source_t::target);
+            map_state = get_state(active_level);
+            push_undo();
+        }
+        ImGui::EndMenu();
+    }
+
+    ImGui::Separator();
+    ImVec4 info_colored(0.6f, 0.6f, 0.6f, 1.0f);
+    ImGui::TextColored(info_colored, "Maps:");
+
+    if (games.size() >= 8)
+    {
+        // If the game list gets too large, we need to make a new menu for it.
+        if (ImGui::BeginMenu(("All Loaded Games (" + std::to_string(games.size()) + ")").c_str()))
+        {
+            renderGames(true);
+            ImGui::EndMenu();
+        }
+    }
+    else
+    {
+        // If there's not too many, just render the games on the main title bar.
+        renderGames(false);
+    }
+
+    ImGui::EndMainMenuBar();
+
     //if (state != state_t::gen && state != state_t::gen_panning)
     {
-        if (ImGui::Begin("Tools"))
-        {
-            int tooli = (int)tool;
-            ImGui::Combo("Tool", &tooli, "Bounding Box\0Region\0Rules\0Location\0Access\0");
-            tool = (tool_t)tooli;
-        }
-        ImGui::End();
-
-        if (ImGui::Begin("Regions"))
+        if (ImGui::Begin("Regions") && game_loaded)
         {
             static char region_name[260] = {'\0'};
             ImGui::InputText("##region_name", region_name, 260);
@@ -2063,7 +2194,7 @@ void renderUI()
         }
         ImGui::End();
 
-        if (ImGui::Begin("Region"))
+        if (ImGui::Begin("Region") && game_loaded)
         {
             if (map_state->selected_region != -1)
             {
@@ -2083,7 +2214,7 @@ void renderUI()
         }
         ImGui::End();
 
-        if (ImGui::Begin("Connection"))
+        if (ImGui::Begin("Connection") && game_loaded)
         {
             if (set_rule_rule != -3 && set_rule_connection != -1)
             {
@@ -2113,6 +2244,8 @@ void renderUI()
                             float biggest = requirement.icon->getSizef().x;
                             ImVec2 img_scale(requirement.icon->getSizef().x / biggest * 64.0f, requirement.icon->getSizef().y / biggest * 64.0f);
 
+                            // Extra requirements are AND only, they don't function in OR slots, so hide them
+                            if (requirement.doom_type > 0)
                             {
                                 ImVec4 tint(0.25f, 0.25f, 0.25f, 1);
                                 bool has_requirement = false;
@@ -2142,9 +2275,10 @@ void renderUI()
                                     }
                                     push_undo();
                                 }
-                                if (ImGui::IsItemHovered()) ImGui::SetTooltip(requirement.name.c_str());
-                                ImGui::NextColumn();
+                                if (ImGui::IsItemHovered())
+                                    ImGui::SetTooltip("OR: %s", requirement.name.c_str());
                             }
+                            ImGui::NextColumn();
                             {
                                 ImVec4 tint(0.25f, 0.25f, 0.25f, 1);
                                 bool has_requirement = false;
@@ -2173,9 +2307,10 @@ void renderUI()
                                     }
                                     push_undo();
                                 }
-                                if (ImGui::IsItemHovered()) ImGui::SetTooltip(requirement.name.c_str());
-                                ImGui::NextColumn();
+                                if (ImGui::IsItemHovered())
+                                    ImGui::SetTooltip("AND: %s", requirement.name.c_str());
                             }
+                            ImGui::NextColumn();
                         }
                     }
                 }
@@ -2183,7 +2318,7 @@ void renderUI()
         }
         ImGui::End();
 
-        if (ImGui::Begin("Map"))
+        if (ImGui::Begin("Map") && game_loaded)
         {
             auto map = get_map(active_level);
             auto game = get_game(active_level);
@@ -2232,15 +2367,17 @@ void renderUI()
         }
         ImGui::End();
 
-        if (ImGui::Begin("Game"))
+#if 0
+        if (ImGui::Begin("Game") && game_loaded)
         {
             auto game = get_game(active_level);
             for (const auto& kv : game->total_doom_types)
                 ImGui::LabelText(("Doom Type " + std::to_string(kv.first)).c_str(), "%i", kv.second);
         }
         ImGui::End();
+#endif
 
-        if (ImGui::Begin("Location"))
+        if (ImGui::Begin("Location") && game_loaded)
         {
             if (map_state->selected_location != -1)
             {
@@ -2289,7 +2426,8 @@ void renderUI()
         ImGui::End();
     }
 
-    ImGui::EndMainMenuBar();
+    // Display text
+    OnScreenMessages::Render();
 }
 
 

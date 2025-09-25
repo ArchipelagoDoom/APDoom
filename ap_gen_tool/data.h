@@ -12,6 +12,9 @@
 #include "maps.h"
 
 
+typedef std::map<std::string, std::vector<std::string>> world_hook_list_t;
+
+
 struct rule_connection_t
 {
     int target_region = -1;
@@ -148,7 +151,9 @@ struct map_state_t
     std::set<int> accesses;
     std::map<int, location_t> locations;
     bool different = false;
-    int check_sanity_count;
+
+    int true_check_count; // Map check count, minus unreachable
+    int check_sanity_count; // Number of check_sanity locations
 
     bool operator==(const map_state_t& other) const
     {
@@ -179,14 +184,25 @@ struct map_history_t
 
 struct meta_t // Bad name, but everything about a level
 {
-    std::string name;
-    std::string lump_name;
+    std::string name; // Name of the level
+    std::string wad_name; // Which WAD it comes from
+    std::string lump_name; // The lump name in the above WAD
 
     map_t map; // As loaded from the wad
     map_state_t state; // What we play with
     map_state_t state_new; // For diffing
     map_view_t view; // Camera zoom/position
     map_history_t history; // History of map_state_t for undo/redo (It's infinite!)
+};
+
+
+struct episode_info_t // separate struct because I didn't want to redo everything using the above
+{
+    std::string name;
+    int starting_level = 0; // Only applies for major episodes, the map given at the start
+    int boss_level = 0; // The default level added to "complete_specific_levels", roughly old boss levels
+    bool is_minor_episode; // e.g. secret levels, too short to be a "real" episode
+    bool default_enabled; // If the episode should be enabled by default in the template
 };
 
 
@@ -198,6 +214,7 @@ struct ap_item_def_t
     OTextureRef icon;
 
     std::vector<std::string> groups;
+    int count = 0;
 };
 
 
@@ -213,30 +230,42 @@ struct ap_key_def_t
 
 struct game_t
 {
-    std::string iwad_name; // Name of IWAD file that this WAD needs to run
-    std::string wad_name; // Wad file to load and analyze for this game
-    std::vector<std::string> pwad_load_order; // All wad files that need to be loaded for the mod to run properly, and in which order
+    std::string full_name; // Game's canonical full name, used in the launcher
+    std::string short_name; // Short name for the game, used for '-game' param
 
-    std::string name; // Official name used on websites. i.e. "DOOM 1993"
-    std::string world; // World folder name. i.e. "doom_1993", which will result in a world placed in "Archipelago/worlds/doom_1993/"
-    std::string codename; // Used for C and C++ function/struct names. i.e. "doom", which will result in things like "ap_doom_location_table[]"
-    std::string classname; // Class name prefixed to classes in Archipelago. i.e. "DOOM1993", which result in "DOOM1993World", "DOOM1993Web", etc.
-    int64_t item_ids = 0;
-    int64_t loc_ids = 0;
+    std::string iwad_name; // Name of IWAD file that this WAD needs to run
+    std::vector<std::string> required_wads; // PWAD files that are required for this game to run
+    std::vector<std::string> optional_wads;
+    std::vector<std::string> included_wads;
+
+    // APWorld related things
+    std::string ap_name; // Full name used on Archipelago.
+    std::string ap_world_name; // Short name used by the apworld/directory.
+    std::string ap_class_name; // Class name prefixed to python classes in the apworld.
+    std::vector<std::string> description; // Docstring for the world class
+    std::map<std::string, std::vector<std::string>> world_hooks;
+    std::map<std::string, int> filler_item_weight;
+    std::map<int, std::vector<int>> custom_pool_ratio;
+    // Not stored in a map because we want to preserve order.
+    Json::Value json_world_options;
+
     std::map<int, std::string> location_doom_types;
     std::vector<ap_item_def_t> extra_connection_requirements;
-    std::vector<ap_item_def_t> progressions;
-    std::vector<ap_item_def_t> fillers;
-    std::vector<ap_item_def_t> unique_progressions;
-    std::vector<ap_item_def_t> unique_fillers;
-    std::vector<ap_item_def_t> capacity_upgrades;
+    std::vector<ap_item_def_t> progression;
+    std::vector<ap_item_def_t> useful;
+    std::vector<ap_item_def_t> filler;
+    std::vector<ap_item_def_t> unique_progression;
+    std::vector<ap_item_def_t> unique_useful;
+    std::vector<ap_item_def_t> unique_filler;
     std::vector<ap_key_def_t> keys;
-    std::map<std::string, int64_t> loc_remap;
+    // Should remove these two after 2.0, as they're no longer necessary
+    std::map<std::string, int64_t> location_remap;
     std::map<std::string, int64_t> item_remap;
 
     Color key_colors[3];
     int ep_count = -1;
     std::vector<std::vector<meta_t>> episodes;
+    std::vector<episode_info_t> episode_info;
     std::vector<ap_item_def_t> item_requirements;
     std::map<int, int> total_doom_types; // Count of every doom types in the game
 
@@ -245,6 +274,7 @@ struct game_t
     bool extended_names = false;
 
     // JSON structures which need to be preserved unchanged and put in output
+    Json::Value json_rename_lumps;
     Json::Value json_game_info;
     Json::Value json_map_tweaks;
     Json::Value json_level_select;
@@ -285,3 +315,7 @@ meta_t* get_meta(const level_index_t& idx, active_source_t source = active_sourc
 map_state_t* get_state(const level_index_t& idx, active_source_t source = active_source_t::current);
 map_t* get_map(const level_index_t& idx);
 const std::string& get_level_name(const level_index_t& idx);
+const std::string& get_item_name(game_t* game, int doom_num);
+
+long get_runtime_us(void);
+const std::string compare_runtime(long start, long end = get_runtime_us());
