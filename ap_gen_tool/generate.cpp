@@ -459,7 +459,7 @@ Json::Value generate_game_defs_json(game_t *game, level_map_t& levels_map)
                     if (loc.idx == level->idx && loc.doom_thing_index == idx)
                     {
                         json_mts[idx][0] = thing.type;
-                        json_mts[idx][1] = loc.check_sanity;
+                        json_mts[idx][1] = loc.id;
                         break;
                     }
                 }
@@ -506,6 +506,8 @@ Json::Value generate_game_defs_json(game_t *game, level_map_t& levels_map)
         defs_json["map_tweaks"] = game->json_map_tweaks;
     if (!game->json_level_select.isNull())
         defs_json["level_select"] = game->json_level_select;
+    if (!game->json_rename_lumps.isNull())
+        defs_json["rename_lumps"] = game->json_rename_lumps;
 
     return defs_json;
 }
@@ -971,6 +973,7 @@ int generate(game_t* game)
     Json::Value info_json;
     info_json["_fullname"] = game->full_name;
     info_json["_shortname"] = game->short_name;
+    info_json["_servername"] = game->ap_name;
     info_json["_iwad"] = game->iwad_name;
 
     if (!game->required_wads.empty())

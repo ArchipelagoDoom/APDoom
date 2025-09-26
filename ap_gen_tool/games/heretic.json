@@ -97,6 +97,7 @@
             ]
         },
         "world_options":[
+            {"name": "Difficulty", "preset": "Heretic"},
             {"name": "Start with Maps"},
             {"name": "Capacity Upgrades", "combined_plural_name": "Bags of Holding"},
             {"name": "Custom Ammo Capacity"}

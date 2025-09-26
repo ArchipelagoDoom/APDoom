@@ -207,6 +207,8 @@ std::stringstream& Py_CreateOptionsPy(game_t *game, std::vector<PyOption> &opts)
     option_groups["Goal Options"].push_back("id1Options.Goal");
     option_groups["Randomizer Options"].push_back("BaseOptions.ProgressionBalancing");
     option_groups["Randomizer Options"].push_back("BaseOptions.Accessibility");
+    if (game->check_sanity)
+	    option_groups["Randomizer Options"].push_back("id1Options.CheckSanity");
     option_groups["Randomizer Options"].push_back("id1Options.RandomMonsters");
     option_groups["Randomizer Options"].push_back("id1Options.RandomPickups");
     option_groups["Randomizer Options"].push_back("id1Options.RandomMusic");

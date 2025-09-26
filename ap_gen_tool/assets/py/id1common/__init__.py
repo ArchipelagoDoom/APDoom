@@ -539,9 +539,6 @@ class id1CommonWorld(World, metaclass=AutoLoadJsonData):
         # Fill in options guaranteed to exist.
         slot_data = self.options.as_dict(
             "death_link",
-            "goal",
-            "goal_num_levels",
-            "goal_specific_levels",
             "difficulty",
             "reset_level_on_death",
             "random_monsters",
@@ -552,10 +549,26 @@ class id1CommonWorld(World, metaclass=AutoLoadJsonData):
             "trick_difficulty",
         )
 
+        slot_data["goal"] = { "type": int(self.options.goal.value) }
+        if self.options.goal == "complete_random_levels" or self.options.goal == "complete_specific_levels":
+            slot_data["goal"]["levels"] = [[item.episode, item.gamemap] for item in self.item_table.values()
+                                           if item.name in self._required_level_complete_list]
+        elif self.options.goal == "complete_some_levels":
+            slot_data["goal"]["count"] = self._required_level_complete_count
+
         # Track locations that *should* exist but don't in slot_data.
-        present_locations = {loc.address for loc in self.multiworld.get_locations(self.player)}
-        slot_data["suppressed_locations"] = [idx for idx in self.location_table.keys() if idx not in present_locations]
+        extant_locations = {loc.address for loc in self.multiworld.get_locations(self.player)}
+        slot_data["suppressed_locations"] = [idx for idx, loc in self.location_table.items()
+                                             if loc.episode in self.included_episodes and idx not in extant_locations]
 
         # Automatically add in the list of included episodes too.
         slot_data["episodes"] = list(self.included_episodes)
         return slot_data
+
+    def write_spoiler_header(self, handle: typing.TextIO):
+        if self.options.goal == "complete_random_levels":
+            # This gets them in order from first to last.
+            levels = [i.name for i in self.item_table.values() if i.name in self._required_level_complete_list]
+
+            handle.write("\nGoal levels for \"Complete Random Levels\":\n")
+            [handle.write(f"- {level.removesuffix(' - Complete')}\n") for level in levels]
