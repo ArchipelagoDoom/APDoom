@@ -131,8 +131,8 @@ fixed_t GetOffset(vertex_t *v1, vertex_t *v2)
 
 
 
-// [AP PWAD]
-// Functions for tweaking stuff after loading
+// [AP] Functions for tweaking maps after loading them
+// Allow making any change that wouldn't require a nodesbuild.
 static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
 {
     switch (tweak->type)
@@ -494,7 +494,7 @@ void P_LoadSectors (int lump)
 	I_Error("P_LoadSectors: No sectors in map!");
 
     ms = (mapsector_t *)data;
-    { // [AP PWAD] Alter sector data
+    { // [AP] Tweaks: Alter sector data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SECTOR_TWEAKS);
@@ -830,7 +830,7 @@ void P_LoadThings (int lump)
     int things_type_remap[1024] = {0};
 
     mt = (mapthing_t *)data;
-    { // [AP PWAD] Alter mapthing data
+    { // [AP] Tweaks: Alter mapthing data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), MAPTHING_TWEAKS);
@@ -847,7 +847,8 @@ void P_LoadThings (int lump)
 
     int do_random_monsters = ap_state.random_monsters;
 
-    // [AP PWAD] allow random monsters on DoomII Map7s that don't use tags 666 and 667
+    // [AP] Metamap instead of gamemap
+    // That way maps that don't rely on tag 666/667 behavior can have full randomness
     if (gamemode == commercial && metamap /* gamemap */ == 7) do_random_monsters = 0;
 
     if (do_random_monsters > 0)
@@ -1283,7 +1284,7 @@ void P_LoadThings (int lump)
 
     // [AP] Spawn level select teleport "HUB"
     spawnthing_player1_start.type = 20002;
-    { // [AP PWAD] Alter hub data
+    { // [AP] Tweaks: Alter hub data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), HUB_TWEAKS);
@@ -1329,7 +1330,7 @@ void P_LoadLineDefs (int lump)
     data = W_CacheLumpNum (lump,PU_STATIC);
 	
     mld = (maplinedef_t *)data;
-    { // [AP PWAD] Alter linedef data
+    { // [AP] Tweaks: Alter linedef data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), LINEDEF_TWEAKS);
@@ -1480,7 +1481,7 @@ void P_LoadSideDefs (int lump)
     data = W_CacheLumpNum (lump,PU_STATIC);
 	
     msd = (mapsidedef_t *)data;
-    { // [AP PWAD] Alter sidedef data
+    { // [AP] Tweaks: Alter sidedef data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SIDEDEF_TWEAKS);
@@ -1892,7 +1893,7 @@ P_SetupLevel
     boolean	crispy_validblockmap;
     mapformat_t	crispy_mapformat;
 
-    // [AP PWAD] map metadata
+    // [AP] map metadata
     metaepisode = gameepisode;
     metamap = gamemap;
     {

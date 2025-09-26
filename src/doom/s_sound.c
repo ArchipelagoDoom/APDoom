@@ -735,7 +735,7 @@ void S_StartSound(void *origin_p, int sfx_id)
     }
     pitch = Clamp(pitch);
 
-    // [AP PWAD] handle the chat sfx special, always last channel
+    // [AP] handle the chat sfx special, always last channel with super low priority
     if (sfx_id == sfx_tink)
     {
         cnum = snd_channels - 1;

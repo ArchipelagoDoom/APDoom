@@ -34,6 +34,7 @@
 
 static char *ap_asset_path;
 
+// [AP] Functions for automatically loading relevant wads
 void W_InitArchipelagoAssets(const char *asset_wad)
 {
     APC_InitAssets();
@@ -72,7 +73,6 @@ static int W_APLoadAll(const char *path, const char **wad_list, boolean required
     return wad_count;
 }
 
-// [AP PWAD]
 boolean W_LoadArchipelagoWads(void)
 {
     const ap_worldinfo_t *wi = ap_loaded_world_info();
@@ -91,6 +91,8 @@ boolean W_LoadArchipelagoWads(void)
 
     return wad_count > 0;
 }
+
+// ----------------------------------------------------------------------------
 
 // Parse the command line, merging WAD files that are sppecified.
 // Returns true if at least one file was added.

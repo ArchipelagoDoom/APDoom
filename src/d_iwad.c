@@ -951,7 +951,7 @@ char *D_FindIWAD(int mask, GameMission_t *mission)
         }
     }
 #else
-    // [AP PWAD] IWADs are specified by JSON defs, load what is given to us
+    // [AP] IWADs are specified by JSON defs, load what is given to us
     const ap_worldinfo_t *wi = ap_loaded_world_info();
 
     if (!wi || wi->iwad == NULL || strlen(wi->iwad) == 0)

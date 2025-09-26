@@ -113,7 +113,7 @@ boolean		respawnmonsters;
 int             gameepisode; 
 int             gamemap; 
 
-// [AP PWAD] allow levels to behave as other levels
+// [AP] allow levels to behave as other levels
 int             metaepisode;
 int             metamap;
 
@@ -2722,7 +2722,7 @@ G_InitNew
   int		episode,
   int		map )
 {
-    // [AP PWAD]
+    // [AP] Have AP state track what map we're entering
     ap_level_index_t idx = ap_make_level_index(episode, map);
     ap_state.ep = idx.ep + 1;
     ap_state.map = idx.map + 1;

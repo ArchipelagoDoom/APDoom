@@ -25,8 +25,7 @@
 #define W_NWT_MERGE_FLATS     0x2
 
 // Add a new WAD and merge it into the main directory
-
-// [AP PWAD] Made boolean so failure can be detected and errored out of
+// [AP] Made boolean so failure can be detected and errored out of
 boolean W_MergeFile(const char *filename);
 
 // NWT-style merging

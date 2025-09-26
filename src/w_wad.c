@@ -172,7 +172,8 @@ wad_file_t *W_AddFile (const char *filename)
         // Name the lump after the base of the filename (without the
         // extension).
 
-    // [AP PWAD] if the extension is .DEH, then load it with the name DEHACKED
+    // [AP] if the extension is .DEH, then load it with the name DEHACKED
+    // this lets old style dehacked files added as a WAD to work properly
     if (!strcasecmp(filename+strlen(filename)-3 , "deh" ) )
         memcpy(fileinfo->name, "DEHACKED", 8); // don't use strncpy to silence compiler warnings
     else

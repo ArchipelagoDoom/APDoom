@@ -80,8 +80,8 @@ fixed_t GetOffset(vertex_t *v1, vertex_t *v2)
 }
 
 
-// [AP PWAD]
-// Functions for tweaking stuff after loading
+// [AP] Functions for tweaking maps after loading them
+// Allow making any change that wouldn't require a nodesbuild.
 static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
 {
     switch (tweak->type)
@@ -327,7 +327,7 @@ void P_LoadSectors(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
 
     ms = (mapsector_t *) data;
-    { // [AP PWAD] Alter sector data
+    { // [AP] Alter sector data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SECTOR_TWEAKS);
@@ -640,7 +640,7 @@ void P_LoadThings(int lump)
     int things_type_remap[1024] = {0};
 
     mt = (mapthing_t *)data;
-    { // [AP PWAD] Alter mapthing data
+    { // [AP] Alter mapthing data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), MAPTHING_TWEAKS);
@@ -1089,7 +1089,7 @@ void P_LoadThings(int lump)
     
     // [AP] Spawn level select teleport "HUB"
     spawnthing_player1_start.type = 20002;
-    { // [AP PWAD] Alter hub data
+    { // [AP] Alter hub data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), HUB_TWEAKS);
@@ -1139,7 +1139,7 @@ void P_LoadLineDefs(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
 
     mld = (maplinedef_t *) data;
-    { // [AP PWAD] Alter linedef data
+    { // [AP] Alter linedef data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), LINEDEF_TWEAKS);
@@ -1226,7 +1226,7 @@ void P_LoadSideDefs(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
 
     msd = (mapsidedef_t *) data;
-    { // [AP PWAD] Alter sidedef data
+    { // [AP] Alter sidedef data
         ap_maptweak_t *tweak;
 
         ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), SIDEDEF_TWEAKS);

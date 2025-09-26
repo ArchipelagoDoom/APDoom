@@ -93,7 +93,7 @@ extern  skill_t         gameskill;
 extern  int		gameepisode;
 extern  int		gamemap;
 
-// [AP PWAD] allow levels to behave as other levels
+// [AP] allow levels to behave as other levels
 extern  int     metaepisode;
 extern  int     metamap;
 
