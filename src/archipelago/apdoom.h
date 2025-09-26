@@ -18,6 +18,7 @@
 #ifndef _APDOOM_
 #define _APDOOM_
 
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -33,19 +34,18 @@ extern "C"
 #define APDOOM_STR2(x) #x
 #define APDOOM_VERSION APDOOM_STR(APDOOM_MAJOR) "." APDOOM_STR(APDOOM_MINOR) "." APDOOM_STR(APDOOM_PATCH)
 #define APDOOM_VERSION_TEXT APDOOM_VERSION ""
-#define APDOOM_VERSION_SUFFIX "-BETA1"
+#define APDOOM_VERSION_SUFFIX "-BETA2"
 #define APDOOM_VERSION_FULL_TEXT "APDOOM " APDOOM_VERSION_TEXT "" APDOOM_VERSION_SUFFIX
 
 
-#define AP_CHECK_MAX 128 // Arbitrary number (raised from 64)
+#define AP_CHECK_MAX 128 // 999 is enforced by ID format
 #define AP_MAX_THING 10240 // List is dynamically allocated; this is more to guard against malformed defs
 
 typedef struct
 {
     int doom_type;
     int index;
-    int check_sanity;
-    int unreachable;
+    int64_t location_id;
 } ap_thing_info_t;
 
 
@@ -57,7 +57,7 @@ typedef struct
     int check_count;
     int thing_count;
     ap_thing_info_t* thing_infos; // Dynamically allocated
-    int sanity_check_count;
+    int true_check_count; // check count minus suppressed locations
 
     int game_episode;
     int game_map;
@@ -77,6 +77,14 @@ typedef struct
     int music;
 
 } ap_level_state_t;
+
+
+// Don't construct that manually, use ap_make_level_index()
+typedef struct
+{
+    int ep; // 0-based
+    int map; // 0-based
+} ap_level_index_t;
 
 
 typedef struct
@@ -115,16 +123,18 @@ typedef struct
     int random_monsters;
     int random_items;
     int random_music;
-    int two_ways_keydoors;
+    //int two_ways_keydoors; // no longer used
     int* episodes;
-    int victory;
     int flip_levels;
-    int check_sanity;
+    //int check_sanity;
     int reset_level_on_death;
-    int goal;
     int* max_ammo_start; // Starting ammo max
     int* max_ammo_add; // Ammo max gained with backpack/bag of holding
     
+    int victory;
+    int goal; // 0: all, 1: count, 2 or 3: specific
+    int goal_level_count;
+    ap_level_index_t* goal_level_list;
 } ap_state_t;
 
 
@@ -167,14 +177,6 @@ typedef struct
     int t;
     int state;
 } ap_notification_icon_t;
-
-
-// Don't construct that manually, use ap_make_level_index()
-typedef struct
-{
-    int ep; // 0-based
-    int map; // 0-based
-} ap_level_index_t;
 
 
 // Map item id
@@ -353,13 +355,46 @@ void ap_init_map_tweaks(ap_level_index_t idx, allowed_tweaks_t type_mask);
 ap_maptweak_t *ap_get_map_tweaks();
 
 int ap_preload_defs_for_game(const char *game_name);
-const char *ap_get_iwad_name();
-const char *ap_get_pwad_name(unsigned int id);
 int ap_is_location_type(int doom_type);
 
 // ===== RANDOMNESS ===========================================================
 void ap_srand(int hash);
 unsigned int ap_rand(void);
+
+// =====
+
+typedef struct {
+    // Short name of the game (e.g. "doom", "doom2"); must be unique
+    // Used for the "-game" param to select which game to play
+    const char *shortname;
+
+    // Full name of the game (e.g. "DOOM (1993)", "DOOM II: Hell on Earth")
+    const char *fullname;
+
+    // Name of the game that the AP server refers to it by, used to connect to the slot
+    const char *servername;
+
+    // Relative path in world zip to game definitions file
+    const char *definitions;
+
+    // Required IWAD file, special behavior may be inferred based on which IWAD is used
+    const char *iwad;
+
+    // NULL-terminated list of PWADs that must be present
+    const char **required_wads;
+
+    // NULL-terminated list of PWADs which are auto-loaded if present, but aren't required
+    // (e.g. community music WAD, graphics modifications, etc.)
+    const char **optional_wads;
+
+    // NULL-terminated list of PWADs included in the world zip, by relative path
+    const char **included_wads;
+} ap_worldinfo_t;
+
+const ap_worldinfo_t **ap_list_worlds(void);
+const ap_worldinfo_t *ap_get_world(const char *shortname);
+int ap_load_world(const char *shortname);
+const ap_worldinfo_t *ap_loaded_world_info(void);
 
 #ifdef __cplusplus
 }

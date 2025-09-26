@@ -28,6 +28,8 @@
 
 static wad_file_class_t *wad_file_classes[] = 
 {
+    // Unconditionally done, so left commented out
+    //&apzip_wad_file,
 #ifdef _WIN32
     &win32_wad_file,
 #endif
@@ -41,6 +43,10 @@ wad_file_t *W_OpenFile(const char *path)
 {
     wad_file_t *result;
     int i;
+
+    // We use :name: for apzip assets.
+    if (path[0] == ':')
+        return apzip_wad_file.OpenFile(path);
 
     //!
     // @category obscure

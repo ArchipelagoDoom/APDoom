@@ -85,10 +85,11 @@ const char *LevelNames[] = {
     "E5M7:  FOETID MANSE",
     "E5M8:  FIELD OF JUDGEMENT",
     "E5M9:  SKEIN OF D'SPARIL",
-    // EPISODE 6: unnamed
-    "E6M1:  ",
-    "E6M2:  ",
-    "E6M3:  ",
+    // [AP] H+H made the names official
+    // EPISODE 6: FATE'S PATH
+    "E6M1:  RAVEN'S LAIR",
+    "E6M2:  THE WATER SHRINE",
+    "E6M3:  AMERICAN'S LEGACY",
 };
 
 static int cheating = 0;

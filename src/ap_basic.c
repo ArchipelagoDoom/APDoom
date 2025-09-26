@@ -24,6 +24,8 @@
 #include "m_misc.h"
 
 #include "apdoom.h"
+#include "apzip.h"
+#include "embedded_files.h"
 
 // Parses command line options common to all games' AP implementations.
 // See each game's "d_main.c".
@@ -201,4 +203,89 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     }
     else
         ap_settings->passwd = "";
+}
+
+// Initializes BaseAssets.zip (APDoom assets),
+// whether it's embedded in the executable or shipped alongside it.
+void APC_InitAssets(void)
+{
+    APZipReader *assets;
+
+#ifdef EMBEDDED_FILE_BASEASSETS_ZIP
+    const embedded_file_t *file = &embedded_files[EMBEDDED_FILE_BASEASSETS_ZIP];
+    assets = APZipReader_FromMemory(file->data, file->size);
+    if (assets) goto check_assets;
+    printf("warning: APDoom's assets (BaseAssets.zip) were embedded, but the embedded archive can't be loaded\n");
+#endif
+
+    // Check current working directory and some other common subdirectories
+    assets = APZipReader_FromFile("./BaseAssets.zip");
+    if (assets) goto check_assets;
+    assets = APZipReader_FromFile("./embed/BaseAssets.zip");
+    if (assets) goto check_assets;
+    assets = APZipReader_FromFile("./data/BaseAssets.zip");
+    if (assets) goto check_assets;
+    I_Error("APDoom's assets (BaseAssets.zip) cannot be found.");
+
+check_assets:
+    // A list of files that must exist inside BaseAssets.wad for it to be considered valid.
+    const char *files_to_check[] = {
+        "ArchipelagoDoom.wad",
+        "ArchipelagoHeretic.wad",
+        "Launcher.wad",
+        NULL,
+    };
+
+    for (int i = 0; files_to_check[i]; ++i)
+    {
+        if (!APZipReader_FileExists(assets, files_to_check[i]))
+        {
+            APZipReader_Close(assets);
+            I_Error("APDoom's assets (BaseAssets.zip) are missing a required file: %s", files_to_check[i]);            
+        }
+    }
+
+    // File looks good, so try to cache it for later
+    if (!APZipReader_Cache(assets, ":assets:"))
+    {
+        APZipReader_Close(assets);
+        I_Error("There was a problem when trying to cache APDoom's assets (BaseAssets.zip).");
+    }
+}
+
+// Dumps all embedded files into an "embed" subdirectory.
+void APC_DumpEmbeddedFiles(void)
+{
+    char *embed_dir = M_StringJoin(".", DIR_SEPARATOR_S, "embed", NULL);
+    char *embed_path;
+
+    int file_count = 0;
+    int success_count = 0;
+
+    printf("Dumping all embedded files to \"%s\"...\n", embed_dir);
+    M_MakeDirectory(embed_dir);
+
+    for (file_count = 0; file_count < NUM_EMBEDDED_FILES; ++file_count)
+    {
+        const embedded_file_t *file = &embedded_files[file_count];
+        embed_path = M_StringJoin(embed_dir, DIR_SEPARATOR_S, file->name, NULL);
+        if (M_FileExists(embed_path))
+        {
+            printf("  %s: Already exists, not dumping\n", file->name);
+        }
+        else if (!M_WriteFile(embed_path, file->data, file->size))
+        {
+            printf("  %s: Couldn't write file\n", file->name);
+        }
+        else
+        {
+            ++success_count;
+            printf("  %s: OK\n", file->name);
+        }
+
+        free(embed_path);
+    }
+
+    printf("%d of %d files dumped successfully.\n", success_count, file_count);
+    free(embed_dir);
 }

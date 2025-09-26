@@ -2098,7 +2098,8 @@ void D_DoomMain (void)
     DEH_ParseCommandLine();
 
     // Load PWAD files required to play the specified game.
-    modifiedgame = W_ParseAPDefinitions();
+    W_InitArchipelagoAssets("ArchipelagoDoom.wad");
+    modifiedgame = W_LoadArchipelagoWads();
 
     // Load additional PWAD files from command line.
     modifiedgame |= W_ParseCommandLine();

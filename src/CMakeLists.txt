@@ -14,6 +14,9 @@ set(COMMON_SOURCE_FILES
 add_subdirectory(archipelago)
 include_directories(archipelago)
 
+add_subdirectory(apzip)
+include_directories(apzip)
+
 # Dedicated server (chocolate-server):
 
 set(DEDSERV_FILES
@@ -105,6 +108,7 @@ set(GAME_SOURCE_FILES
     w_main.c            w_main.h
     w_wad.c             w_wad.h
     w_file.c            w_file.h
+    w_file_apzip.c
     w_file_stdc.c
     w_file_posix.c
     w_file_win32.c
@@ -149,10 +153,13 @@ endif()
 if(FluidSynth_FOUND)
     list(APPEND EXTRA_LIBS FluidSynth::libfluidsynth)
 endif()
+if(ZLIB_FOUND)
+    list(APPEND EXTRA_LIBS ZLIB::ZLIB)
+endif()
 if(WIN32)
 	list(APPEND EXTRA_LIBS winmm)
 endif()
-list(APPEND EXTRA_LIBS archipelago)
+list(APPEND EXTRA_LIBS archipelago apzip embeds)
 
 if(WIN32)
     add_executable("${PROGRAM_PREFIX}doom" ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/doom-res.rc")

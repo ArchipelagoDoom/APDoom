@@ -23,40 +23,73 @@
 #include "i_glob.h"
 #include "i_system.h"
 #include "m_argv.h"
+#include "m_misc.h"
 #include "w_main.h"
 #include "w_merge.h"
 #include "w_wad.h"
 #include "z_zone.h"
 
+#include "ap_basic.h"
 #include "apdoom.h"
 
-// [AP PWAD]
-boolean W_ParseAPDefinitions(void)
+static char *ap_asset_path;
+
+void W_InitArchipelagoAssets(const char *asset_wad)
 {
-    int num_pwads = 0;
+    APC_InitAssets();
+    ap_asset_path = M_StringJoin(":assets:", "/", asset_wad, NULL);
+}
 
-    while (true)
+static int W_APLoadSingle(const char *filename, boolean required)
+{
+    int ret = 1;
+    printf(" [Archipelgo Doom] merging %s\n", filename);
+    if (!W_MergeFile(filename))
     {
-        const char *pwad_name = ap_get_pwad_name(num_pwads);
-        if (!pwad_name)
-        {
-            break;
-        }
+        ret = 0;
+        if (required)
+            I_Error("Required PWAD file '%s' not found!", filename);
         else
-        {
-            char *filename = D_TryFindWADByName(pwad_name);
-
-            printf(" [AP game definitions] merging %s\n", filename);
-            if (!W_MergeFile(filename))
-                I_Error("Required PWAD file '%s' not found!", pwad_name);
-
-            free(filename);
-            ++num_pwads;
-        }
+            printf("   ... not found (optional)\n");
     }
+    return ret;
+}
 
-    // Don't consider AP*.wad "modifying" the game.
-    return num_pwads > 1;
+static int W_APLoadAll(const char *path, const char **wad_list, boolean required)
+{
+    int wad_count = 0;
+    for (size_t i = 0; wad_list[i]; ++i)
+    {
+        char *filename;
+        if (path)
+            filename = M_StringJoin(path, "/", wad_list[i], NULL);
+        else
+            filename = D_TryFindWADByName(wad_list[i]);
+
+        wad_count += W_APLoadSingle(filename, required);
+        free(filename);
+    }
+    return wad_count;
+}
+
+// [AP PWAD]
+boolean W_LoadArchipelagoWads(void)
+{
+    const ap_worldinfo_t *wi = ap_loaded_world_info();
+    int wad_count = 0;
+
+    if (!ap_asset_path)
+        I_Error("Call W_InitArchipelagoAssets first to set up Archipelago asset files.");
+
+    wad_count += W_APLoadAll(NULL, wi->required_wads, true);
+    wad_count += W_APLoadAll(NULL, wi->optional_wads, false);
+    W_APLoadSingle(ap_asset_path, true);
+    W_APLoadAll(":world:", wi->included_wads, true);
+
+    free(ap_asset_path);
+    ap_asset_path = NULL;
+
+    return wad_count > 0;
 }
 
 // Parse the command line, merging WAD files that are sppecified.

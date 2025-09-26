@@ -1,8 +1,8 @@
 {
     "full_name": "Heretic",
     "short_name": "heretic",
-    "ap_name": "Heretic",
-    "ap_world_name": "heretic",
+    "ap_name": "Heretic (Beta)",
+    "ap_world_name": "heretic_beta",
     "ap_class_name": "Heretic",
 
     "iwad": "HERETIC.WAD",

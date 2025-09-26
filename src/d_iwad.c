@@ -75,8 +75,9 @@ boolean D_IsIWADName(const char *name)
 // Array of locations to search for IWAD files
 //
 // "128 IWAD search directories should be enough for anybody".
+// [AP] Spoiler alert ... it wasn't.
 
-#define MAX_IWAD_DIRS 128
+#define MAX_IWAD_DIRS 256
 
 static boolean iwad_dirs_built = false;
 static const char *iwad_dirs[MAX_IWAD_DIRS];
@@ -733,6 +734,31 @@ static void AddSteamDirs(void)
 #endif // __MACOSX__
 #endif // !_WIN32
 
+// [AP] Adds a few extra paths for convenience for APDoom.
+static void AddAPPaths(void)
+{
+    const ap_worldinfo_t *wi = ap_loaded_world_info();
+    char *execdir = M_DirName(myargv[0]);
+
+    // Always check "iwad" from the cwd and executable directory.
+    AddIWADDir(M_StringJoin(".",     DIR_SEPARATOR_S "iwad", NULL));
+    AddIWADDir(M_StringJoin(execdir, DIR_SEPARATOR_S "iwad", NULL));
+
+    // Likewise for "wads".
+    AddIWADDir(M_StringJoin(".",     DIR_SEPARATOR_S "wads", NULL));
+    AddIWADDir(M_StringJoin(execdir, DIR_SEPARATOR_S "wads", NULL));
+
+    // And for extra organization, a folder inside "wads" matching the short game name.s
+    if (wi)
+    {
+        AddIWADDir(M_StringJoin(".",     DIR_SEPARATOR_S "wads" DIR_SEPARATOR_S, wi->shortname, NULL));
+        AddIWADDir(M_StringJoin(execdir, DIR_SEPARATOR_S "wads" DIR_SEPARATOR_S, wi->shortname, NULL));        
+    }
+
+    free(execdir);
+}
+
+
 //
 // Build a list of IWAD files
 //
@@ -766,6 +792,8 @@ static void BuildIWADDirList(void)
     {
         AddIWADPath(env, "");
     }
+
+    AddAPPaths();
 
 #ifdef _WIN32
 
@@ -924,15 +952,15 @@ char *D_FindIWAD(int mask, GameMission_t *mission)
     }
 #else
     // [AP PWAD] IWADs are specified by JSON defs, load what is given to us
-    const char *iwad_name = ap_get_iwad_name();
+    const ap_worldinfo_t *wi = ap_loaded_world_info();
 
-    if (iwad_name == NULL || strlen(iwad_name) == 0)
-        I_Error("Malformed game defs detected; no IWAD specified.");
+    if (!wi || wi->iwad == NULL || strlen(wi->iwad) == 0)
+        I_Error("Malformed game detected; no IWAD specified.");
 
-    result = D_FindWADByName(iwad_name);
+    result = D_FindWADByName(wi->iwad);
 
     if (result == NULL)
-        I_Error("IWAD file '%s' not found!", iwad_name);
+        I_Error("IWAD file '%s' not found!", wi->iwad);
 
     *mission = IdentifyIWADByName(result, mask);
 #endif

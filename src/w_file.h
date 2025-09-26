@@ -39,7 +39,7 @@ typedef struct
                    void *buffer, size_t buffer_len);
 } wad_file_class_t;
 
-
+extern wad_file_class_t apzip_wad_file;
 extern wad_file_class_t stdc_wad_file;
 
 #ifdef _WIN32

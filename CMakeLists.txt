@@ -68,6 +68,12 @@ if(FluidSynth_FOUND AND ENABLE_SDL2_MIXER)
     set(HAVE_FLUIDSYNTH TRUE)
 endif()
 
+# Check for zlib.
+find_package(ZLIB)
+if(ZLIB_FOUND)
+    set(HAVE_LIBZ TRUE)
+endif()
+
 find_package(m)
 
 include(CheckSymbolExists)
@@ -94,7 +100,7 @@ configure_file(src/setup-res.rc.in src/setup-res.rc)
 configure_file(src/setup/setup-manifest.xml.in src/setup/setup-manifest.xml)
 configure_file(src/strife-res.rc.in src/strife-res.rc)
 
-foreach(SUBDIR textscreen opl pcsound src)
+foreach(SUBDIR embed textscreen opl pcsound src)
     add_subdirectory("${SUBDIR}")
 endforeach()
 
@@ -110,4 +116,3 @@ set_target_properties(strife crispy-strife PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE
 set_target_properties(crispy-server PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
 set_target_properties(midiread PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
 set_target_properties(mus2mid PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
-

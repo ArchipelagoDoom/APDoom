@@ -1428,7 +1428,8 @@ void D_DoomMain(void)
     DEH_ParseCommandLine();
     
     // Load PWAD files required to play the specified game.
-    W_ParseAPDefinitions();
+    W_InitArchipelagoAssets("ArchipelagoHeretic.wad");
+    W_LoadArchipelagoWads();
 
     // Load additional PWAD files from command line.
     W_ParseCommandLine();

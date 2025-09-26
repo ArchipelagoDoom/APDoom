@@ -23,4 +23,7 @@
 
 void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_defs);
 
+void APC_InitAssets(void);
+void APC_DumpEmbeddedFiles(void);
+
 #endif //__AP_BASIC_H__

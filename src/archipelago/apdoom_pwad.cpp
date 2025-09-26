@@ -543,7 +543,7 @@ int json_parse_level_info(Json::Value json, level_info_storage_t &output)
 			// These used to be stored in the structures, but are now recalculated as we load.
 			new_level.thing_count = map_info["thing_list"].size();
 			new_level.check_count = 0;
-			new_level.sanity_check_count = 0;
+			new_level.true_check_count = 0;
 
 			if (new_level.thing_count > AP_MAX_THING)
 			{
@@ -560,18 +560,16 @@ int json_parse_level_info(Json::Value json, level_info_storage_t &output)
 				{
 					// Things which are not AP items are only stored as their doomednum.
 					new_level.thing_infos[idx].doom_type = map_things[idx].asInt();
-					new_level.thing_infos[idx].check_sanity = false;
-					new_level.thing_infos[idx].unreachable = true;
+					new_level.thing_infos[idx].location_id = -1;
 				}
 				else
 				{
 					// Things which _are_ AP items are stored as an array.
-					// [0] is the doomednum, [1] is the checksanity boolean.
+					// [0] is the doomednum, [1] is the location num.
 					new_level.thing_infos[idx].doom_type = map_things[idx][0].asInt();
-					new_level.thing_infos[idx].check_sanity = map_things[idx][1].asBool();
-					new_level.thing_infos[idx].unreachable = false;
+					new_level.thing_infos[idx].location_id = map_things[idx][1].asInt64();
 					++new_level.check_count;
-					// sanity_check_count was always handled later, anyway.
+					// true_check_count is handled after connect (when we know suppressed locations)
 				}
 			}
 

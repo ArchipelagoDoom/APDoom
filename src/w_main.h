@@ -20,7 +20,8 @@
 
 #include "d_mode.h"
 
-boolean W_ParseAPDefinitions(void);
+void W_InitArchipelagoAssets(const char *asset_wad);
+boolean W_LoadArchipelagoWads(void);
 boolean W_ParseCommandLine(void);
 void W_CheckCorrectIWAD(GameMission_t mission);
 

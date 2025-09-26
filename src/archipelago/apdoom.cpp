@@ -41,7 +41,7 @@
 #include <set>
 
 #include "apdoom_pwad.hpp"
-#include "autodefs.hpp"
+#include "apzip.h"
 
 #if defined(_WIN32)
 static wchar_t *ConvertMultiByteToWide(const char *str, UINT code_page)
@@ -165,6 +165,23 @@ static int AP_FileExists(const char *filename)
 }
 
 
+static Json::Value AP_ReadJson(const char *data, size_t size)
+{
+	static Json::CharReaderBuilder builder;
+	std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+
+	Json::Value json;
+	reader->parse(data, data+size, &json, NULL);
+	return json;
+}
+
+
+static Json::Value AP_ReadJson(const std::string &data)
+{
+	return AP_ReadJson(data.data(), data.size());
+}
+
+
 enum class ap_game_t
 {
 	doom,
@@ -173,10 +190,13 @@ enum class ap_game_t
 };
 
 
+const ap_worldinfo_t *ap_world_info;
 ap_gameinfo_t ap_game_info;
 ap_state_t ap_state;
 int ap_is_in_game = 0;
 int ap_episode_count = -1;
+
+static bool detected_old_apworld = false;
 
 static ap_game_t ap_base_game;
 static int ap_weapon_count = -1;
@@ -189,6 +209,7 @@ static AP_RoomInfo ap_room_info;
 static std::vector<int64_t> ap_item_queue; // We queue when we're in the menu.
 static bool ap_was_connected = false; // Got connected at least once. That means the state is valid
 static std::set<int64_t> ap_progressive_locations;
+static std::set<int64_t> suppressed_locations; // Locations that don't exist in current multiworld (checksanity, etc)
 static bool ap_initialized = false;
 static std::vector<std::string> ap_cached_messages;
 static std::string ap_seed_string;
@@ -197,39 +218,77 @@ static std::vector<ap_notification_icon_t> ap_notification_icons;
 
 #define SLOT_DATA_CALLBACK(func_name, output, condition) void func_name (int result) { if (condition) output = result; }
 
-SLOT_DATA_CALLBACK(f_goal, ap_state.goal, true);
 SLOT_DATA_CALLBACK(f_difficulty, ap_state.difficulty, (!ap_settings.override_skill) );
 SLOT_DATA_CALLBACK(f_random_monsters, ap_state.random_monsters, (!ap_settings.override_monster_rando) );
 SLOT_DATA_CALLBACK(f_random_items, ap_state.random_items, (!ap_settings.override_item_rando) );
 SLOT_DATA_CALLBACK(f_random_music, ap_state.random_music, (!ap_settings.override_music_rando) );
 SLOT_DATA_CALLBACK(f_flip_levels, ap_state.flip_levels, (!ap_settings.override_flip_levels) );
-SLOT_DATA_CALLBACK(f_check_sanity, ap_state.check_sanity, true);
 SLOT_DATA_CALLBACK(f_reset_level_on_death, ap_state.reset_level_on_death, (!ap_settings.override_reset_level_on_death) );
-SLOT_DATA_CALLBACK(f_two_ways_keydoors, ap_state.two_ways_keydoors, true);
 
-// Even if the element we're looking for isn't in slot data, these callback functions are still called.
-// Thus it's important to have conditions on all of these to avoid out-of-bounds writes.
-SLOT_DATA_CALLBACK(f_episode1, ap_state.episodes[0], (ap_episode_count > 0) );
-SLOT_DATA_CALLBACK(f_episode2, ap_state.episodes[1], (ap_episode_count > 1) );
-SLOT_DATA_CALLBACK(f_episode3, ap_state.episodes[2], (ap_episode_count > 2) );
-SLOT_DATA_CALLBACK(f_episode4, ap_state.episodes[3], (ap_episode_count > 3) );
-SLOT_DATA_CALLBACK(f_episode5, ap_state.episodes[4], (ap_episode_count > 4) );
-SLOT_DATA_CALLBACK(f_episode6, ap_state.episodes[5], (ap_episode_count > 5) );
-SLOT_DATA_CALLBACK(f_episode7, ap_state.episodes[6], (ap_episode_count > 6) );
-SLOT_DATA_CALLBACK(f_episode8, ap_state.episodes[7], (ap_episode_count > 7) );
-SLOT_DATA_CALLBACK(f_episode9, ap_state.episodes[8], (ap_episode_count > 8) );
-SLOT_DATA_CALLBACK(f_ammo1start, ap_state.max_ammo_start[0], (ap_ammo_count > 0 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo2start, ap_state.max_ammo_start[1], (ap_ammo_count > 1 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo3start, ap_state.max_ammo_start[2], (ap_ammo_count > 2 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo4start, ap_state.max_ammo_start[3], (ap_ammo_count > 3 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo5start, ap_state.max_ammo_start[4], (ap_ammo_count > 4 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo6start, ap_state.max_ammo_start[5], (ap_ammo_count > 5 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo1add, ap_state.max_ammo_add[0], (ap_ammo_count > 0 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo2add, ap_state.max_ammo_add[1], (ap_ammo_count > 1 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo3add, ap_state.max_ammo_add[2], (ap_ammo_count > 2 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo4add, ap_state.max_ammo_add[3], (ap_ammo_count > 3 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo5add, ap_state.max_ammo_add[4], (ap_ammo_count > 4 && result > 0) );
-SLOT_DATA_CALLBACK(f_ammo6add, ap_state.max_ammo_add[5], (ap_ammo_count > 5 && result > 0) );
+void f_goal(std::string json_blob)
+{
+	Json::Value json = AP_ReadJson(json_blob);
+	if (json.isInt())
+	{
+		detected_old_apworld = true;
+		return;
+	}
+
+	ap_state.goal = json["type"].asInt();
+	switch (ap_state.goal)
+	{
+	case 3: // Specific Levels
+	case 2: // Random Levels
+		{
+			ap_state.goal_level_count = (int)json["levels"].size();
+			ap_state.goal_level_list = new ap_level_index_t[ap_state.goal_level_count];
+			for (int i = 0; i < ap_state.goal_level_count; ++i)
+			{
+				const Json::Value& j_idx = json["levels"][i];
+				ap_state.goal_level_list[i].ep = j_idx[0].asInt() - 1;
+				ap_state.goal_level_list[i].map = j_idx[1].asInt() - 1;
+			}
+		}
+		break;
+	case 1: // Some number of levels
+		ap_state.goal_level_count = json["count"].asInt();
+		break;
+	default:
+		break;
+	}
+}
+
+void f_suppressed_locations(std::string json_blob)
+{
+	Json::Value json = AP_ReadJson(json_blob);
+	for (const Json::Value& loc_id : json)
+		suppressed_locations.insert(loc_id.asInt());
+}
+
+void f_episodes(std::string json_blob)
+{
+	Json::Value json = AP_ReadJson(json_blob);
+	for (const Json::Value& episode : json)
+	{
+		int ep_int = episode.asInt() - 1;
+		if (ep_int >= 0 && ep_int < ap_episode_count)
+			ap_state.episodes[ep_int] = 1;
+	}
+}
+
+void f_ammo_start(std::string json_blob)
+{
+	Json::Value json = AP_ReadJson(json_blob);
+	for (int i = 0; i < ap_ammo_count && i < (int)json.size(); ++i)
+		ap_state.max_ammo_start[i] = json[i].asInt();
+}
+
+void f_ammo_add(std::string json_blob)
+{
+	Json::Value json = AP_ReadJson(json_blob);
+	for (int i = 0; i < ap_ammo_count && i < (int)json.size(); ++i)
+		ap_state.max_ammo_add[i] = json[i].asInt();
+}
 
 void f_itemclr();
 void f_itemrecv(int64_t item_id, int player_id, bool notify_player);
@@ -243,17 +302,6 @@ void APSend(std::string msg);
 
 // ===== PWAD SUPPORT =========================================================
 // All of these are loaded from json on game startup.
-
-// The game name that gets passed to Archipelago when connecting.
-static std::string archipelago_game_name;
-
-// The name of the IWAD that this game definition requires
-static std::string iwad_name;
-
-// Every PWAD that needs to be loaded to play the given PWAD (includes APDOOM.WAD/APHERETIC.WAD)
-static std::vector<std::string> pwad_names;
-
-// ----------------------------------------------------------------------------
 // The following are large tables of game data, usually auto-generated by ap_gen_tool,
 // that are parsed in apdoom_pwad.cpp.
 
@@ -267,64 +315,50 @@ static type_sprites_storage_t preloaded_type_sprites; // <int doomednum, std::st
 
 // ----------------------------------------------------------------------------
 
-static Json::Value open_defs(const char *game_name)
+Json::Value open_defs(const char *defs_file)
 {
-	Json::Value retval;
-
-	std::string filename = std::string("games/") + game_name + std::string(".json");
-	std::ifstream f(filename);
-
-	// Prefer external game json, when it's available.
-	if (f.is_open())
+	APZipReader *world = APZipReader_FetchFromCache(":world:");
+	APZipFile *f = APZipReader_GetFile(world, defs_file);
+	if (!f)
 	{
-		f >> retval;
-		f.close();
-		printf("APDOOM: Loading game \"%s\" from %s\n", game_name, filename.c_str());
+		printf("Definitions file '%s' is missing...\n", defs_file);
+		return Json::nullValue;
 	}
 
-	// If not available externally, maybe we have it in autodefs?
-	else
-	{
-		for (int i = 0; autodefs[i].name; ++i)
-		{
-			if (!strcasecmp(autodefs[i].name, game_name))
-			{
-				std::istringstream af(autodefs[i].raw_json);
-				af >> retval;
-				printf("APDOOM: Loading game \"%s\" from internal games list\n", game_name);
-				break;
-			}
-		}
-	}
-
-	if (retval.isNull())
-		printf("APDOOM: Can't find a suitable game file for \"%s\"\n", game_name);
-	return retval;
+	Json::Value json = AP_ReadJson(f->data, f->size);
+	if (json.isNull())
+		printf("Failed to initialize game definitions\n");
+	return json;
 }
 
 // Returns positive on successful load, 0 for failure.
 int ap_preload_defs_for_game(const char *game_name)
 {
-	Json::Value defs_json = open_defs(game_name);
+	ap_world_info = ap_get_world(game_name);
+	if (!ap_world_info)
+	{
+		printf("APDOOM: No valid apworld for the game '%s' exists.\n    Currently available games are:\n", game_name);
+		const ap_worldinfo_t **games_list = ap_list_worlds();
+		for (int i = 0; games_list[i]; ++i)
+			printf("    - '%s' -> %s\n", games_list[i]->shortname, games_list[i]->fullname);
+		return 0;
+	}
+
+	if (!ap_load_world(ap_world_info->shortname))
+		return 0;
+
+	Json::Value defs_json = open_defs(ap_world_info->definitions);
 	if (defs_json.isNull())
 		return 0;
 
-	archipelago_game_name = defs_json["_game_name"].asString();
-
-	// Recognize supported IWADs, and set up game info for them automatically.
-	iwad_name = defs_json["_iwad"].asString();
-	if (iwad_name == "HERETIC.WAD")
-		ap_base_game = ap_game_t::heretic;
-	else if (iwad_name == "DOOM.WAD" || iwad_name == "CHEX.WAD")
-		ap_base_game = ap_game_t::doom;
-	else // All others are Doom 2 based, I think?
-		ap_base_game = ap_game_t::doom2;
-
-	// Track PWADs that we need to force load later, if this is a PWAD game def.
-	if (!defs_json["_pwads"].isNull())
-	{
-		for (auto &pwad : defs_json["_pwads"])
-			pwad_names.emplace_back(pwad.asString());
+	{ // Recognize supported IWADs, and set up game info for them automatically.
+		std::string iwad_name = std::string(ap_world_info->iwad);
+		if (iwad_name == "HERETIC.WAD")
+			ap_base_game = ap_game_t::heretic;
+		else if (iwad_name == "DOOM.WAD" || iwad_name == "CHEX.WAD")
+			ap_base_game = ap_game_t::doom;
+		else // All others are Doom 2 based, I think?
+			ap_base_game = ap_game_t::doom2;
 	}
 
 	ap_game_info.ammo_types = new ap_ammo_info_t[ap_episode_count * max_map_count];
@@ -337,6 +371,7 @@ int ap_preload_defs_for_game(const char *game_name)
 		|| !json_parse_map_tweaks(defs_json["map_tweaks"], map_tweak_list)
 		|| !json_parse_level_select(defs_json["level_select"], level_select_screens)
 		|| !json_parse_game_info(defs_json["game_info"], ap_game_info)
+		// TODO rename_lumps
 	)
 	{
 		printf("APDOOM: Errors occurred while loading \"%s\".\n", game_name);
@@ -347,18 +382,9 @@ int ap_preload_defs_for_game(const char *game_name)
 
 // ----------------------------------------------------------------------------
 
-// Returns the name of the IWAD to load.
-const char *ap_get_iwad_name()
+const ap_worldinfo_t *ap_loaded_world_info(void)
 {
-	return iwad_name.c_str();
-}
-
-// Returns PWADs to load, in order.
-const char *ap_get_pwad_name(unsigned int id)
-{
-	if (id >= pwad_names.size())
-		return NULL;
-	return pwad_names[id].c_str();
+	return ap_world_info;
 }
 
 int ap_is_location_type(int doom_type)
@@ -492,7 +518,7 @@ int ap_get_map_count(int ep)
 
 int ap_total_check_count(const ap_level_info_t *level_info)
 {
-	return level_info->check_count - (ap_state.check_sanity ? 0 : level_info->sanity_check_count);
+	return level_info->true_check_count;
 }
 
 
@@ -544,8 +570,9 @@ int validate_doom_location(ap_level_index_t idx, int index)
 {
     ap_level_info_t* level_info = ap_get_level_info(idx);
     if (index >= level_info->thing_count) return 0;
-	if (level_info->thing_infos[index].unreachable) return 0;
-    return level_info->thing_infos[index].check_sanity == 0 || ap_state.check_sanity == 1;
+	if (level_info->thing_infos[index].location_id <= 0) return 0;
+	if (suppressed_locations.count(level_info->thing_infos[index].location_id)) return 0;
+    return 1;
 }
 
 
@@ -558,7 +585,7 @@ int apdoom_init(ap_settings_t* settings)
 #endif
 	memset(&ap_state, 0, sizeof(ap_state));
 
-	settings->game = archipelago_game_name.c_str();
+	settings->game = ap_world_info->servername;
 	if (ap_base_game == ap_game_t::heretic)
 	{
 		ap_weapon_count = 9;
@@ -632,13 +659,6 @@ int apdoom_init(ap_settings_t* settings)
 			{
 				ap_state.level_states[ep * max_map_count + map].checks[k] = -1;
 			}
-			auto level_info = ap_get_level_info(ap_level_index_t{ep, map});
-			level_info->sanity_check_count = 0;
-			for (int k = 0; k < level_info->thing_count; ++k)
-			{
-				if (level_info->thing_infos[k].check_sanity)
-					level_info->sanity_check_count++;
-			}
 		}
 	}
 
@@ -657,7 +677,7 @@ int apdoom_init(ap_settings_t* settings)
 	if (ap_settings.override_reset_level_on_death)
 		ap_state.reset_level_on_death = ap_settings.reset_level_on_death;
 
-	AP_NetworkVersion version = {0, 6, 1};
+	AP_NetworkVersion version = {0, 6, 3};
 	AP_SetClientVersion(&version);
     AP_Init(ap_settings.ip, ap_settings.game, ap_settings.player_name, ap_settings.passwd);
 	AP_SetDeathLinkSupported(ap_settings.force_deathlink_off ? false : true);
@@ -665,36 +685,17 @@ int apdoom_init(ap_settings_t* settings)
 	AP_SetItemRecvCallback(f_itemrecv);
 	AP_SetLocationCheckedCallback(f_locrecv);
 	AP_SetLocationInfoCallback(f_locinfo);
-	AP_RegisterSlotDataIntCallback("goal", f_goal);
+	AP_RegisterSlotDataRawCallback("goal", f_goal);
 	AP_RegisterSlotDataIntCallback("difficulty", f_difficulty);
+	AP_RegisterSlotDataIntCallback("reset_level_on_death", f_reset_level_on_death);
 	AP_RegisterSlotDataIntCallback("random_monsters", f_random_monsters);
 	AP_RegisterSlotDataIntCallback("random_pickups", f_random_items);
 	AP_RegisterSlotDataIntCallback("random_music", f_random_music);
 	AP_RegisterSlotDataIntCallback("flip_levels", f_flip_levels);
-	AP_RegisterSlotDataIntCallback("check_sanity", f_check_sanity);
-	AP_RegisterSlotDataIntCallback("reset_level_on_death", f_reset_level_on_death);
-	AP_RegisterSlotDataIntCallback("episode1", f_episode1);
-	AP_RegisterSlotDataIntCallback("episode2", f_episode2);
-	AP_RegisterSlotDataIntCallback("episode3", f_episode3);
-	AP_RegisterSlotDataIntCallback("episode4", f_episode4);
-	AP_RegisterSlotDataIntCallback("episode5", f_episode5);
-	AP_RegisterSlotDataIntCallback("episode6", f_episode6);
-	AP_RegisterSlotDataIntCallback("episode7", f_episode7);
-	AP_RegisterSlotDataIntCallback("episode8", f_episode8);
-	AP_RegisterSlotDataIntCallback("episode9", f_episode9);
-	AP_RegisterSlotDataIntCallback("ammo1start", f_ammo1start);
-	AP_RegisterSlotDataIntCallback("ammo2start", f_ammo2start);
-	AP_RegisterSlotDataIntCallback("ammo3start", f_ammo3start);
-	AP_RegisterSlotDataIntCallback("ammo4start", f_ammo4start);
-	AP_RegisterSlotDataIntCallback("ammo5start", f_ammo5start);
-	AP_RegisterSlotDataIntCallback("ammo6start", f_ammo6start);
-	AP_RegisterSlotDataIntCallback("ammo1add", f_ammo1add);
-	AP_RegisterSlotDataIntCallback("ammo2add", f_ammo2add);
-	AP_RegisterSlotDataIntCallback("ammo3add", f_ammo3add);
-	AP_RegisterSlotDataIntCallback("ammo4add", f_ammo4add);
-	AP_RegisterSlotDataIntCallback("ammo5add", f_ammo5add);
-	AP_RegisterSlotDataIntCallback("ammo6add", f_ammo6add);
-	AP_RegisterSlotDataIntCallback("two_ways_keydoors", f_two_ways_keydoors);
+	AP_RegisterSlotDataRawCallback("suppressed_locations", f_suppressed_locations);
+	AP_RegisterSlotDataRawCallback("episodes", f_episodes);
+	AP_RegisterSlotDataRawCallback("ammo_start", f_ammo_start);
+	AP_RegisterSlotDataRawCallback("ammo_add", f_ammo_add);
     AP_Start();
 
 	// Block DOOM until connection succeeded or failed
@@ -706,6 +707,13 @@ int apdoom_init(ap_settings_t* settings)
 		{
 			case AP_ConnectionStatus::Authenticated:
 			{
+				if (detected_old_apworld)
+				{
+					printf("APDOOM: Older versions of the APWorld are not supported.\n");
+					printf("  Please use APDOOM 1.2.0 to connect to this slot.\n");
+					return 0;
+				}
+
 				printf("APDOOM: Authenticated\n");
 				AP_GetRoomInfo(&ap_room_info);
 
@@ -773,6 +781,24 @@ int apdoom_init(ap_settings_t* settings)
 	{
 		printf("APDOOM: No episode selected, selecting episode 1\n");
 		ap_state.episodes[0] = 1;
+	}
+
+	// Set up true check counts now
+	for (int ep = 0; ep < ap_episode_count; ++ep)
+	{
+		int map_count = ap_get_map_count(ep + 1);
+		for (int map = 0; map < map_count; ++map)
+		{
+			auto level_info = ap_get_level_info(ap_level_index_t{ep, map});
+			level_info->true_check_count = level_info->check_count;
+			for (int k = 0; k < level_info->thing_count; ++k)
+			{
+				if (suppressed_locations.count(level_info->thing_infos[k].location_id))
+				{
+					--level_info->true_check_count;
+				}
+			}
+		}
 	}
 
 	// Seed for random features
@@ -869,13 +895,7 @@ int apdoom_init(ap_settings_t* settings)
 				for (const auto& kv3 : kv2.second)
 				{
 					if (kv3.first == -1) continue;
-#if 0 // Was this used to debug something in the past? Either way, it does nothing anymore
-					if (kv3.second == 371349)
-					{
-						int tmp;
-						tmp = 5;
-					}
-#endif
+
 					if (validate_doom_location({kv1.first - 1, kv2.first - 1}, kv3.first))
 					{
 						location_scouts.push_back(kv3.second);
@@ -1490,6 +1510,8 @@ void apdoom_check_location(ap_level_index_t idx, int index)
 	if (it3 == it2->second.end()) return;
 
 	id = it3->second;
+	if (suppressed_locations.count(id))
+		return;
 
 	if (index >= 0)
 	{
@@ -1523,7 +1545,7 @@ int apdoom_is_location_progression(ap_level_index_t idx, int index)
 
 	int64_t id = it3->second;
 
-	return (ap_progressive_locations.find(id) != ap_progressive_locations.end()) ? 1 : 0;
+	return ap_progressive_locations.count(id);
 }
 
 void apdoom_complete_level(ap_level_index_t idx)
@@ -1585,27 +1607,46 @@ void apdoom_check_victory()
 		return;
 	}
 
-	if (ap_state.goal == 1 && (ap_base_game == ap_game_t::doom || ap_base_game == ap_game_t::heretic))
+	int complete_level_count = 0;
+
+	switch (ap_state.goal)
 	{
-		for (int ep = 0; ep < ap_episode_count; ++ep)
+	case 3: // Specific levels
+	case 2: // Random levels
+		for (int i = 0; i < ap_state.goal_level_count; ++i)
 		{
-			if (!ap_state.episodes[ep]) continue;
-			if (!ap_get_level_state(ap_level_index_t{ep, 7})->completed) return;
+			if (!ap_get_level_state(ap_state.goal_level_list[i])->completed)
+				return;
 		}
-	}
-	else
-	{
-		// All levels
+		break;
+	case 1: // Some count of levels
 		for (int ep = 0; ep < ap_episode_count; ++ep)
 		{
 			if (!ap_state.episodes[ep]) continue;
 		
-			int map_count = ap_get_map_count(ep + 1);
+			const int map_count = ap_get_map_count(ep + 1);
 			for (int map = 0; map < map_count; ++map)
 			{
-				if (!ap_get_level_state(ap_level_index_t{ep, map})->completed) return;
+				if (ap_get_level_state(ap_level_index_t{ep, map})->completed)
+					++complete_level_count;
 			}
 		}
+		if (complete_level_count < ap_state.goal_level_count)
+			return;
+		break;
+	default: // All levels
+		for (int ep = 0; ep < ap_episode_count; ++ep)
+		{
+			if (!ap_state.episodes[ep]) continue;
+		
+			const int map_count = ap_get_map_count(ep + 1);
+			for (int map = 0; map < map_count; ++map)
+			{
+				if (!ap_get_level_state(ap_level_index_t{ep, map})->completed)
+					return;
+			}
+		}
+		break;
 	}
 
 	ap_state.victory = 1;
@@ -1665,8 +1706,9 @@ int ap_validate_doom_location(ap_level_index_t idx, int doom_type, int index)
 	ap_level_info_t* level_info = ap_get_level_info(idx);
     if (index >= level_info->thing_count) return -1;
 	if (level_info->thing_infos[index].doom_type != doom_type) return -1;
-	if (level_info->thing_infos[index].unreachable) return 0;
-    return level_info->thing_infos[index].check_sanity == 0 || ap_state.check_sanity == 1;
+	if (level_info->thing_infos[index].location_id <= 0) return 0;
+	if (suppressed_locations.count(level_info->thing_infos[index].location_id)) return 0;
+    return 1;
 }
 
 
@@ -1827,6 +1869,7 @@ void ap_remote_set(const char *key, int per_slot, int value)
 	AP_SetServerData(&rq);
 }
 
+// ----------------------------------------------------------------------------
 // Consistent randomness based on seed (xorshift64*)
 static uint64_t xorshift_base = 0;
 static uint64_t xorshift_seed = 1;
