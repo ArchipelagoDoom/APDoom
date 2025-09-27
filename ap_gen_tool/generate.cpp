@@ -384,7 +384,7 @@ Json::Value make_connection(game_t *game, const rule_connection_t& connection,
 
 // --------------
 
-Json::Value generate_apworld_manifest(game_t *game)
+Json::Value generate_apworld_manifest(game_t *game, const Json::Value &apdoom_json)
 {
     static char buf[9];
     time_t dt = time(NULL);
@@ -395,6 +395,7 @@ Json::Value generate_apworld_manifest(game_t *game)
     json["compatible_version"] = 7;
     json["game"] = game->ap_name;
     json["world_version"] = "2.0." + std::string(buf);
+    json["__apdoom"] = apdoom_json;
     return json;
 }
 
@@ -758,9 +759,6 @@ int generate(game_t* game)
     const std::string zip_wad_path = zip_world_path + "wad/";
     ZipFile world;
 
-    // Generate the apworld manifest
-    world.AddJson("archipelago.json", generate_apworld_manifest(game));
-
     Json::Value ap_json;
     { // Regions
         Json::Value allregions_json = Json::arrayValue;
@@ -971,28 +969,24 @@ int generate(game_t* game)
     // Start making the info json that the launcher uses
     // It needs a lot of varying info about other parts of the world
     Json::Value info_json;
-    info_json["_fullname"] = game->full_name;
-    info_json["_shortname"] = game->short_name;
-    info_json["_servername"] = game->ap_name;
-    info_json["_iwad"] = game->iwad_name;
+    info_json["short_name"] = game->short_name;
+    info_json["iwad"] = game->iwad_name;
+
+    if (game->full_name != game->ap_name)
+        info_json["full_name"] = game->full_name;
 
     if (!game->required_wads.empty())
     {
-        info_json["required_files"] = Json::arrayValue;
+        info_json["wads_required"] = Json::arrayValue;
         for (std::string &wad : game->required_wads)
-            info_json["required_files"].append(wad);
+            info_json["wads_required"].append(wad);
     }
     if (!game->optional_wads.empty())
     {
-        info_json["optional_files"] = Json::arrayValue;
+        info_json["wads_optional"] = Json::arrayValue;
         for (std::string &wad : game->optional_wads)
-            info_json["optional_files"].append(wad);
+            info_json["wads_optional"].append(wad);
     }
-
-    // Generate the game def json that contains all the info for apdoom
-    std::string defs_path = zip_world_path + game->short_name + ".game.json";
-    world.AddJson(defs_path, generate_game_defs_json(game, levels_map));
-    info_json["_definitions"] = defs_path;
 
     // Include extra data wads
     for (const std::string &wad_path : game->included_wads)
@@ -1005,13 +999,18 @@ int generate(game_t* game)
             continue;
         }
 
-        if (info_json["included_files"].isNull())
-            info_json["included_files"] = Json::arrayValue;
-        info_json["included_files"].append(zip_wad_path + wad_name);
+        if (info_json["wads_included"].isNull())
+            info_json["wads_included"] = Json::arrayValue;
+        info_json["wads_included"].append(zip_wad_path + wad_name);
     }
 
-    // Lastly output the info json that apdoom's launcher reads
-    world.AddJson("apdoom.json", info_json);
+    // Generate the game def json that contains all the info for apdoom
+    std::string defs_path = zip_world_path + game->short_name + ".game.json";
+    world.AddJson(defs_path, generate_game_defs_json(game, levels_map));
+    info_json["definitions"] = defs_path;
+
+    // Lastly generate the apworld manifest
+    world.AddJson(zip_world_path + "archipelago.json", generate_apworld_manifest(game, info_json));
 
     // ========================================================================
 

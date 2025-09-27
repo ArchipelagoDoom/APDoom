@@ -15,7 +15,7 @@ struct WorldInfo {
 	// Required fields
 	std::string shortname; // -game arguments: e.g. "doom", "doom2" ...
 	std::string fullname; // Displayed in launcher
-	std::string servername; // Name of the game used to connect to the server (the AP name)
+	std::string apname; // Name of the game in Archipelago, used to connect to slot
 	std::string iwad; // Base IWAD this game uses (can infer specific behavior)
 	std::string definitions; // Location of game defs inside apworld
 
@@ -60,7 +60,7 @@ static ap_worldinfo_t *make_c_world(WorldInfo &w)
 	to_cstring_vector(w.c_optional_wads, w.optional_wads);
 	w.c_world_info.shortname = w.shortname.c_str();
 	w.c_world_info.fullname = w.fullname.c_str();
-	w.c_world_info.servername = w.servername.c_str();
+	w.c_world_info.apname = w.apname.c_str();
 	w.c_world_info.definitions = w.definitions.c_str();
 	w.c_world_info.iwad = w.iwad.c_str();
 	w.c_world_info.required_wads = w.c_required_wads.data();
@@ -76,7 +76,7 @@ static WorldInfo *parse_world(APZipReader *world)
 
 	// Note that it's entirely possible that NULL is passed into this function.
 	// APZipReader unconditionally returns NULL back in that case.
-	APZipFile *f = APZipReader_GetFile(world, "apdoom.json");
+	APZipFile *f = APZipReader_FindFile(world, "archipelago.json");
 	if (f)
 	{
 		std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
@@ -85,12 +85,20 @@ static WorldInfo *parse_world(APZipReader *world)
 
 	if (!json // Doesn't exist at all
 		|| !json.isObject() // Isn't an object type
-		// Or if any of the required fields are missing or non-string
-		|| !(json.isMember("_definitions") && json["_definitions"].isString())
-		|| !(json.isMember("_iwad") && json["_iwad"].isString())
-		|| !(json.isMember("_fullname") && json["_fullname"].isString())
-		|| !(json.isMember("_shortname") && json["_shortname"].isString())
-		|| !(json.isMember("_servername") && json["_servername"].isString())
+		|| json.get("compatible_version", 0).asInt() < 7 // Incompatible manifest version
+		|| !(json.isMember("game") && json["game"].isString()) // Missing game name
+		|| !(json.isMember("__apdoom") && json["__apdoom"].isObject()) // Missing APDoom submanifest
+	)
+	{
+		return NULL;
+	}
+
+	Json::Value &apdoom_json = json["__apdoom"];
+	if (
+		// Definitions, iwad, and short name are required; everything else is optional.
+		!(apdoom_json.isMember("definitions") && apdoom_json["definitions"].isString())
+		|| !(apdoom_json.isMember("iwad") && apdoom_json["iwad"].isString())
+		|| !(apdoom_json.isMember("short_name") && apdoom_json["short_name"].isString())
 	)
 	{
 		return NULL;
@@ -99,7 +107,7 @@ static WorldInfo *parse_world(APZipReader *world)
 	// Check all previously loaded worlds for a matching shortname;
 	// if one is found, don't load this one.
 	{
-		std::string shortname = json["_shortname"].asString();
+		std::string shortname = apdoom_json["short_name"].asString();
 		for (WorldInfo &other : AllGameInfo)
 		{
 			if (other.shortname == shortname)
@@ -108,18 +116,19 @@ static WorldInfo *parse_world(APZipReader *world)
 	}
 
 	WorldInfo w;
-	w.definitions = json["_definitions"].asString();
-	w.shortname = json["_shortname"].asString();
-	w.fullname = json["_fullname"].asString();
-	w.servername = json["_servername"].asString();
-	w.iwad = json["_iwad"].asString();
+	w.apname = json["game"].asString();
+	w.shortname = apdoom_json["short_name"].asString();
+	w.iwad = apdoom_json["iwad"].asString();
+	w.definitions = apdoom_json["definitions"].asString();
 
-	if (json.isMember("included_files") && json["included_files"].isArray())
-		json_to_vector(json["included_files"], w.included_wads);
-	if (json.isMember("required_files") && json["required_files"].isArray())
-		json_to_vector(json["required_files"], w.required_wads);
-	if (json.isMember("optional_files") && json["optional_files"].isArray())
-		json_to_vector(json["optional_files"], w.optional_wads);
+	w.fullname = apdoom_json.get("full_name", w.apname).asString();
+
+	if (apdoom_json.isMember("wads_required") && apdoom_json["wads_required"].isArray())
+		json_to_vector(apdoom_json["wads_required"], w.required_wads);
+	if (apdoom_json.isMember("wads_optional") && apdoom_json["wads_optional"].isArray())
+		json_to_vector(apdoom_json["wads_optional"], w.optional_wads);
+	if (apdoom_json.isMember("wads_included") && apdoom_json["wads_included"].isArray())
+		json_to_vector(apdoom_json["wads_included"], w.included_wads);
 
 	AllGameInfo.push_back(w);
 	return &AllGameInfo.back();

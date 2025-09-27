@@ -174,6 +174,103 @@ bool APZipReader_FileExists(APZipReader *zip, const char *filename)
 	return false;
 }
 
+static APZipFile *APZipReader_ReadEntryContents(APZipReader *zip, APZipDirEntry *entry)
+{
+	if (entry->is_cached) // If cached, return previous result.
+		return (entry->is_valid) ? &entry->cache : NULL;
+
+	entry->is_cached = true; // We're attempting to cache it now.
+	entry->is_valid = false; // But we don't know if it's valid yet.
+	entry->cache.data = NULL;
+
+	zip->Seek(zip, entry->offset, SEEK_SET);
+	if (!CheckHeader(zip, "PK\x03\x04"))
+		return NULL;
+	zip->Seek(zip, 2, SEEK_CUR); // Skip version
+
+	uint16_t flags = ReadShort(zip);
+	uint16_t compression = ReadShort(zip);
+
+#ifdef HAVE_LIBZ
+	// We only allow flags values of 0 or 2, and compression values of 0 or 8.
+	if ((flags & ~0x0002) || (compression & ~0x0008))
+#else
+	// We can't allow any compression
+	if (flags || compression)
+#endif
+	{
+		printf("%s: Can not read: unsupported compression\n", entry->name);
+		return NULL;
+	}
+
+	APZipFile *cache = &entry->cache;
+	zip->Seek(zip, 4, SEEK_CUR); // Skip modification date
+	cache->checksum = ReadLong(zip);
+
+	uint32_t compressed_size = ReadLong(zip);
+	cache->size = ReadLong(zip);
+
+	// Empty file, probably a directory.
+	// This is fully valid, so we return non-NULL, but NULL data.
+	if (cache->size == 0)
+	{
+		entry->is_valid = true;
+		return cache;
+	}
+
+	// Skip filename and extra sections
+	uint16_t filename_len = ReadShort(zip);
+	uint16_t extra_len = ReadShort(zip);
+	zip->Seek(zip, filename_len + extra_len, SEEK_CUR);
+
+#ifdef HAVE_LIBZ
+	if (!compression) // Just get the data and go
+	{
+		cache->data = (char *)malloc(cache->size);
+		zip->ReadRaw(zip, cache->data, cache->size);
+		entry->is_valid = (crc32(0, (Bytef *)cache->data, cache->size) == cache->checksum);
+	}
+	else // Deflate compressed, get zlib to inflate it
+	{
+		cache->data = (char *)malloc(cache->size);
+		char *compressed_data = (char *)malloc(compressed_size);
+		zip->ReadRaw(zip, compressed_data, compressed_size);
+
+		z_stream stream;
+		stream.zalloc = Z_NULL;
+		stream.zfree = Z_NULL;
+		stream.opaque = Z_NULL;
+		stream.next_in = (Bytef *)compressed_data;
+		stream.avail_in = compressed_size;
+		stream.next_out = (Bytef *)cache->data;
+		stream.avail_out = cache->size;
+
+		if (inflateInit2(&stream, -15) == Z_OK
+			&& inflate(&stream, Z_FINISH) == Z_STREAM_END
+			&& inflateEnd(&stream) == Z_OK)
+		{
+			entry->is_valid = (crc32(0, (Bytef *)cache->data, cache->size) == cache->checksum);
+		}
+
+		free(compressed_data);
+	}
+#else
+	(void)compressed_size;
+	cache->data = (char *)malloc(cache->size);
+	zip->ReadRaw(zip, cache->data, cache->size);
+	// We don't feel like implementing crc32 ourselves, so we just pretend everything's good.
+	entry->is_valid = true;
+#endif
+
+	// If the result wasn't valid, don't bother keeping any data around from it.
+	if (!entry->is_valid && cache->data)
+	{
+		free(cache->data);
+		cache->data = NULL;
+	}
+	return (entry->is_valid) ? &entry->cache : NULL;
+}
+
 APZipFile *APZipReader_GetFile(APZipReader *zip, const char *filename)
 {
 	if (!zip)
@@ -182,102 +279,29 @@ APZipFile *APZipReader_GetFile(APZipReader *zip, const char *filename)
 	for (int i = 0; i < zip->num_entries; ++i)
 	{
 		APZipDirEntry *entry = &zip->directory[i];
-		if (strcmp(filename, entry->name))
-			continue;
+		if (!strcmp(filename, entry->name))
+			return APZipReader_ReadEntryContents(zip, entry);
+	}
+	return NULL;
+}
 
-		if (entry->is_cached) // If cached, return previous result.
-			return (entry->is_valid) ? &entry->cache : NULL;
+APZipFile *APZipReader_FindFile(APZipReader *zip, const char *filename_no_path)
+{
+	if (!zip)
+		return NULL;
 
-		entry->is_cached = true; // We're attempting to cache it now.
-		entry->is_valid = false; // But we don't know if it's valid yet.
-		entry->cache.data = NULL;
-
-		zip->Seek(zip, entry->offset, SEEK_SET);
-		if (!CheckHeader(zip, "PK\x03\x04"))
-			return NULL;
-		zip->Seek(zip, 2, SEEK_CUR); // Skip version
-
-		uint16_t flags = ReadShort(zip);
-		uint16_t compression = ReadShort(zip);
-
-#ifdef HAVE_LIBZ
-		// We only allow flags values of 0 or 2, and compression values of 0 or 8.
-		if ((flags & ~0x0002) || (compression & ~0x0008))
-#else
-		// We can't allow any compression
-		if (flags || compression)
-#endif
+	for (int i = 0; i < zip->num_entries; ++i)
+	{
+		APZipDirEntry *entry = &zip->directory[i];
+		const char *p = entry->name + strlen(entry->name);
+		for (; p > entry->name && *p != '/'; --p);
+		if (*p == '/') ++p; // If at a directory separator, move out of it
+		if (!strcmp(filename_no_path, p))
 		{
-			printf("%s: Can not read: unsupported compression\n", entry->name);
-			return NULL;
+			APZipFile *ret = APZipReader_ReadEntryContents(zip, entry);
+			if (ret) // If we can't read it, continue searching, maybe we can read another
+				return ret;
 		}
-
-		APZipFile *cache = &entry->cache;
-		zip->Seek(zip, 4, SEEK_CUR); // Skip modification date
-		cache->checksum = ReadLong(zip);
-
-		uint32_t compressed_size = ReadLong(zip);
-		cache->size = ReadLong(zip);
-
-		// Empty file, probably a directory.
-		// This is fully valid, so we return non-NULL, but NULL data.
-		if (cache->size == 0)
-		{
-			entry->is_valid = true;
-			return cache;
-		}
-
-		// Skip filename and extra sections
-		uint16_t filename_len = ReadShort(zip);
-		uint16_t extra_len = ReadShort(zip);
-		zip->Seek(zip, filename_len + extra_len, SEEK_CUR);
-
-#ifdef HAVE_LIBZ
-		if (!compression) // Just get the data and go
-		{
-			cache->data = (char *)malloc(cache->size);
-			zip->ReadRaw(zip, cache->data, cache->size);
-			entry->is_valid = (crc32(0, (Bytef *)cache->data, cache->size) == cache->checksum);
-		}
-		else // Deflate compressed, get zlib to inflate it
-		{
-			cache->data = (char *)malloc(cache->size);
-			char *compressed_data = (char *)malloc(compressed_size);
-			zip->ReadRaw(zip, compressed_data, compressed_size);
-
-			z_stream stream;
-			stream.zalloc = Z_NULL;
-			stream.zfree = Z_NULL;
-			stream.opaque = Z_NULL;
-			stream.next_in = (Bytef *)compressed_data;
-			stream.avail_in = compressed_size;
-			stream.next_out = (Bytef *)cache->data;
-			stream.avail_out = cache->size;
-
-			if (inflateInit2(&stream, -15) == Z_OK
-				&& inflate(&stream, Z_FINISH) == Z_STREAM_END
-				&& inflateEnd(&stream) == Z_OK)
-			{
-				entry->is_valid = (crc32(0, (Bytef *)cache->data, cache->size) == cache->checksum);
-			}
-
-			free(compressed_data);
-		}
-#else
-		(void)compressed_size;
-		cache->data = (char *)malloc(cache->size);
-		zip->ReadRaw(zip, cache->data, cache->size);
-		// We don't feel like implementing crc32 ourselves, so we just pretend everything's good.
-		entry->is_valid = true;
-#endif
-
-		// If the result wasn't valid, don't bother keeping any data around from it.
-		if (!entry->is_valid && cache->data)
-		{
-			free(cache->data);
-			cache->data = NULL;
-		}
-		return (entry->is_valid) ? &entry->cache : NULL;
 	}
 	return NULL;
 }

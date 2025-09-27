@@ -50,11 +50,15 @@ APZipReader *APZipReader_FromMemory(const char *data, size_t length);
 void APZipReader_Close(APZipReader *zip);
 
 // Returns true if the file exists in the zip file, false if it does not.
-bool APZipReader_FileExists(APZipReader *zip, const char *name);
+bool APZipReader_FileExists(APZipReader *zip, const char *filename);
 
-// Get and return a file from the zip file, decompressing it if necessary.
+// Get and return a file (including directory path) from the zip file, decompressing it if necessary.
 // Returns NULL if the file couldn't be read from the zip file.
-APZipFile *APZipReader_GetFile(APZipReader *zip, const char *name);
+APZipFile *APZipReader_GetFile(APZipReader *zip, const char *filename);
+
+// Searches for a file in every folder of the zip file, and then reads as above.
+// Returns NULL if no files with that filename could be read from the zip file.
+APZipFile *APZipReader_FindFile(APZipReader *zip, const char *filename_no_path);
 
 // Caches an APZipReader by a given short name (e.g. "$ASSETS") so that it may be obtained later.
 // Returns true if successful.

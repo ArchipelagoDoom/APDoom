@@ -372,7 +372,7 @@ typedef struct {
     const char *fullname;
 
     // Name of the game that the AP server refers to it by, used to connect to the slot
-    const char *servername;
+    const char *apname;
 
     // Relative path in world zip to game definitions file
     const char *definitions;

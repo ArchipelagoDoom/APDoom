@@ -79,8 +79,7 @@ void init_data()
         }
         if (
             // Test required fields
-            !game_json["full_name"].isString()
-            || !game_json["short_name"].isString()
+            !game_json["short_name"].isString()
             || !game_json["iwad"].isString()
             || !game_json["episodes"].isArray()
         )
@@ -90,7 +89,6 @@ void init_data()
                 "The terminal may have further information about this error.");
             printf("%s : Missing a required field.\n"
                 "  At minimum, the following fields are required:\n"
-                "  - full_name (string)\n"
                 "  - short_name (string)\n"
                 "  - iwad (string)\n"
                 "  - episodes (array of objects)\n",
@@ -104,7 +102,7 @@ void init_data()
         game.ap_name = game_json.get("ap_name", "Unnamed id1 Game").asString();
         game.ap_world_name = game_json.get("ap_world_name", "id1_game").asString();
         game.ap_class_name = game_json.get("ap_class_name", "id1Game").asString();
-        game.full_name = game_json["full_name"].asString();
+        game.full_name = game_json.get("full_name", game.ap_name).asString();
         game.short_name = game_json["short_name"].asString();
 
         game.iwad_name = game_json["iwad"].asString(); // The IWAD, lumps get loaded from this if missing in PWAD

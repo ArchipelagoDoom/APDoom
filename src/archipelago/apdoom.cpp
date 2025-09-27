@@ -585,7 +585,7 @@ int apdoom_init(ap_settings_t* settings)
 #endif
 	memset(&ap_state, 0, sizeof(ap_state));
 
-	settings->game = ap_world_info->servername;
+	settings->game = ap_world_info->apname;
 	if (ap_base_game == ap_game_t::heretic)
 	{
 		ap_weapon_count = 9;
