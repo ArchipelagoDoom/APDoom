@@ -233,7 +233,7 @@ static Menu_t MainMenu = {
 
 static MenuItem_t InGameItems[] = {
     {ITT_SETMENU, "OPTIONS", NULL, 0, MENU_OPTIONS},
-    {ITT_EFUNC, "KILL", SCKill, 0, MENU_NONE},
+    {ITT_EFUNC, "RESET LEVEL", SCKill, 0, MENU_NONE},
     {ITT_EFUNC, "QUIT GAME", SCQuitGame, 0, MENU_NONE}
 };
 

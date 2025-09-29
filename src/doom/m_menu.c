@@ -319,7 +319,7 @@ enum
 menuitem_t InGameMenu[]=
 {
     {1,"M_OPTION",M_Options,'o'},
-    {1,"M_KILL",M_Kill,'k'},
+    {1,"M_KILL",M_Kill,'r'},
     // Another hickup with Special edition.
     {1,"M_QUITG",M_QuitDOOM,'q'}
 };

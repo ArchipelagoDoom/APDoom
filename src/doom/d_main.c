@@ -382,6 +382,21 @@ void on_ap_give_item(int doom_type, int ep, int map)
                 return;
             player->message = DEH_String(GOTCELLBOX);
             break;
+
+        // Things not usually present in random pool, but can be !getitem-ed
+        case 2025: // Radiation shielding suit
+            if (!P_GivePower (player, pw_ironfeet))
+                return;
+            player->message = DEH_String(GOTSUIT);
+            if (gameversion > exe_doom_1_2)
+                sound = sfx_getpow;
+        case 2045: // Light amplification visor
+            if (!P_GivePower (player, pw_infrared))
+                return;
+            player->message = DEH_String(GOTVISOR);
+            if (gameversion > exe_doom_1_2)
+                sound = sfx_getpow;
+            break;
     }
 
 	S_StartSoundOptional (NULL, sound, sfx_itemup); // [NS] Fallback to itemup.

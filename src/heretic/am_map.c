@@ -2017,7 +2017,8 @@ void AM_Drawer(void)
         numepisodes = 3;
     }
 
-    if (gameepisode <= numepisodes && gamemap < 10)
+    // [AP] Show episode 6 names
+    if ((gameepisode <= numepisodes && gamemap < 10) || (gameepisode == 6 && gamemap < 4))
     {
         level_name = LevelNames[(gameepisode - 1) * 9 + gamemap - 1];
         MN_DrTextA(DEH_String(level_name), 20, 145);

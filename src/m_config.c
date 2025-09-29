@@ -3290,6 +3290,14 @@ void M_SetMusicPackDir(void)
 
 char *M_GetSaveGameDir(const char *iwadname)
 {
+    // [AP] Stub this entire function because we don't handle savegames "normally"
+#ifdef _WIN32
+    return "";
+#else
+    return ".";
+#endif
+
+#if 0
     char *savegamedir;
     char *topdir;
     int p;
@@ -3348,6 +3356,7 @@ char *M_GetSaveGameDir(const char *iwadname)
     }
 
     return savegamedir;
+#endif
 }
 
 //

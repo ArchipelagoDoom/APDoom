@@ -55,6 +55,7 @@ int selected_level[6] = {0};
 int selected_ep = 0;
 int prev_ep = 0;
 int ep_anim = 0;
+int initial_delay = 0;
 int urh_anim = 0;
 
 void restart_wi_anims()
@@ -272,7 +273,7 @@ static void level_select_nav_enter()
 
 boolean LevelSelectResponder(event_t* ev)
 {
-    if (ep_anim) return true;
+    if (ep_anim || initial_delay) return true;
 
     //int ep_count = get_episode_count();
 
@@ -369,15 +370,15 @@ void ShowLevelSelect()
     
     restart_wi_anims();
     bcnt = 0;
+    initial_delay = 2; // Just a couple frames of no input to prevent accidental movement
 }
 
 
 void TickLevelSelect()
 {
-    if (ep_anim > 0)
-        ep_anim -= 1;
-    else if (ep_anim < 0)
-        ep_anim += 1;
+    if (initial_delay)    --initial_delay;
+    if (ep_anim > 0)      --ep_anim;
+    else if (ep_anim < 0) ++ep_anim;
     bcnt++;
     urh_anim = (urh_anim + 1) % 35;
     WI_updateAnimatedBack();

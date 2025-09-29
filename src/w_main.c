@@ -32,15 +32,7 @@
 #include "ap_basic.h"
 #include "apdoom.h"
 
-static char *ap_asset_path;
-
 // [AP] Functions for automatically loading relevant wads
-void W_InitArchipelagoAssets(const char *asset_wad)
-{
-    APC_InitAssets();
-    ap_asset_path = M_StringJoin(":assets:", "/", asset_wad, NULL);
-}
-
 static int W_APLoadSingle(const char *filename, boolean required)
 {
     int ret = 1;
@@ -73,21 +65,23 @@ static int W_APLoadAll(const char *path, const char **wad_list, boolean required
     return wad_count;
 }
 
+void W_InitArchipelagoAssets(const char *asset_wad)
+{
+    APC_InitAssets();
+
+    char *ap_asset_path = M_StringJoin(":assets:", "/", asset_wad, NULL);
+    W_APLoadSingle(ap_asset_path, true);
+    free(ap_asset_path);
+}
+
 boolean W_LoadArchipelagoWads(void)
 {
     const ap_worldinfo_t *wi = ap_loaded_world_info();
     int wad_count = 0;
 
-    if (!ap_asset_path)
-        I_Error("Call W_InitArchipelagoAssets first to set up Archipelago asset files.");
-
     wad_count += W_APLoadAll(NULL, wi->required_wads, true);
     wad_count += W_APLoadAll(NULL, wi->optional_wads, false);
-    W_APLoadSingle(ap_asset_path, true);
     W_APLoadAll(":world:", wi->included_wads, true);
-
-    free(ap_asset_path);
-    ap_asset_path = NULL;
 
     return wad_count > 0;
 }
