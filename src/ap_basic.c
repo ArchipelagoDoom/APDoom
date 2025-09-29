@@ -56,16 +56,15 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
             I_Error("Failed to initialize Archipelago.");
     }
 
-    //!
-    // @arg <directory>
-    // @category archipelago
-    //
-    // Change the subdirectory that Archipelago game saves are placed into.
-    //
-    if ((p = M_CheckParmWithArgs("-apsavedir", 1)) != 0)
+    // If certain arguments are set don't attempt to initialize Archipelago.
+    if (M_CheckParmWithArgs ("-playdemo", 1) || M_CheckParmWithArgs ("-timedemo", 1)
+        || M_CheckParm("-testcontrols"))
     {
-        ap_settings->save_dir = myargv[p + 1];
-        M_MakeDirectory(ap_settings->save_dir);
+        printf("Not initializing Archipelago due to certain command line arguments being specified.\n");
+        ap_practice_mode = true;
+        ap_force_disable_behaviors = true;
+        I_AtExit(apdoom_remove_save_dir, true);
+        return;
     }
 
     //!
@@ -140,6 +139,31 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     //
     if (M_CheckParm("-apdeathlinkoff"))
         ap_settings->force_deathlink_off = 1;
+
+    //!
+    // @category archipelago
+    //
+    // Runs the game without connecting to Archipelago, for practicing.
+    //
+    if (M_CheckParm("-practice"))
+    {
+        printf("Entering practice mode.\n");
+        ap_practice_mode = true;
+        I_AtExit(apdoom_remove_save_dir, true);
+        return;
+    }
+
+    //!
+    // @arg <directory>
+    // @category archipelago
+    //
+    // Change the subdirectory that Archipelago game saves are placed into.
+    //
+    if ((p = M_CheckParmWithArgs("-apsavedir", 1)) != 0)
+    {
+        ap_settings->save_dir = myargv[p + 1];
+        M_MakeDirectory(ap_settings->save_dir);
+    }
 
     //!
     // @arg <server_address>

@@ -1069,6 +1069,7 @@ void P_SpawnMapThing(mapthing_t * mthing, int index)
     int bit;
     mobj_t *mobj;
     fixed_t x, y, z;
+    int is_ap_special = 0;
 
 // count deathmatch start positions
     if (mthing->type == 11)
@@ -1094,6 +1095,13 @@ void P_SpawnMapThing(mapthing_t * mthing, int index)
         return;
     }
 
+    if (mthing->type == mobjinfo[MT_APJI].doomednum
+        || mthing->type == mobjinfo[MT_APPI].doomednum
+        || mthing->type == mobjinfo[MT_LVSTEL].doomednum)
+    {
+        is_ap_special = true;
+    }
+
     // Ambient sound sequences
     if (mthing->type >= 1200 && mthing->type < 1300)
     {
@@ -1110,7 +1118,7 @@ void P_SpawnMapThing(mapthing_t * mthing, int index)
     }
 
 // check for appropriate skill level
-    if (!netgame && (mthing->options & 16) && mthing->type != 20002)
+    if (!is_ap_special && !netgame && (mthing->options & 16))
         return;
 
     if (gameskill == sk_baby)
@@ -1119,10 +1127,11 @@ void P_SpawnMapThing(mapthing_t * mthing, int index)
         bit = 4;
     else
         bit = 1 << (gameskill - 1);
-    if (!(mthing->options & bit))
+
+    if (!is_ap_special)
     {
-        if (mthing->type != 20000 && mthing->type != 20001 && mthing->type != 20002)
-	        return;
+        if (!(mthing->options & bit))
+            return;
     }
 
 // find which type to spawn
@@ -1191,7 +1200,7 @@ void P_SpawnMapThing(mapthing_t * mthing, int index)
     {                           // Seed random starting index for bobbing motion
         mobj->health = P_Random();
     }
-    if (mobj->tics > 0)
+    if (!is_ap_special && mobj->tics > 0)
     {
         mobj->tics = 1 + (P_Random() % mobj->tics);
     }

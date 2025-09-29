@@ -22,6 +22,7 @@
 #include "v_video.h"
 #include "doomkeys.h"
 #include "apdoom.h"
+#include "i_system.h"
 #include "i_video.h"
 #include "m_misc.h"
 #include "ap_msg.h"
@@ -285,6 +286,9 @@ void G_DoSaveGame(void);
 
 void ShowLevelSelect()
 {
+    if (testcontrols)
+        I_Quit();
+
     HU_ClearAPMessages();
 
     // If in a level, save current level

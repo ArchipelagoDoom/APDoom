@@ -300,6 +300,13 @@ class id1CommonWorld(World, metaclass=AutoLoadJsonData):
                 logging.warning(f"{self.multiworld.get_player_name(self.player)}: {skill_5_warning}\n"
                                 f"Remember that the game difficulty can be turned down afterwards in the launcher.")
 
+        # Do not allow the combination of ITYTD + Extreme tricks
+        # Extreme tricks that require damage boosting may become impossible in ITYTD due to the damage reduction
+        if self.options.difficulty.value == 0 and self.options.trick_difficulty.value >= 3:
+            self.options.difficulty.value = 1
+            logging.warning(f"{self.multiworld.get_player_name(self.player)}: "
+                            f"Difficulty automatically raised to Easy (2) because Extreme tricks are enabled.")
+
     def construct_regions(self) -> None:
         """
         Fills constructed_region_list with modified region data based on the player's options.

@@ -32,6 +32,7 @@
 #include "apdoom.h"
 #include "Archipelago.h"
 #include <json/json.h>
+#include <filesystem>
 #include <memory.h>
 #include <chrono>
 #include <thread>
@@ -195,6 +196,9 @@ ap_gameinfo_t ap_game_info;
 ap_state_t ap_state;
 int ap_is_in_game = 0;
 int ap_episode_count = -1;
+
+int ap_practice_mode = false; // Not connected to a server.
+int ap_force_disable_behaviors = false; // For demo compatibility.
 
 static bool detected_old_apworld = false;
 
@@ -498,7 +502,7 @@ static int get_original_music_for_level(int ep, int map)
 		}
 		case ap_game_t::heretic:
 		{
-			return (ep - 1) * ap_get_map_count(ep) + (map - 1);
+			return (ep - 1) * 9 + (map - 1);
 		}
 	}
 
@@ -609,8 +613,6 @@ int apdoom_init(ap_settings_t* settings)
 		max_map_count = std::max(max_map_count, (int)episode_level_info.size());
 	}
 
-	printf("APDOOM: Initializing Game: \"%s\", Server: %s, Slot: %s\n", settings->game, settings->ip, settings->player_name);
-
 	ap_state.level_states = new ap_level_state_t[ap_episode_count * max_map_count];
 	ap_state.episodes = new int[ap_episode_count];
 	ap_state.player_state.powers = new int[ap_powerup_count];
@@ -677,6 +679,41 @@ int apdoom_init(ap_settings_t* settings)
 	if (ap_settings.override_reset_level_on_death)
 		ap_state.reset_level_on_death = ap_settings.reset_level_on_death;
 
+	if (ap_practice_mode) // Practice game, no connection
+	{
+		// Select all episodes.
+		for (int ep = 0; ep < ap_episode_count; ++ep)
+		{
+			ap_state.episodes[ep] = 1;
+
+			// Enable all maps.
+			int map_count = ap_get_map_count(ep + 1);
+			for (int map = 0; map < map_count; ++map)
+			{
+				auto level_state = ap_get_level_state(ap_level_index_t{ep, map});
+				level_state->unlocked = 1;
+				level_state->has_map = 1;
+
+				auto level_info = ap_get_level_info(ap_level_index_t{ep, map});
+				level_info->true_check_count = level_info->check_count;
+
+				ap_state.level_states[ep * max_map_count + map].music = get_original_music_for_level(ep + 1, map + 1);
+			}
+
+		}
+
+		recalc_max_ammo();
+
+		ap_seed_string = "practmp_" + std::to_string(rand());
+		ap_save_dir_name = ap_seed_string;
+		if (!AP_FileExists(ap_save_dir_name.c_str()))
+			AP_MakeDirectory(ap_save_dir_name.c_str());
+
+		ap_initialized = true;
+		return 1;
+	}
+
+	printf("APDOOM: Initializing Game: \"%s\", Server: %s, Slot: %s\n", settings->game, settings->ip, settings->player_name);
 	AP_NetworkVersion version = {0, 6, 3};
 	AP_SetClientVersion(&version);
     AP_Init(ap_settings.ip, ap_settings.game, ap_settings.player_name, ap_settings.passwd);
@@ -1327,6 +1364,13 @@ static void process_received_item(int64_t item_id)
 	ap_item_t item = it->second;
 	std::string notif_text;
 
+	if (ap_practice_mode)
+	{
+		// We have no AP server to give us item messages, so let's pretend we got one.
+		std::string colored_msg = std::string("~2Received ~9") + item.name + "~2 from ~4Player";
+		ap_settings.message_callback(colored_msg.c_str());
+	}
+
 	// If the item has an associated episode/map, note that
 	if (item.ep != -1)
 	{
@@ -1495,6 +1539,16 @@ const char* apdoom_get_save_dir()
 }
 
 
+void apdoom_remove_save_dir(void)
+{
+	if (ap_save_dir_name.substr(0, 8) != "practmp_")
+		return;
+
+	const std::filesystem::path save_path(ap_save_dir_name);
+	std::filesystem::remove_all(save_path);
+}
+
+
 void apdoom_check_location(ap_level_index_t idx, int index)
 {
 	int64_t id = 0;
@@ -1512,6 +1566,31 @@ void apdoom_check_location(ap_level_index_t idx, int index)
 	id = it3->second;
 	if (suppressed_locations.count(id))
 		return;
+
+	if (ap_practice_mode)
+	{
+		f_locrecv(id);
+
+		// Get the item that's supposed to be in that location.
+		ap_level_info_t* level_info = ap_get_level_info(idx);
+		int item_id = level_info->thing_infos[index].doom_type;
+
+		// If it exists in the item table already, great.
+		// If not, append the episode and map numbers and try again.
+		const auto& item_type_table = get_item_type_table();
+		if (!item_type_table.count(item_id))
+		{
+			item_id += (idx.ep + 1) * 10'000'000;
+			item_id += (idx.map + 1) * 100'000;
+		}
+
+		// Send the item to ourselves as if we were playing.
+		if (item_type_table.count(item_id))
+		{
+			f_itemrecv(item_id, 1, true);
+		}
+		return;
+	}
 
 	if (index >= 0)
 	{
@@ -1857,6 +1936,9 @@ void apdoom_update()
 // Remote data per slot
 void ap_remote_set(const char *key, int per_slot, int value)
 {
+	if (ap_practice_mode)
+		return;
+
 	AP_SetServerDataRequest rq;
 	if (per_slot)
 		rq.key += "<Slot" + std::to_string(AP_GetPlayerID()) + ">";

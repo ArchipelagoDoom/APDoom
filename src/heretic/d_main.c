@@ -1223,10 +1223,12 @@ void D_DoomMain(void)
     // Start a deathmatch game.
     //
 
+#if 0 // [AP] Deathmatch disabled
     if (M_ParmExists("-deathmatch"))
     {
         deathmatch = true;
     }
+#endif
 
     //!
     // @category game
@@ -1236,6 +1238,7 @@ void D_DoomMain(void)
     // Start playing on episode n (1-4)
     //
 
+#if 0 // [AP] Warping disabled
     p = M_CheckParmWithArgs("-episode", 1);
     if (p)
     {
@@ -1243,6 +1246,7 @@ void D_DoomMain(void)
         startmap = 1;
         autostart = true;
     }
+#endif
 
     //!
     // @category game
@@ -1252,6 +1256,7 @@ void D_DoomMain(void)
     // Start a game immediately, warping to level ExMy.
     //
 
+#if 0 // [AP] Warping disabled
     p = M_CheckParmWithArgs("-warp", 2);
     if (p && p < myargc - 2)
     {
@@ -1262,6 +1267,7 @@ void D_DoomMain(void)
         // [crispy] if used with -playdemo, fast-forward demo up to the desired map
         crispy->demowarp = startmap;
     }
+#endif
 
 //
 // init subsystems
@@ -1561,8 +1567,8 @@ void D_DoomMain(void)
     if (W_CheckNumForName(DEH_String("E2M1")) == -1)
     {
         gamemode = shareware;
-        I_Error("APDOOM is not compable with the shareware version.");
         gamedescription = "Heretic (shareware)";
+        I_Error("APDOOM is not compatible with the shareware version.");
     }
     else if (W_CheckNumForName("EXTENDED") != -1)
     {
@@ -1676,12 +1682,14 @@ void D_DoomMain(void)
     // Record a demo named x.lmp.
     //
 
+#if 0 // [AP] we allow demo playback, but not recording
     p = M_CheckParmWithArgs("-record", 1);
     if (p)
     {
         G_RecordDemo(startskill, 1, startepisode, startmap, myargv[p + 1]);
         D_DoomLoop();           // Never returns
     }
+#endif
 
     p = M_CheckParmWithArgs("-playdemo", 1);
     if (p)
@@ -1709,6 +1717,7 @@ void D_DoomMain(void)
     // Load the game in savegame slot s.
     //
 
+#if 0 // [AP] Warping(?) disabled
     p = M_CheckParmWithArgs("-loadgame", 1);
     if (p && p < myargc - 1)
     {
@@ -1718,6 +1727,7 @@ void D_DoomMain(void)
         G_LoadGame(filename);
 	free(filename);
     }
+#endif
 
     // Check valid episode and map
     if (autostart || netgame)

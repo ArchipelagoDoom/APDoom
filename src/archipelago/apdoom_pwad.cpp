@@ -470,11 +470,12 @@ int json_parse_item_table(Json::Value json, item_table_storage_t &output)
 		const int64_t ap_item_id = std::stoll(json_key);
 
 		Json::Value json_value = json[json_key];
-		const int doomednum = json_value[0].asInt();
-		const int ep = json_value.get(1, -1).asInt();
-		const int map = json_value.get(2, -1).asInt();
+		std::string name = json_value[0].asString();
+		const int doomednum = json_value[1].asInt();
+		const int ep = json_value.get(2, -1).asInt();
+		const int map = json_value.get(3, -1).asInt();
 
-		output.insert({ap_item_id, {doomednum, ep, map}});
+		output.insert({ap_item_id, {doomednum, ep, map, string_to_const_char_ptr(name)}});
 	}	
 	return 1;
 }

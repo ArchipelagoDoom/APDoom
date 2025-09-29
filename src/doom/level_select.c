@@ -25,6 +25,7 @@
 #include "d_player.h"
 #include "doomkeys.h"
 #include "apdoom.h"
+#include "i_system.h"
 #include "i_video.h"
 #include "g_game.h"
 #include "m_misc.h"
@@ -331,6 +332,9 @@ boolean LevelSelectResponder(event_t* ev)
 
 void ShowLevelSelect()
 {
+    if (testcontrols)
+        I_Quit();
+
     HU_ClearAPMessages();
 
     // If in a level, save current level

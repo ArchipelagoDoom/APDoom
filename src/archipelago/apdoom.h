@@ -185,6 +185,8 @@ typedef struct
     int doom_type;
     int ep; // If doom_type is a keycard
     int map; // If doom_type is a keycard
+
+    const char *name; // Name of the item -- only used in practice mode
 } ap_item_t;
 
 // ===== PWAD version specific structures =====================================
@@ -314,6 +316,9 @@ typedef struct
 extern ap_state_t ap_state;
 extern int ap_is_in_game; // Don't give items when in menu (Or when dead on the ground).
 extern int ap_episode_count;
+extern int ap_practice_mode; // Offline testing mode
+extern int ap_force_disable_behaviors; // Demo compatibility, disable most apdoom stuff
+
 
 int apdoom_init(ap_settings_t* settings);
 void apdoom_shutdown();
@@ -323,6 +328,7 @@ int apdoom_is_location_progression(ap_level_index_t idx, int index);
 void apdoom_check_victory();
 void apdoom_update();
 const char* apdoom_get_save_dir();
+void apdoom_remove_save_dir();
 void apdoom_send_message(const char* msg);
 void apdoom_complete_level(ap_level_index_t idx);
 ap_level_state_t* ap_get_level_state(ap_level_index_t idx); // 1-based

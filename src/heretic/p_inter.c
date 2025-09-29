@@ -631,6 +631,7 @@ void P_TouchSpecialThing(mobj_t * special, mobj_t * toucher)
             P_SetMessage(player, DEH_String(TXT_ITEMSHIELD2), false);
             break;
         case SPR_BAGH:         // Item_BagOfHolding
+#if 0
             if (!player->backpack)
             {
                 for (i = 0; i < NUMAMMO; i++)
@@ -639,6 +640,18 @@ void P_TouchSpecialThing(mobj_t * special, mobj_t * toucher)
                 }
                 player->backpack = true;
             }
+#else
+            if (ap_force_disable_behaviors)
+            {
+                // Replicate above using player_state.
+                if (ap_state.player_state.capacity_upgrades[0] == 0)
+                {
+                    ap_state.player_state.capacity_upgrades[0] = 1;
+                    for (i = 0; i < NUMAMMO; ++i)
+                        player->maxammo[i] *= 2;
+                }
+            }
+#endif
             P_GiveAmmo(player, am_goldwand, AMMO_GWND_WIMPY);
             P_GiveAmmo(player, am_blaster, AMMO_BLSR_WIMPY);
             P_GiveAmmo(player, am_crossbow, AMMO_CBOW_WIMPY);

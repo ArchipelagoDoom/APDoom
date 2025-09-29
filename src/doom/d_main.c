@@ -1234,7 +1234,6 @@ void D_IdentifyVersion(void)
         else
         {
             gamemode = shareware;
-            I_Error("APDOOM is not compable with the shareware version.");
         }
     }
     else
@@ -1765,6 +1764,7 @@ void D_DoomMain (void)
     // in the game itself.
     //
 
+#ifndef ALLOW_NETGAMES
     if (M_CheckParm("-dedicated") > 0)
     {
         printf("Dedicated server mode.\n");
@@ -1772,6 +1772,7 @@ void D_DoomMain (void)
 
         // Never returns
     }
+#endif
 
     //!
     // @category net
@@ -1780,11 +1781,13 @@ void D_DoomMain (void)
     // servers.
     //
 
+#ifndef ALLOW_NETGAMES
     if (M_CheckParm("-search"))
     {
         NET_MasterQuery();
         exit(0);
     }
+#endif
 
     //!
     // @arg <address>
@@ -1794,6 +1797,7 @@ void D_DoomMain (void)
     // address.
     //
 
+#ifndef ALLOW_NETGAMES
     p = M_CheckParmWithArgs("-query", 1);
 
     if (p)
@@ -1801,6 +1805,7 @@ void D_DoomMain (void)
         NET_QueryAddress(myargv[p+1]);
         exit(0);
     }
+#endif
 
     //!
     // @category net
@@ -1808,11 +1813,13 @@ void D_DoomMain (void)
     // Search the local LAN for running servers.
     //
 
+#ifndef ALLOW_NETGAMES
     if (M_CheckParm("-localsearch"))
     {
         NET_LANQuery();
         exit(0);
     }
+#endif
 
     //!
     // @category game
@@ -1859,8 +1866,10 @@ void D_DoomMain (void)
     // Start a deathmatch game.
     //
 
+#if 0 // [AP] Deathmatch disabled
     if (M_CheckParm ("-deathmatch"))
 	deathmatch = 1;
+#endif
 
     //!
     // @category net
@@ -1870,8 +1879,10 @@ void D_DoomMain (void)
     // all items respawn after 30 seconds.
     //
 
+#if 0 // [AP] Deathmatch disabled
     if (M_CheckParm ("-altdeath"))
 	deathmatch = 2;
+#endif
 
     //!
     // @category net
@@ -1881,8 +1892,10 @@ void D_DoomMain (void)
     // all items respawn after 30 seconds.
     //
 
+#if 0 // [AP] Deathmatch disabled
     if (M_CheckParm ("-dm3"))
 	deathmatch = 3;
+#endif
 
     if (devparm)
 	DEH_printf(D_DEVSTR);
@@ -1977,6 +1990,10 @@ void D_DoomMain (void)
     // we're playing and which version of Vanilla Doom we need to emulate.
     D_IdentifyVersion();
     InitGameVersion();
+
+    // [AP] No support for shareware doom.
+    if (gamemode == shareware)
+        I_Error("APDOOM is not compatible with the shareware version.");
 
     // Check which IWAD variant we are using.
 
@@ -2294,6 +2311,8 @@ void D_DoomMain (void)
     W_GenerateHashTable();
 
     // [crispy] allow overriding of special-casing
+    // [AP] never sideload, -game handles that
+#if 0
     if (!M_ParmExists("-nosideload") && gamemode != shareware && !demolumpname[0])
     {
 	if (gamemode == retail &&
@@ -2310,6 +2329,7 @@ void D_DoomMain (void)
 		D_LoadMasterlevelsWad();
 	}
     }
+#endif
 
     // Load DEHACKED lumps from WAD files - but only if we give the right
     // command line parameter.
@@ -2494,6 +2514,7 @@ void D_DoomMain (void)
     // Start playing on episode n (1-4)
     //
 
+#if 0 // [AP] Warping disabled
     p = M_CheckParmWithArgs("-episode", 1);
 
     if (p)
@@ -2504,6 +2525,7 @@ void D_DoomMain (void)
     }
 	
     timelimit = 0;
+#endif
 
     //! 
     // @arg <n>
@@ -2513,12 +2535,14 @@ void D_DoomMain (void)
     // For multiplayer games: exit each level after n minutes.
     //
 
+#if 0 // [AP] Auto-exit commands disabled
     p = M_CheckParmWithArgs("-timer", 1);
 
     if (p)
     {
 	timelimit = atoi(myargv[p+1]);
     }
+#endif
 
     //!
     // @category net
@@ -2527,12 +2551,14 @@ void D_DoomMain (void)
     // Austin Virtual Gaming: end levels after 20 minutes.
     //
 
+#if 0 // [AP] Auto-exit commands disabled
     p = M_CheckParm ("-avg");
 
     if (p)
     {
 	timelimit = 20;
     }
+#endif
 
     //!
     // @category game
@@ -2543,6 +2569,7 @@ void D_DoomMain (void)
     // (Doom 2)
     //
 
+#if 0 // [AP] Warping disabled
     p = M_CheckParmWithArgs("-warp", 1);
 
     if (p)
@@ -2568,9 +2595,11 @@ void D_DoomMain (void)
         // [crispy] if used with -playdemo, fast-forward demo up to the desired map
         crispy->demowarp = startmap;
     }
+#endif
 
     // Undocumented:
     // Invoked by setup to test the controls.
+    // [AP] This is intentionally kept around, see ap_basic.c
 
     p = M_CheckParm("-testcontrols");
 
@@ -2622,6 +2651,7 @@ void D_DoomMain (void)
     // Load the game in slot s.
     //
 
+#if 0 // [AP] Warping(?) disabled
     p = M_CheckParmWithArgs("-loadgame", 1);
     
     if (p)
@@ -2633,6 +2663,9 @@ void D_DoomMain (void)
         // Not loading a game
         startloadgame = -1;
     }
+#else
+    startloadgame = -1;
+#endif
 
     // Other params 
 
@@ -2691,6 +2724,7 @@ void D_DoomMain (void)
     // Record a demo named x.lmp.
     //
 
+#if 0 // [AP] we allow demo playback, but not recording
     p = M_CheckParmWithArgs("-record", 1);
 
     if (p)
@@ -2698,6 +2732,7 @@ void D_DoomMain (void)
 	G_RecordDemo (myargv[p+1]);
 	autostart = true;
     }
+#endif
 
     p = M_CheckParmWithArgs("-playdemo", 1);
     if (p)

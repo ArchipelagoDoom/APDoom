@@ -2289,6 +2289,10 @@ void G_InitNew(skill_t skill, int episode, int map)
         "SKY1", "SKY2", "SKY3", "SKY1", "SKY3"
     };
 
+    // [AP] Override skill if not doing something like playing a demo
+    if (!ap_force_disable_behaviors)
+        skill = (skill_t)ap_state.difficulty;
+
     ap_state.ep = episode;
     ap_state.map = map;
 
@@ -2341,7 +2345,7 @@ void G_InitNew(skill_t skill, int episode, int map)
     viewactive = true;
     gameepisode = episode;
     gamemap = map;
-    gameskill = (skill_t)ap_state.difficulty;// skill;
+    gameskill = skill;
     BorderNeedRefresh = true;
 
     // [crispy] total time for all completed levels
@@ -2623,7 +2627,9 @@ static const char *defdemoname;
 
 void G_DeferedPlayDemo(const char *name)
 {
-    return; // [AP] Don't play demo. Picking up items in the demo will break our state!
+    // [AP] Don't play demo. Picking up items in the demo will break our state!
+    if (!ap_force_disable_behaviors)
+        return;
 
     defdemoname = name;
     gameaction = ga_playdemo;
@@ -2699,7 +2705,9 @@ void G_DoPlayDemo(void)
 
 void G_TimeDemo(char *name)
 {
-    return; // [AP] Don't play demo. Picking up items in the demo will break our state!
+    // [AP] Don't play demo. Picking up items in the demo will break our state!
+    if (!ap_force_disable_behaviors)
+        return;
 
     skill_t skill;
     int episode, map, i;

@@ -18,6 +18,9 @@
 //	Sigil, No Rest for the Living and The Master Levels
 //
 
+#if 0 // [AP] Sideloading is globally disabled
+// File kept around, however, to make upstream merges easier
+
 #ifndef __D_PWAD__
 #define __D_PWAD__
 
@@ -27,3 +30,4 @@ void D_LoadMasterlevelsWad(void);
 
 #endif
 
+#endif

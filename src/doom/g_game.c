@@ -2727,6 +2727,10 @@ G_InitNew
     ap_state.ep = idx.ep + 1;
     ap_state.map = idx.map + 1;
 
+    // [AP] Override skill if not doing something like playing a demo
+    if (!ap_force_disable_behaviors)
+        skill = (skill_t)ap_state.difficulty;
+
     const char *skytexturename;
     int             i;
     // [crispy] make sure "fast" parameters are really only applied once
@@ -2864,7 +2868,7 @@ G_InitNew
     viewactive = true;
     gameepisode = episode;
     gamemap = map;
-    gameskill = (skill_t)ap_state.difficulty;// skill;
+    gameskill = skill;
 
     // [crispy] CPhipps - total time for all completed levels
     totalleveltimes = 0;
@@ -3192,7 +3196,9 @@ void G_BeginRecording (void)
  
 void G_DeferedPlayDemo(const char *name)
 { 
-    return; // [AP] Don't play demo. Picking up items in the demo will break our state!
+    // [AP] Don't play demo. Picking up items in the demo will break our state!
+    if (!ap_force_disable_behaviors)
+        return;
 
     defdemoname = name; 
     gameaction = ga_playdemo; 
@@ -3402,7 +3408,9 @@ void G_DoPlayDemo (void)
 //
 void G_TimeDemo (char* name) 
 {
-    return; // [AP] Don't play demo. Picking up items in the demo will break our state!
+    // [AP] Don't play demo. Picking up items in the demo will break our state!
+    if (!ap_force_disable_behaviors)
+        return;
 
     //!
     // @category video

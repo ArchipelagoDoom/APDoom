@@ -84,6 +84,7 @@ fixed_t GetOffset(vertex_t *v1, vertex_t *v2)
 // Allow making any change that wouldn't require a nodesbuild.
 static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
 {
+    if (ap_force_disable_behaviors) return;
     switch (tweak->type)
     {
         case TWEAK_SECTOR_SPECIAL:     sector->special = tweak->value;               break;
@@ -99,6 +100,7 @@ static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
 
 static void P_TweakMapThing(mapthing_t *mapthing, ap_maptweak_t *tweak)
 {
+    if (ap_force_disable_behaviors) return;
     switch (tweak->type)
     {
         case TWEAK_MAPTHING_X:     mapthing->x = tweak->value;       break;
@@ -113,6 +115,7 @@ static void P_TweakMapThing(mapthing_t *mapthing, ap_maptweak_t *tweak)
 
 static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
 {
+    if (ap_force_disable_behaviors) return;
     switch (tweak->type)
     {
         case TWEAK_HUB_X: hub->x = tweak->value; break;
@@ -124,6 +127,7 @@ static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
 
 static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
 {
+    if (ap_force_disable_behaviors) return;
     switch (tweak->type)
     {
         case TWEAK_LINEDEF_SPECIAL: linedef->special = tweak->value; break;
@@ -136,6 +140,7 @@ static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
 
 static void P_TweakSidedef(mapsidedef_t *sidedef, ap_maptweak_t *tweak)
 {
+    if (ap_force_disable_behaviors) return;
     switch (tweak->type)
     {
         case TWEAK_SIDEDEF_LOWER:  memcpy(sidedef->bottomtexture, tweak->string, 8); break;
@@ -656,7 +661,7 @@ void P_LoadThings(int lump)
 #define E1M8_CUTOFF_OFFSET -1984
 
     int do_random_monsters = ap_state.random_monsters;
-    if (do_random_monsters > 0)
+    if (!ap_force_disable_behaviors && do_random_monsters > 0)
     {
         // Make sure at the right difficulty level
         if (gameskill == sk_baby)
@@ -858,7 +863,7 @@ void P_LoadThings(int lump)
         }
     }
 
-    if (ap_state.random_items > 0)
+    if (!ap_force_disable_behaviors && ap_state.random_items > 0)
     {
         // Make sure at the right difficulty level
         if (gameskill == sk_baby)
@@ -1047,7 +1052,7 @@ void P_LoadThings(int lump)
 #endif
 
         // Replace AP locations with AP item
-        if (ap_is_location_type(spawnthing.type))
+        if (!ap_force_disable_behaviors && ap_is_location_type(spawnthing.type))
         {
             // Validate that the location index matches what we have in our data. If it doesn't then the WAD is not the same, we can't continue
             int ret = ap_validate_doom_location(ap_make_level_index(gameepisode, gamemap), spawnthing.type, i);
@@ -1097,7 +1102,8 @@ void P_LoadThings(int lump)
             P_TweakHub(&spawnthing_player1_start, tweak);
     }
 
-    P_SpawnMapThing(&spawnthing_player1_start, i);
+    if (!ap_force_disable_behaviors)
+        P_SpawnMapThing(&spawnthing_player1_start, i);
 
     if (!deathmatch)
     {

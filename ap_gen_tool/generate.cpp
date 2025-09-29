@@ -417,11 +417,12 @@ Json::Value generate_game_defs_json(game_t *game, level_map_t& levels_map)
         for (const auto& item : ap_items)
         {
             const std::string& item_id = std::to_string(item.id);
-            defs_json["item_table"][item_id][0] = item.doom_type;
+            defs_json["item_table"][item_id][0] = item.name;
+            defs_json["item_table"][item_id][1] = item.doom_type;
             if (item.idx.ep >= 0)
             {
-                defs_json["item_table"][item_id][1] = item.idx.ep + 1;
-                defs_json["item_table"][item_id][2] = item.idx.map + 1;
+                defs_json["item_table"][item_id][2] = item.idx.ep + 1;
+                defs_json["item_table"][item_id][3] = item.idx.map + 1;
             }
         }
     }
@@ -723,13 +724,22 @@ int generate(game_t* game)
     }
 
     // Last minute checks
-#define ERROR_JUNK_GROUP 0b1
-    unsigned int errored = 0b1;
+#define ERROR_JUNK_GROUP      0b001
+#define ERROR_MAJOR_EPISODE   0b010
+#define ERROR_DEFAULT_EPISODE 0b100
+    unsigned int errored = 0b111;
 
     for (const auto& kv : item_name_groups)
     {
         if (kv.first == "Junk")
             errored &= ~ERROR_JUNK_GROUP;
+    }
+    for (const auto &episode : game->episode_info)
+    {
+        if (!episode.is_minor_episode)
+            errored &= ~ERROR_MAJOR_EPISODE;
+        if (episode.default_enabled)
+            errored &= ~ERROR_DEFAULT_EPISODE;
     }
 
     if (errored)
@@ -737,6 +747,8 @@ int generate(game_t* game)
         std::vector<std::string> error_list;
         error_list.push_back("The following errors prevented generation of an APWorld:");
         if (errored & ERROR_JUNK_GROUP) error_list.push_back("A 'Junk' item group must exist.");
+        if (errored & ERROR_MAJOR_EPISODE) error_list.push_back("There must be at least one major episode.");
+        if (errored & ERROR_DEFAULT_EPISODE) error_list.push_back("There must be at least one episode enabled by default.");
 
         for (const std::string& error : error_list)
         {

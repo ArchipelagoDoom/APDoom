@@ -18,6 +18,9 @@
 //	Sigil, No Rest for the Living and The Master Levels
 //
 
+#if 0 // [AP] Sideloading is globally disabled
+// File kept around, however, to make upstream merges easier
+
 #include <stdlib.h>
 
 #include "doomstat.h"
@@ -569,3 +572,5 @@ void D_LoadMasterlevelsWad (void)
 		}
 	}
 }
+
+#endif

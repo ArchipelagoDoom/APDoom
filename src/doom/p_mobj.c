@@ -959,6 +959,7 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     fixed_t		y;
     fixed_t		z;
     int			musid = 0;
+    int         is_ap_special = 0;
 		
     // count deathmatch start positions
     if (mthing->type == 11)
@@ -978,6 +979,13 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
 
         return;
     }
+
+    if (mthing->type == mobjinfo[MT_APJI].doomednum
+    	|| mthing->type == mobjinfo[MT_APPI].doomednum
+    	|| mthing->type == mobjinfo[MT_LVSTEL].doomednum)
+    {
+    	is_ap_special = true;
+    }
 	
     // check for players specially
     if (mthing->type <= 4)
@@ -992,7 +1000,7 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     }
 
     // check for appropriate skill level
-    if (!netgame && (mthing->options & 16) )
+    if (!is_ap_special && !netgame && (mthing->options & 16) )
 	return;
 		
     if (gameskill == sk_baby)
@@ -1002,18 +1010,18 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     else
 	bit = 1<<(gameskill-1);
 
-    // [crispy] warn about mapthings without any skill tag set
-    if (!(mthing->options & (MTF_EASY|MTF_NORMAL|MTF_HARD)) && mthing->type != 20002)
-    {
-	fprintf(stderr, "P_SpawnMapThing: Mapthing type %i without any skill tag at (%i, %i)\n",
-	       mthing->type, mthing->x, mthing->y);
-    }
+    if (!is_ap_special)
+	{
+		// [crispy] warn about mapthings without any skill tag set
+		if (!(mthing->options & (MTF_EASY|MTF_NORMAL|MTF_HARD)))
+		{
+		fprintf(stderr, "P_SpawnMapThing: Mapthing type %i without any skill tag at (%i, %i)\n",
+		       mthing->type, mthing->x, mthing->y);
+		}
 
-    if (!(mthing->options & bit) )
-    {
-        if (mthing->type != 20000 && mthing->type != 20001 && mthing->type != 20002)
-	        return;
-    }
+		if (!(mthing->options & bit))
+			return;
+	}
 	
     // [crispy] support MUSINFO lump (dynamic music changing)
     if (mthing->type >= 14100 && mthing->type <= 14164)
@@ -1063,7 +1071,7 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     mobj->index = index;
     mobj->spawnpoint = *mthing;
 
-    if (mobj->tics > 0)
+    if (!is_ap_special && mobj->tics > 0)
 	mobj->tics = 1 + (P_Random () % mobj->tics);
     if (mobj->flags & MF_COUNTKILL)
 	totalkills++;

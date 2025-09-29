@@ -99,8 +99,11 @@ P_GiveAmmo
     }
     
 	// [NS] Halve if needed.
-	// [AP] Don't halve if in AP. We need those ammos more than anything!
-	if (dropped && ammo != am_shell && ammo != am_clip)
+  if (!ap_force_disable_behaviors)
+  {
+		// [AP] Don't halve if in AP. We need those ammos more than anything!
+  }
+	else if (dropped)
 	{
 		num >>= 1;
 		// Don't round down to 0.
@@ -191,8 +194,11 @@ P_GiveWeapon
   weapontype_t	weapon,
   boolean	dropped )
 {
-	if (dropped)
-		return false; // [AP] We don't give dropped weapons
+	if (!ap_force_disable_behaviors) // [AP] forced demo compatibility
+	{
+		if (dropped)
+			return false; // [AP] We don't give dropped weapons
+	}
 
     boolean	gaveammo;
     boolean	gaveweapon;
@@ -643,12 +649,25 @@ P_TouchSpecialThing
 	break;
 	
       case SPR_BPAK:
+#if 0
 	if (!player->backpack)
 	{
 	    for (i=0 ; i<NUMAMMO ; i++)
 		player->maxammo[i] *= 2;
 	    player->backpack = true;
 	}
+#else
+  if (ap_force_disable_behaviors)
+  {
+  	// Replicate above using player_state.
+    if (ap_state.player_state.capacity_upgrades[0] == 0)
+    {
+    	ap_state.player_state.capacity_upgrades[0] = 1;
+      for (i = 0; i < NUMAMMO; ++i)
+        player->maxammo[i] *= 2;
+    }
+  }
+#endif
 	for (i=0 ; i<NUMAMMO ; i++)
 	    P_GiveAmmo (player, i, 1, false);
 	player->message = DEH_String(GOTBACKPACK);
@@ -866,16 +885,21 @@ P_KillMobj_Real // So we can specify death by death link
     else
         return;
 
-    // In AP monsters don't drop weapons
-    switch (item)
+    // In AP monsters don't drop weapons, they drop ammo instead
+    if (!ap_force_disable_behaviors)
     {
-        case MT_SHOTGUN:
-        case MT_SUPERSHOTGUN: // DOOM II
-        case MT_CHAINGUN: // DOOM II
-            return;
-        default: // For ultimate doom, are there any other?
-            break;
-	}
+        switch (item)
+        {
+        case MT_SHOTGUN:      item = MT_MISC22; break;
+        case MT_CHAINGUN:     item = MT_CLIP;   break;
+        case MT_ROCKET:       item = MT_MISC18; break;
+        case MT_PLASMA:       item = MT_MISC20; break;
+        case MT_BFG:          item = MT_MISC20; break;
+        case MT_MISC26:       return; // Chainsaw
+        case MT_SUPERSHOTGUN: item = MT_MISC22; break;
+        default: break;
+        }
+    }
 
 
     mo = P_SpawnMobj (target->x,target->y,ONFLOORZ, item);
