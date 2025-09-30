@@ -316,6 +316,7 @@ static location_types_storage_t preloaded_location_types; // <int doomednum>
 static location_table_storage_t preloaded_location_table; // <int episode, <int map, <int index, int64_t ap_id>>>
 static item_table_storage_t preloaded_item_table; // <int64_t ap_id, ap_item_t>
 static type_sprites_storage_t preloaded_type_sprites; // <int doomednum, std::string sprite_lump_name>
+static rename_lumps_storage_t lump_remap_list; // <std::string file, std::vector<remap_entry_t>>
 
 // ----------------------------------------------------------------------------
 
@@ -375,7 +376,7 @@ int ap_preload_defs_for_game(const char *game_name)
 		|| !json_parse_map_tweaks(defs_json["map_tweaks"], map_tweak_list)
 		|| !json_parse_level_select(defs_json["level_select"], level_select_screens)
 		|| !json_parse_game_info(defs_json["game_info"], ap_game_info)
-		// TODO rename_lumps
+		|| !json_parse_rename_lumps(defs_json["rename_lumps"], lump_remap_list)
 	)
 	{
 		printf("APDOOM: Errors occurred while loading \"%s\".\n", game_name);
@@ -1984,4 +1985,31 @@ unsigned int ap_rand(void)
 	xorshift_seed ^= xorshift_seed >> 31;
 	xorshift_seed ^= xorshift_seed << 8;
 	return (unsigned int)((xorshift_seed * 1181783497276652981LL) >> 32);
+}
+
+// ----------------------------------------------------------------------------
+// Lump remapping
+std::vector<remap_entry_t> *loaded_remap_table = nullptr;
+
+void ap_init_remap(const char *filename)
+{
+	std::string lower_filename;
+	for (size_t i = 0; i < strlen(filename); ++i)
+		lower_filename += tolower((const unsigned char)filename[i]);
+
+	loaded_remap_table = nullptr;
+	if (lump_remap_list.count(lower_filename))
+		loaded_remap_table = &lump_remap_list[lower_filename];
+}
+
+int ap_do_remap(char *lump_name)
+{
+	if (!loaded_remap_table)
+		return false;
+	for (remap_entry_t &remap : *loaded_remap_table)
+	{
+		if (remap.rename(lump_name))
+			return true;
+	}
+	return false;
 }

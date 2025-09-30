@@ -35,17 +35,14 @@
 // [AP] Functions for automatically loading relevant wads
 static int W_APLoadSingle(const char *filename, boolean required)
 {
-    int ret = 1;
-    printf(" [Archipelgo Doom] merging %s\n", filename);
+    printf(" [Archipelago Doom] merging %s%s\n", filename, (required ? "" : " (optional)"));
     if (!W_MergeFile(filename))
     {
-        ret = 0;
         if (required)
             I_Error("Required PWAD file '%s' not found!", filename);
-        else
-            printf("   ... not found (optional)\n");
+        return 0;
     }
-    return ret;
+    return 1;
 }
 
 static int W_APLoadAll(const char *path, const char **wad_list, boolean required)

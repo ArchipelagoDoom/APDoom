@@ -26,6 +26,7 @@
 
 #include "doomtype.h"
 
+#include "apdoom.h"
 #include "i_swap.h"
 #include "i_system.h"
 #include "i_video.h"
@@ -231,6 +232,7 @@ wad_file_t *W_AddFile (const char *filename)
     lumpinfo = I_Realloc(lumpinfo, numlumps * sizeof(lumpinfo_t *));
     filerover = fileinfo;
 
+    ap_init_remap(M_BaseName(filename));
     for (i = startlump; i < numlumps; ++i)
     {
         lumpinfo_t *lump_p = &filelumps[i - startlump];
@@ -239,6 +241,7 @@ wad_file_t *W_AddFile (const char *filename)
         lump_p->size = LONG(filerover->size);
         lump_p->cache = NULL;
         strncpy(lump_p->name, filerover->name, 8);
+        ap_do_remap(lump_p->name);
         lumpinfo[i] = lump_p;
 
         ++filerover;

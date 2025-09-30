@@ -21,14 +21,14 @@
 // Stored in a deque so we can quickly add a new name to the back, do back().c_str(), and never think about it again
 static std::deque<std::string> cstring_storage;
 
-const char *string_to_const_char_ptr(std::string element)
+const char *string_to_const_char_ptr(const std::string &element)
 {
 	cstring_storage.emplace_back(element);
 	return cstring_storage.back().c_str();
 }
 
 // Stores the name of a lump into a 9-byte char array. Does nothing if src is not a string.
-static void store_lump_name(char *dest, Json::Value src)
+static void store_lump_name(char *dest, const Json::Value& src)
 {
 	if (!src.isString())
 		return;
@@ -61,7 +61,7 @@ static ap_level_index_t ap_get_index_from_map_name(const char *lump_name)
 // (json: "game_info")
 // ============================================================================
 
-int json_parse_game_info(Json::Value json, ap_gameinfo_t &output)
+int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output)
 {
 	std::map<std::string, int> reverse_ammo_map;
 
@@ -135,7 +135,7 @@ int json_parse_game_info(Json::Value json, ap_gameinfo_t &output)
 
 // Parses one mapinfo structure from a JSON blob, while taking care to not overwrite
 // any default options that may have already been set.
-static void json_parse_single_mapinfo(ap_levelselect_map_t *info, const Json::Value json)
+static void json_parse_single_mapinfo(ap_levelselect_map_t *info, const Json::Value& json)
 {
 	info->x = json.get("x", info->x).asInt();
 	info->y = json.get("y", info->y).asInt();
@@ -199,7 +199,7 @@ static void json_parse_single_mapinfo(ap_levelselect_map_t *info, const Json::Va
 	}
 }
 
-int json_parse_level_select(Json::Value json, level_select_storage_t &output)
+int json_parse_level_select(const Json::Value& json, level_select_storage_t &output)
 {
 	if (json.isNull())
 	{
@@ -266,7 +266,7 @@ int json_parse_level_select(Json::Value json, level_select_storage_t &output)
 // (json: "map_tweaks")
 // ============================================================================
 
-static void insert_new_tweak(std::vector<ap_maptweak_t> &tweak_list, allowed_tweaks_t type, int target, Json::Value value)
+static void insert_new_tweak(std::vector<ap_maptweak_t> &tweak_list, allowed_tweaks_t type, int target, const Json::Value& value)
 {
 	if (value.isNull())
 		return;
@@ -282,14 +282,14 @@ static void insert_new_tweak(std::vector<ap_maptweak_t> &tweak_list, allowed_twe
 	tweak_list.emplace_back(new_tweak);
 }
 
-static void parse_hub_tweak_block(Json::Value json, std::vector<ap_maptweak_t> &tweak_list)
+static void parse_hub_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	// There's only one thing that can be tweaked with the hub, so the target is ignored
 	insert_new_tweak(tweak_list, TWEAK_HUB_X, 0, json["x"]);
 	insert_new_tweak(tweak_list, TWEAK_HUB_Y, 0, json["y"]);	
 }
 
-static void parse_things_tweak_block(Json::Value json, std::vector<ap_maptweak_t> &tweak_list)
+static void parse_things_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	for (std::string &key_target : json.getMemberNames())
 	{
@@ -302,7 +302,7 @@ static void parse_things_tweak_block(Json::Value json, std::vector<ap_maptweak_t
 	}
 }
 
-static void parse_sectors_tweak_block(Json::Value json, std::vector<ap_maptweak_t> &tweak_list)
+static void parse_sectors_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	for (std::string &key_target : json.getMemberNames())
 	{
@@ -316,7 +316,7 @@ static void parse_sectors_tweak_block(Json::Value json, std::vector<ap_maptweak_
 	}
 }
 
-static void parse_linedefs_tweak_block(Json::Value json, std::vector<ap_maptweak_t> &tweak_list)
+static void parse_linedefs_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	for (std::string &key_target : json.getMemberNames())
 	{
@@ -327,7 +327,7 @@ static void parse_linedefs_tweak_block(Json::Value json, std::vector<ap_maptweak
 	}
 }
 
-static void parse_sidedefs_tweak_block(Json::Value json, std::vector<ap_maptweak_t> &tweak_list)
+static void parse_sidedefs_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	for (std::string &key_target : json.getMemberNames())
 	{
@@ -340,13 +340,13 @@ static void parse_sidedefs_tweak_block(Json::Value json, std::vector<ap_maptweak
 	}
 }
 
-static void parse_metadata_tweak_block(Json::Value json, std::vector<ap_maptweak_t> &tweak_list)
+static void parse_metadata_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	// Metadata is level-wide stuff, so the target is ignored
 	insert_new_tweak(tweak_list, TWEAK_META_BEHAVES_AS, 0, json["behaves_as"]);
 }
 
-int json_parse_map_tweaks(Json::Value json, map_tweaks_storage_t &output)
+int json_parse_map_tweaks(const Json::Value& json, map_tweaks_storage_t &output)
 {
 	if (json.isNull())
 		return 1; // Optional
@@ -402,7 +402,7 @@ int json_parse_map_tweaks(Json::Value json, map_tweaks_storage_t &output)
 // (json: "location_types")
 // ============================================================================
 
-int json_parse_location_types(Json::Value json, location_types_storage_t &output)
+int json_parse_location_types(const Json::Value& json, location_types_storage_t &output)
 {
 	if (json.isNull())
 	{
@@ -421,7 +421,7 @@ int json_parse_location_types(Json::Value json, location_types_storage_t &output
 // (json: "location_table")
 // ============================================================================
 
-int json_parse_location_table(Json::Value json, location_table_storage_t &output)
+int json_parse_location_table(const Json::Value& json, location_table_storage_t &output)
 {
 	if (json.isNull())
 	{
@@ -457,7 +457,7 @@ int json_parse_location_table(Json::Value json, location_table_storage_t &output
 // (json: "item_table")
 // ============================================================================
 
-int json_parse_item_table(Json::Value json, item_table_storage_t &output)
+int json_parse_item_table(const Json::Value& json, item_table_storage_t &output)
 {
 	if (json.isNull())
 	{
@@ -486,7 +486,7 @@ int json_parse_item_table(Json::Value json, item_table_storage_t &output)
 // (json: "type_sprites")
 // ============================================================================
 
-int json_parse_type_sprites(Json::Value json, type_sprites_storage_t &output)
+int json_parse_type_sprites(const Json::Value& json, type_sprites_storage_t &output)
 {
 	if (json.isNull())
 	{
@@ -508,7 +508,7 @@ int json_parse_type_sprites(Json::Value json, type_sprites_storage_t &output)
 // (json: "level_info")
 // ============================================================================
 
-int json_parse_level_info(Json::Value json, level_info_storage_t &output)
+int json_parse_level_info(const Json::Value& json, level_info_storage_t &output)
 {
 	if (json.isNull())
 	{
@@ -577,6 +577,37 @@ int json_parse_level_info(Json::Value json, level_info_storage_t &output)
 			// Copy structure into our vector
 			output[ep][map] = new_level;
 		}
+	}
+	return 1;
+}
+
+
+// ============================================================================
+// Rename lumps: Rarely used way of renaming lumps in loaded WADs
+// (json: "rename_lumps")
+// ============================================================================
+
+int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &output)
+{
+	if (json.isNull())
+		return 1; // Optional
+
+	for (const std::string &file_name : json.getMemberNames())
+	{
+		std::string lower_file_name;
+		for (const unsigned char c : file_name)
+			lower_file_name += tolower(c);
+
+		auto result = output.try_emplace(lower_file_name);
+		if (!result.second)
+		{
+			printf("APDOOM: Duplicate WAD file found in rename_lumps\n");
+			return 0;
+		}
+
+		std::vector<remap_entry_t>& rename_list = (*result.first).second;
+		for (const std::string &rename_from : json[file_name].getMemberNames())
+			rename_list.emplace_back(rename_from.c_str(), json[file_name][rename_from].asCString());
 	}
 	return 1;
 }

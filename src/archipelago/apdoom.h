@@ -402,6 +402,9 @@ const ap_worldinfo_t *ap_get_world(const char *shortname);
 int ap_load_world(const char *shortname);
 const ap_worldinfo_t *ap_loaded_world_info(void);
 
+void ap_init_remap(const char *filename);
+int ap_do_remap(char *lump_name);
+
 #ifdef __cplusplus
 }
 #endif

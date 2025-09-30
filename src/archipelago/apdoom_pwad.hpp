@@ -14,6 +14,42 @@
 #include <map>
 #include <json/json.h>
 
+// ===== LUMP REMAPPING =======================================================
+
+struct remap_entry_t
+{
+    char _from[8]; // not null terminated
+    char _to[8]; // not null terminated
+
+    remap_entry_t(const char *from, const char *to)
+    {
+        strncpy(_from, from, 8);
+        strncpy(_to, to, 8);
+    }
+
+    bool rename(char *lump_name)
+    {
+        char copy[8]; // not null terminated
+
+        for (int i = 0, copy_pos = 0; i < 8; ++i)
+        {
+            if (_from[i] == '?')
+                copy[copy_pos++] = lump_name[i];
+            else if (_from[i] != lump_name[i])
+                return false;
+            else if (_from[i] == '\0')
+                break;
+        }
+        for (int i = 0, copy_pos = 0; i < 8; ++i)
+        {
+            lump_name[i] = (_to[i] == '?' ? copy[copy_pos++] : _to[i]);
+            if (_to[i] == '\0')
+                break;
+        }
+        return true;
+    }
+};
+
 // ===== JSON PARSING =========================================================
 
 typedef std::vector<ap_levelselect_t>
@@ -30,14 +66,17 @@ typedef std::map<int, std::string>
 	type_sprites_storage_t;
 typedef std::vector<std::vector<ap_level_info_t>>
 	level_info_storage_t;
+typedef std::map<std::string, std::vector<remap_entry_t>>
+    rename_lumps_storage_t;
 
-int json_parse_game_info(Json::Value json, ap_gameinfo_t &output);
-int json_parse_level_select(Json::Value json, level_select_storage_t &output);
-int json_parse_map_tweaks(Json::Value json, map_tweaks_storage_t &output);
-int json_parse_location_types(Json::Value json, location_types_storage_t &output);
-int json_parse_location_table(Json::Value json, location_table_storage_t &output);
-int json_parse_item_table(Json::Value json, item_table_storage_t &output);
-int json_parse_type_sprites(Json::Value json, type_sprites_storage_t &output);
-int json_parse_level_info(Json::Value json, level_info_storage_t &output);
+int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output);
+int json_parse_level_select(const Json::Value& json, level_select_storage_t &output);
+int json_parse_map_tweaks(const Json::Value& json, map_tweaks_storage_t &output);
+int json_parse_location_types(const Json::Value& json, location_types_storage_t &output);
+int json_parse_location_table(const Json::Value& json, location_table_storage_t &output);
+int json_parse_item_table(const Json::Value& json, item_table_storage_t &output);
+int json_parse_type_sprites(const Json::Value& json, type_sprites_storage_t &output);
+int json_parse_level_info(const Json::Value& json, level_info_storage_t &output);
+int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &output);
 
 #endif // _APDOOM_PWAD_
