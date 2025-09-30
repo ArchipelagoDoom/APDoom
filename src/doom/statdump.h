@@ -14,6 +14,9 @@
 
  */
 
+#if 0 // [AP] StatDump is globally disabled, because it relies on intermissions
+// File kept around, however, to make upstream merges easier
+
 #ifndef DOOM_STATDUMP_H
 #define DOOM_STATDUMP_H
 
@@ -21,3 +24,5 @@ void StatCopy(const wbstartstruct_t *stats);
 void StatDump(void);
 
 #endif /* #ifndef DOOM_STATDUMP_H */
+
+#endif

@@ -19,6 +19,9 @@
 
  */
 
+#if 0 // [AP] StatDump is globally disabled, because it relies on intermissions
+// File kept around, however, to make upstream merges easier
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -355,3 +358,5 @@ void StatDump(void)
     }
 }
 
+
+#endif
