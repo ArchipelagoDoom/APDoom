@@ -1084,7 +1084,8 @@ int generate(game_t* game)
     int result = 0;
     result += world.AddFile(zip_world_path + "id1common/__init__.py", "./assets/py/id1common/__init__.py");
     result += world.AddFile(zip_world_path + "id1common/options.py", "./assets/py/id1common/options.py");
-    if (result != 2)
+    result += world.AddFile(zip_world_path + "id1common/LICENSE", "./assets/py/id1common/LICENSE");
+    if (result != 3)
         OnScreenMessages::AddError("Couldn't add the id1common Python module to the APWorld!");
 
     // ========================================================================

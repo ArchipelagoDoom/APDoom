@@ -1,5 +1,11 @@
-# id1 Common Library
-# Options common to all id1 games.
+# id1Common - Common library for Doom/Heretic/derived games in Archipelago
+#
+# This file is copyright (C) Kay "Kaito" Sinclaire,
+# and is released under the terms of the zlib license.
+# See "LICENSE" for more details
+#
+# Brief:
+#   Options common to all id1 games.
 
 from dataclasses import dataclass
 
