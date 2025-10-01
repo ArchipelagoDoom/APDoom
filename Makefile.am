@@ -9,7 +9,7 @@ CMAKE_FILES=                                   \
         cmake/FindSDL2_net.cmake               \
         cmake/FindFluidSynth.cmake             \
         cmake/Findm.cmake                      \
-        cmake/Findsamplerate.cmake             \
+        cmake/FindSampleRate.cmake             \
         cmake/config.h.cin
 
 DOC_FILES=                              \
@@ -17,8 +17,7 @@ DOC_FILES=                              \
         README.md                       \
         README.Music.md                 \
         NEWS.md                         \
-        PHILOSOPHY.md                   \
-        ChangeLog
+        PHILOSOPHY.md
 
 EXTRA_DIST=                             \
         $(AUX_DIST_GEN)                 \
@@ -54,9 +53,9 @@ DIST_SUBDIRS=pkg $(SUBDIRS)
 if HAVE_DOC
 
 INSTALL : man/INSTALL.template man/simplecpp
-	./man/simplecpp -DDOOM -DHERETIC -DHEXEN -DSTRIFE \
+	$(srcdir)/man/simplecpp -DDOOM -DHERETIC -DHEXEN -DSTRIFE \
             -DLONG_GAME_NAME="@PACKAGE_SHORTNAME@ Doom" \
             -DLONG_EXE_NAME="@PROGRAM_PREFIX@doom" \
-	                < man/INSTALL.template > $@
+	                < $(srcdir)/man/INSTALL.template > $@
 
 endif

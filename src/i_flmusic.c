@@ -42,6 +42,8 @@ typedef fluid_long_long_t fluid_int_t;
 #include "memio.h"
 #include "mus2mid.h"
 
+#include <string.h>
+
 char *fsynth_sf_path = "";
 int fsynth_chorus_active = 1;
 float fsynth_chorus_depth = 5.0f;
@@ -55,6 +57,7 @@ float fsynth_reverb_damp = 0.4f;
 float fsynth_reverb_level = 0.15f;
 float fsynth_reverb_roomsize = 0.6f;
 float fsynth_reverb_width = 4.0f;
+float fsynth_gain = 1.0f;
 
 static fluid_synth_t *synth = NULL;
 static fluid_settings_t *settings = NULL;
@@ -119,7 +122,23 @@ static boolean I_FL_InitMusic(void)
                               fsynth_chorus_speed);
     }
 
+    if (fsynth_gain < 0.0f)
+    {
+        fsynth_gain = 0.0f;
+    }
+    if (fsynth_gain > 10.0f)
+    {
+        fsynth_gain = 10.0f;
+    }
+
     synth = new_fluid_synth(settings);
+
+    if (synth == NULL)
+    {
+        fprintf(stderr,
+                "I_FL_InitMusic: FluidSynth failed to initialize synth.\n");
+        return false;
+    }
 
     sf_id = fluid_synth_sfload(synth, fsynth_sf_path, true);
     if (sf_id == FLUID_FAILED)
@@ -141,25 +160,38 @@ static boolean I_FL_InitMusic(void)
 
 static void I_FL_SetMusicVolume(int volume)
 {
+    if (synth == NULL)
+    {
+        return;
+    }
     // FluidSynth's default is 0.2. Make 1.0 the maximum.
     // 0 -- 0.2 -- 10.0
-    fluid_synth_set_gain(synth, (float) volume / 127);
+    fluid_synth_set_gain(synth, ((float) volume / 127) * fsynth_gain);
 }
 
 static void I_FL_PauseSong(void)
 {
-    fluid_player_stop(player);
+    if (player)
+    {
+        Mix_HookMusic(NULL, NULL);
+    }
 }
 
 static void I_FL_ResumeSong(void)
 {
-    fluid_player_play(player);
+    if (player)
+    {
+        Mix_HookMusic(FL_Mix_Callback, NULL);
+    }
 }
 
 static void I_FL_PlaySong(void *handle, boolean looping)
 {
-    fluid_player_set_loop(player, looping ? -1 : 1);
-    fluid_player_play(player);
+    if (player)
+    {
+        fluid_player_set_loop(player, looping ? -1 : 1);
+        fluid_player_play(player);
+    }
 }
 
 static void I_FL_StopSong(void)
@@ -175,6 +207,13 @@ static void *I_FL_RegisterSong(void *data, int len)
     int result = FLUID_FAILED;
 
     player = new_fluid_player(synth);
+
+    if (player == NULL)
+    {
+        fprintf(stderr,
+                "I_FL_RegisterSong: FluidSynth failed to initialize player.\n");
+        return NULL;
+    }
 
     if (IsMid(data, len))
     {

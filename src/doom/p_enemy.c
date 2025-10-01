@@ -26,6 +26,7 @@
 
 #include "doomdef.h"
 #include "p_local.h"
+#include "d_pwad.h" // [crispy] kex masterlevels
 
 #include "s_sound.h"
 
@@ -180,7 +181,7 @@ boolean P_CheckMeleeRange (mobj_t*	actor)
     pl = actor->target;
     dist = P_AproxDistance (pl->x-actor->x, pl->y-actor->y);
 
-    if (gameversion <= exe_doom_1_2)
+    if (gameversion < exe_doom_1_5)
         range = MELEERANGE;
     else
         range = MELEERANGE-20*FRACUNIT+pl->info->radius;
@@ -958,7 +959,7 @@ void A_SargAttack (mobj_t* actor)
 		
     A_FaceTarget (actor);
 
-    if (gameversion > exe_doom_1_2)
+    if (gameversion >= exe_doom_1_5)
     {
         if (!P_CheckMeleeRange (actor))
             return;
@@ -1720,9 +1721,47 @@ static boolean CheckBossEnd(mobjtype_t motype)
             case 5:
                 return (metamap /* gamemap */ == 8 && !critical->havesigil);
 
+            // [crispy] no trigger for auto-loaded Sigil II E6
+            case 6:
+                return (metamap /* gamemap */ == 8 && !critical->havesigil2);
+
             default:
                 return metamap /* gamemap */ == 8;
 	}
+    }
+}
+
+// [crispy] check if the there is a Doom 2 / Masterlevel tag 666 present in map
+boolean P_CheckMapTag666 (void)
+{
+    if (gamemode == commercial)
+    {
+        if (gamemission == pack_master)
+        {
+            if (D_CheckMasterlevelKex())
+            {
+                // kex materlevels.wad
+                return (metamap /* gamemap */ == 13
+                    || metamap /* gamemap */ == 19
+                    || metamap /* gamemap */ == 20);
+            }
+            else
+            {
+                // psn/unity masterlevels.wad
+                return (metamap /* gamemap */ == 14
+                    || metamap /* gamemap */ == 15
+                    || metamap /* gamemap */ == 16);
+            }
+        }
+        else
+        {
+            // other Doom2-based gamemissions
+            return (metamap /* gamemap */ == 7);
+        }        
+    }
+    else
+    {
+        return false;
     }
 }
 
@@ -1740,13 +1779,7 @@ void A_BossDeath (mobj_t* mo)
 		
     if ( gamemode == commercial)
     {
-#if 1
-	if (metamap != 7)
-#else
-	if (gamemap != 7 &&
-	// [crispy] Master Levels in PC slot 7
-	!(gamemission == pack_master && (gamemap == 14 || gamemap == 15 || gamemap == 16)))
-#endif
+	if (!P_CheckMapTag666())
 	    return;
 		
 	if ((mo->type != MT_FATSO)
@@ -1789,13 +1822,7 @@ void A_BossDeath (mobj_t* mo)
     // victory!
     if ( gamemode == commercial)
     {
-#if 1
-	if (metamap == 7)
-#else
-	if (gamemap == 7 ||
-	// [crispy] Master Levels in PC slot 7
-	(gamemission == pack_master && (gamemap == 14 || gamemap == 15 || gamemap == 16)))
-#endif
+	if (P_CheckMapTag666())
 	{
 	    if (mo->type == MT_FATSO)
 	    {

@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h> // [crispy] strftime, localtime
 
 
 #include "doomdef.h"
@@ -30,6 +31,7 @@
 #include "deh_main.h"
 
 #include "i_input.h"
+#include "i_joystick.h"
 #include "i_swap.h"
 #include "i_system.h"
 #include "i_timer.h"
@@ -107,8 +109,17 @@ boolean			messageNeedsInput;
 void    (*messageRoutine)(int response);
 
 // [crispy] intermediate gamma levels
-char gammamsg[5+4][26+2] =
+char gammamsg[5+13][26+2] =
 {
+    GAMMALVL050,
+    GAMMALVL055,
+    GAMMALVL060,
+    GAMMALVL065,
+    GAMMALVL070,
+    GAMMALVL075,
+    GAMMALVL080,
+    GAMMALVL085,
+    GAMMALVL090,
     GAMMALVL0,
     GAMMALVL05,
     GAMMALVL1,
@@ -795,8 +806,10 @@ void M_ReadSaveStrings(void)
 void M_DrawNameChar(void)
 {
     int i;
+    const char *Name_Char = DEH_String("Name Your Character"); // [crispy]
 
-    M_WriteText(72, 28, DEH_String("Name Your Character"));
+    // [crispy] print "Name Your Character" centered and slightly higher
+    M_WriteText(ORIGWIDTH/2-M_StringWidth(Name_Char)/2, NameCharDef.y/2, Name_Char);
 
     for (i = 0;i < load_end; i++)
     {
@@ -841,14 +854,41 @@ void M_DoNameChar(int choice)
     M_ClearMenus(0);
 }
 
+// [crispy] print "modified" (or created initially) time of savegame file
+static void M_DrawSaveLoadBottomLine(void)
+{
+    const int y = 145;
+
+    if (LoadMenu[itemOn].status)
+    {
+        struct stat st;
+        char filedate[32];
+
+        if (M_stat(P_SaveGameFile(itemOn), &st) == 0)
+        {
+// [FG] suppress the most useless compiler warning ever
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-y2k"
+#endif
+        strftime(filedate, sizeof(filedate), "%x %X", localtime(&st.st_mtime));
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+        M_WriteText(ORIGWIDTH/2-M_StringWidth(filedate)/2, y, filedate);
+        }
+    }
+}
+
 //
 // M_LoadGame & Cie.
 //
+static int LoadDef_x = 80, LoadDef_y = 54;
 void M_DrawLoad(void)
 {
     int             i;
 
-    V_DrawPatchDirect(72, 28, 
+    V_DrawPatchDirect(LoadDef_x, LoadDef_y, 
                       W_CacheLumpName(DEH_String("M_LOADG"), PU_CACHE));
 
     for (i = 0;i < load_end; i++)
@@ -856,6 +896,8 @@ void M_DrawLoad(void)
         M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
         M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,savegamestrings[i]);
     }
+
+    M_DrawSaveLoadBottomLine();
 }
 
 
@@ -925,11 +967,12 @@ void M_LoadGame (int choice)
 //
 //  M_SaveGame & Cie.
 //
+static int SaveDef_x = 80, SaveDef_y = 54;
 void M_DrawSave(void)
 {
     int             i;
 
-    V_DrawPatchDirect(72, 28, W_CacheLumpName(DEH_String("M_SAVEG"), PU_CACHE));
+    V_DrawPatchDirect(SaveDef_x, SaveDef_y, W_CacheLumpName(DEH_String("M_SAVEG"), PU_CACHE));
     for (i = 0;i < load_end; i++)
     {
         M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
@@ -941,6 +984,8 @@ void M_DrawSave(void)
         i = M_StringWidth(savegamestrings[quickSaveSlot]);
         M_WriteText(LoadDef.x + i,LoadDef.y+LINEHEIGHT*quickSaveSlot,"_");
     }
+
+    M_DrawSaveLoadBottomLine();
 }
 
 //
@@ -1385,26 +1430,13 @@ void M_DrawMouse(void)
 // [crispy] Crispness menu
 static void M_DrawCrispnessBackground(void)
 {
-    byte *src, *dest;
-    int x, y;
+    byte *src;
+    pixel_t *dest;
 
     src = W_CacheLumpName(back_flat, PU_CACHE);
     dest = I_VideoBuffer;
 
-    for (y = 0; y < SCREENHEIGHT; y++)
-    {
-        for (x = 0; x < SCREENWIDTH / 64; x++)
-        {
-            memcpy(dest, src + ((y & 63) << 6), 64);
-            dest += 64;
-        }
-
-        if (SCREENWIDTH & 63)
-        {
-            memcpy(dest, src + ((y & 63) << 6), SCREENWIDTH & 63);
-            dest += (SCREENWIDTH & 63);
-        }
-    }
+    V_FillFlat(0, SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
 
     inhelpscreens = true;
 }
@@ -1480,7 +1512,7 @@ static void M_DrawCrispness1(void)
     M_DrawCrispnessSeparator(crispness_sep_rendering, "Rendering");
     M_DrawCrispnessItem(crispness_hires, "High Resolution Rendering", crispy->hires, true);
     M_DrawCrispnessMultiItem(crispness_widescreen, "Aspect Ratio", multiitem_widescreen, crispy->widescreen, aspect_ratio_correct == 1);
-    M_DrawCrispnessItem(crispness_smoothscaling, "Smooth Pixel Scaling", crispy->smoothscaling, !force_software_renderer);
+    M_DrawCrispnessItem(crispness_smoothscaling, "Smooth Pixel Scaling", smooth_pixel_scaling, !force_software_renderer);
     M_DrawCrispnessItem(crispness_uncapped, "Uncapped Framerate", crispy->uncapped, true);
     M_DrawCrispnessNumericItem(crispness_fpslimit, "Framerate Limit", crispy->fpslimit, "None", crispy->uncapped, "35");
     M_DrawCrispnessItem(crispness_vsync, "Enable VSync", crispy->vsync, !force_software_renderer);
@@ -1649,7 +1681,8 @@ void M_ChangeMessages(int choice)
 //
 void M_EndGameResponse(int key)
 {
-    if (key != key_menu_confirm)
+    // [crispy] allow to confirm by pressing Enter key
+    if (key != key_menu_confirm && key != key_menu_forward)
         return;
 
     currentMenu->lastOn = itemOn;
@@ -1750,7 +1783,8 @@ void M_QuitResponse(int key)
 {
     char buffer[20];
 
-    if (key != key_menu_confirm)
+    // [crispy] allow to confirm by pressing Enter key
+    if (key != key_menu_confirm && key != key_menu_forward)
         return;
 
     // [crispy] quit immediately if not showing exit screen
@@ -2219,6 +2253,7 @@ boolean M_Responder (event_t* ev)
     static  int     lasty = 0;
     static  int     mousex = 0;
     static  int     lastx = 0;
+    int dir;
 
     // In testcontrols mode, none of the function keys should do anything
     // - the only key is escape to quit.
@@ -2262,39 +2297,70 @@ boolean M_Responder (event_t* ev)
 
     if (ev->type == ev_joystick && joywait < I_GetTime())
     {
-        if (ev->data3 < 0)
+        if (JOY_GET_DPAD(ev->data6) != JOY_DIR_NONE)
+        {
+            dir = JOY_GET_DPAD(ev->data6);
+        }
+        else if (JOY_GET_LSTICK(ev->data6) != JOY_DIR_NONE)
+        {
+            dir = JOY_GET_LSTICK(ev->data6);
+        }
+        else
+        {
+            dir = JOY_GET_RSTICK(ev->data6);
+        }
+
+        if (dir & JOY_DIR_UP)
         {
             key = key_menu_up;
             joywait = I_GetTime() + 5;
         }
-        else if (ev->data3 > 0)
+        else if (dir & JOY_DIR_DOWN)
         {
             key = key_menu_down;
             joywait = I_GetTime() + 5;
         }
-
-        if (ev->data2 < 0)
+        if (dir & JOY_DIR_LEFT)
         {
             key = key_menu_left;
-            joywait = I_GetTime() + 2;
+            joywait = I_GetTime() + 5;
         }
-        else if (ev->data2 > 0)
+        else if (dir & JOY_DIR_RIGHT)
         {
             key = key_menu_right;
-            joywait = I_GetTime() + 2;
+            joywait = I_GetTime() + 5;
         }
 
-        if (ev->data1&1)
+#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
+#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (ev->data1 & (1 << (x))) != 0)
+
+        if (JOY_BUTTON_PRESSED(joybfire))
         {
-            key = key_menu_forward;
+            // Simulate a 'Y' keypress when Doom show a Y/N dialog with Fire button.
+            if (messageToPrint && messageNeedsInput)
+            {
+                key = key_menu_confirm;
+            }
+            else
+            {
+                key = key_menu_forward;
+            }
             joywait = I_GetTime() + 5;
         }
-        if (ev->data1&2)
+        if (JOY_BUTTON_PRESSED(joybuse))
         {
-            key = key_menu_back;
+            // Simulate a 'N' keypress when Doom show a Y/N dialog with Use button.
+            if (messageToPrint && messageNeedsInput)
+            {
+                key = key_menu_abort;
+            }
+            else
+            {
+                key = key_menu_back;
+            }
             joywait = I_GetTime() + 5;
         }
-        if (joybmenu >= 0 && (ev->data1 & (1 << joybmenu)) != 0)
+        if (JOY_BUTTON_PRESSED(joybmenu))
         {
             key = key_menu_activate;
             joywait = I_GetTime() + 5;
@@ -2305,7 +2371,8 @@ boolean M_Responder (event_t* ev)
         if (ev->type == ev_mouse && mousewait < I_GetTime())
         {
             // [crispy] Don't control Crispness menu with y-axis mouse movement.
-            if (!inhelpscreens)
+            // "novert" disables up/down cursor movement with the mouse.
+            if (!inhelpscreens && !novert)
                 mousey += ev->data3;
 
             if (mousey < lasty-30)
@@ -2341,7 +2408,7 @@ boolean M_Responder (event_t* ev)
             if (ev->data1&1)
             {
                 key = key_menu_forward;
-                mousewait = I_GetTime() + 15;
+                mousewait = I_GetTime() + 5;
                 if (menuindialog) // [crispy] fix mouse fire delay
                 {
                 mouse_fire_countdown = 5;   // villsa [STRIFE]
@@ -2351,7 +2418,20 @@ boolean M_Responder (event_t* ev)
             if (ev->data1&2)
             {
                 key = key_menu_back;
-                mousewait = I_GetTime() + 15;
+                mousewait = I_GetTime() + 5;
+            }
+
+            // [crispy] scroll menus with mouse wheel
+            if (mousebprevweapon >= 0 && ev->data1 & (1 << mousebprevweapon))
+            {
+                key = key_menu_down;
+                mousewait = I_GetTime() + 1;
+            }
+            else
+            if (mousebnextweapon >= 0 && ev->data1 & (1 << mousebnextweapon))
+            {
+                key = key_menu_up;
+                mousewait = I_GetTime() + 1;
             }
         }
         else
@@ -2510,7 +2590,9 @@ boolean M_Responder (event_t* ev)
         if (messageNeedsInput)
         {
             if (key != ' ' && key != KEY_ESCAPE
-                && key != key_menu_confirm && key != key_menu_abort)
+                && key != key_menu_confirm && key != key_menu_abort
+                // [crispy] allow to confirm end game and quit by pressing Enter key
+                && key != key_menu_forward)
             {
                 return false;
             }
@@ -2618,7 +2700,7 @@ boolean M_Responder (event_t* ev)
         {
             M_StartControlPanel ();
             currentMenu = &SoundDef;
-            itemOn = sfx_vol;
+            itemOn = currentMenu->lastOn; // [crispy] remember cursor position
             S_StartSound(NULL, sfx_swtchn);
             return true;
         }
@@ -2683,11 +2765,19 @@ boolean M_Responder (event_t* ev)
         }
         else if (key == key_menu_gamma)    // gamma toggle
         {
-            usegamma++;
-            if (usegamma > 4+4) // [crispy] intermediate gamma levels
-                usegamma = 0;
-            players[consoleplayer].message = DEH_String(gammamsg[usegamma]);
+            crispy->gamma++;
+            if (crispy->gamma > 4+13) // [crispy] intermediate gamma levels
+                crispy->gamma = 0;
+            players[consoleplayer].message = DEH_String(gammamsg[crispy->gamma]);
+#ifndef CRISPY_TRUECOLOR
             I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
+#else
+            I_SetPalette(0);
+            R_InitColormaps();
+            inhelpscreens = true;
+            R_FillBackScreen();
+            viewactive = false;
+#endif
             return true;
         }
         else if(gameversion == exe_strife_1_31 && key == key_spy)
@@ -3094,6 +3184,35 @@ void M_Init (void)
     // [STRIFE]: Initialize savegame paths and clear temporary directory
     G_WriteSaveName(5, "ME");
     ClearTmp();
+
+    // [crispy] rearrange Load Game and Save Game menus
+    {
+        const patch_t *patchl, *patchs, *patchm;
+        short captionheight, vstep;
+
+        patchl = W_CacheLumpName(DEH_String("M_LOADG"), PU_CACHE);
+        patchs = W_CacheLumpName(DEH_String("M_SAVEG"), PU_CACHE);
+        patchm = W_CacheLumpName(DEH_String("M_LSLEFT"), PU_CACHE);
+
+        LoadDef_x = (ORIGWIDTH - SHORT(patchl->width)) / 2 + SHORT(patchl->leftoffset);
+        SaveDef_x = (ORIGWIDTH - SHORT(patchs->width)) / 2 + SHORT(patchs->leftoffset);
+        NameCharDef.x = LoadDef.x = SaveDef.x = (ORIGWIDTH - 24 * 8) / 2 + SHORT(patchm->leftoffset);
+
+        captionheight = MAX(SHORT(patchl->height), SHORT(patchs->height));
+
+        vstep = ORIGHEIGHT - 32; // [crispy] ST_HEIGHT
+        vstep -= captionheight;
+        vstep -= (load_end - 1) * LINEHEIGHT + SHORT(patchm->height);
+        vstep /= 3;
+
+        if (vstep > 0)
+        {
+            LoadDef_y = vstep + captionheight - SHORT(patchl->height) + SHORT(patchl->topoffset);
+            SaveDef_y = vstep + captionheight - SHORT(patchs->height) + SHORT(patchs->topoffset);
+            LoadDef.y = SaveDef.y = vstep + captionheight + vstep + SHORT(patchm->topoffset) - 19; // [crispy] moved up, so savegame date/time may appear above status bar
+            NameCharDef.y = MouseDef.y = LoadDef.y;
+        }
+    }
 
     // Here we could catch other version dependencies,
     //  like HELP1/2, and four episodes.

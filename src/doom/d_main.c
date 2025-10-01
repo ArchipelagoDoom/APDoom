@@ -113,6 +113,7 @@ boolean		devparm;	// started game with -devparm
 boolean         nomonsters;	// checkparm of -nomonsters
 boolean         respawnparm;	// checkparm of -respawn
 boolean         fastparm;	// checkparm of -fast
+boolean         coop_spawns = false;	// [crispy] checkparm of -coop_spawns
 
 
 
@@ -129,9 +130,6 @@ boolean         storedemo;
 
 // If true, the main game loop has started.
 boolean         main_loop_started = false;
-
-char		wadfile[1024];		// primary wad file
-char		mapdir[1024];           // directory of development maps
 
 int             show_endoom = 0; // [crispy] disable
 int             show_diskicon = 1;
@@ -448,6 +446,18 @@ boolean D_Display (void)
 		
     redrawsbar = false;
     
+    if (crispy->uncapped)
+    {
+        I_UpdateFracTic();
+
+        if (!automapactive || crispy->automapoverlay)
+        {
+            I_StartDisplay();
+            G_FastResponder();
+            G_PrepTiccmd();
+        }
+    }
+
     // change the view size if needed
     if (setsizeneeded)
     {
@@ -738,6 +748,7 @@ void D_BindVariables(void)
     M_BindIntVariable("crispy_fpslimit",        &crispy->fpslimit);
     M_BindIntVariable("crispy_freeaim",         &crispy->freeaim);
     M_BindIntVariable("crispy_freelook",        &crispy->freelook);
+    M_BindIntVariable("crispy_gamma",           &crispy->gamma);
     M_BindIntVariable("crispy_hires",           &crispy->hires);
     M_BindIntVariable("crispy_jump",            &crispy->jump);
     M_BindIntVariable("crispy_leveltime",       &crispy->leveltime);
@@ -749,7 +760,7 @@ void D_BindVariables(void)
     M_BindIntVariable("crispy_secretmessage",   &crispy->secretmessage);
     M_BindIntVariable("crispy_smoothlight",     &crispy->smoothlight);
     M_BindIntVariable("crispy_smoothmap",       &crispy->smoothmap);
-    M_BindIntVariable("crispy_smoothscaling",   &crispy->smoothscaling);
+    M_BindIntVariable("crispy_smoothscaling",   &smooth_pixel_scaling);
     M_BindIntVariable("crispy_soundfix",        &crispy->soundfix);
     M_BindIntVariable("crispy_soundfull",       &crispy->soundfull);
     M_BindIntVariable("crispy_soundmono",       &crispy->soundmono);
@@ -1393,13 +1404,14 @@ void PrintDehackedBanners(void)
     }
 }
 
-static struct 
+static const struct
 {
     const char *description;
     const char *cmdline;
     GameVersion_t version;
 } gameversions[] = {
     {"Doom 1.2",             "1.2",        exe_doom_1_2},
+    {"Doom 1.5",             "1.5",        exe_doom_1_5},
     {"Doom 1.666",           "1.666",      exe_doom_1_666},
     {"Doom 1.7/1.7a",        "1.7",        exe_doom_1_7},
     {"Doom 1.8",             "1.8",        exe_doom_1_8},
@@ -1423,13 +1435,13 @@ static void InitGameVersion(void)
     int i;
     boolean status;
 
-    //! 
+    //!
     // @arg <version>
     // @category compat
     //
-    // Emulate a specific version of Doom.  Valid values are "1.2", 
-    // "1.666", "1.7", "1.8", "1.9", "ultimate", "final", "final2",
-    // "hacx" and "chex".
+    // Emulate a specific version of Doom. Valid values are "1.2", 
+    // "1.5", "1.666", "1.7", "1.8", "1.9", "ultimate", "final", 
+    // "final2", "hacx" and "chex".
     //
 
     p = M_CheckParmWithArgs("-gameversion", 1);
@@ -1444,8 +1456,8 @@ static void InitGameVersion(void)
                 break;
             }
         }
-        
-        if (gameversions[i].description == NULL) 
+
+        if (gameversions[i].description == NULL)
         {
             printf("Supported game versions:\n");
 
@@ -1454,7 +1466,7 @@ static void InitGameVersion(void)
                 printf("\t%s (%s)\n", gameversions[i].cmdline,
                         gameversions[i].description);
             }
-            
+
             I_Error("Unknown game version '%s'", myargv[p+1]);
         }
     }
@@ -1543,7 +1555,7 @@ static void InitGameVersion(void)
     {
         deathmatch = 1;
     }
-    
+
     // The original exe does not support retail - 4th episode not supported
 
     if (gameversion < exe_ultimate && gamemode == retail)
@@ -1573,22 +1585,6 @@ void PrintGameVersion(void)
             break;
         }
     }
-}
-
-const char *D_GetGameVersionCmd(void)
-{
-    int i;
-
-    for (i = 0; gameversions[i].description; ++i)
-    {
-        if (gameversions[i].version == gameversion)
-        {
-            return gameversions[i].cmdline;
-            break;
-        }
-    }
-
-    return NULL;
 }
 
 // Function called at exit to display the ENDOOM screen
@@ -1671,7 +1667,7 @@ static void LoadIwadDeh(void)
                     "The dehacked file is required in order to emulate\n"
                     "chex.exe correctly.  It can be found in your nearest\n"
                     "/idgames repository mirror at:\n\n"
-                    "   utils/exe_edit/patches/chexdeh.zip");
+                    "   themes/chex/chexdeh.zip");
         }
 
         if (!DEH_LoadFile(chex_deh))
@@ -1737,7 +1733,6 @@ void D_DoomMain (void)
     int p;
     char file[256];
     char demolumpname[9] = {0};
-    int numiwadlumps;
 
     ap_settings_t ap_settings;
     memset(&ap_settings, 0, sizeof(ap_settings));
@@ -1982,7 +1977,6 @@ void D_DoomMain (void)
 
     DEH_printf("W_Init: Init WADfiles.\n");
     D_AddFile(iwadfile);
-    numiwadlumps = numlumps;
 
     W_CheckCorrectIWAD(doom);
 
@@ -2068,7 +2062,6 @@ void D_DoomMain (void)
 
     //!
     // @category game
-    // @category mod
     //
     // Automatic pistol start when advancing from one level to the next. At the
     // beginning of each level, the player's health is reset to 100, their
@@ -2081,7 +2074,6 @@ void D_DoomMain (void)
 
     //!
     // @category game
-    // @category mod
     //
     // Double ammo pickup rate. This option is not allowed when recording a
     // demo, playing back a demo or when starting a network game.
@@ -2311,16 +2303,23 @@ void D_DoomMain (void)
     W_GenerateHashTable();
 
     // [crispy] allow overriding of special-casing
-    // [AP] never sideload, -game handles that
-#if 0
-    if (!M_ParmExists("-nosideload") && gamemode != shareware && !demolumpname[0])
+
+    //!
+    // @category mod
+    //
+    // Disable automatic loading of Master Levels, No Rest for the Living and
+    // Sigil.
+    //
+#if 0 // [AP] never sideload, -game handles that
+    if (!M_ParmExists("-nosideload") && gamemode != shareware &&
+        !demolumpname[0] && !M_CheckParmWithArgs("-record", 1))
     {
 	if (gamemode == retail &&
 	    gameversion == exe_ultimate &&
 	    gamevariant != freedoom &&
 	    strncasecmp(M_BaseName(iwadfile), "rekkr", 5))
 	{
-		D_LoadSigilWad();
+		D_LoadSigilWads();
 	}
 
 	if (gamemission == doom2)
@@ -2334,16 +2333,22 @@ void D_DoomMain (void)
     // Load DEHACKED lumps from WAD files - but only if we give the right
     // command line parameter.
 
+    // [crispy] load DEHACKED lumps by default, but allow overriding
+
     //!
     // @category mod
     //
-    // Load Dehacked patches from DEHACKED lumps contained in one of the
-    // loaded PWAD files.
+    // Disable automatic loading of embedded DEHACKED lumps in wad files.
     //
-    // [crispy] load DEHACKED lumps by default, but allow overriding
     if (!M_ParmExists("-nodehlump") && !M_ParmExists("-nodeh"))
     {
         int i, loaded = 0;
+        int numiwadlumps = numlumps;
+
+        while (!W_IsIWADLump(lumpinfo[numiwadlumps - 1]))
+        {
+            numiwadlumps--;
+        }
 
         for (i = numiwadlumps; i < numlumps; ++i)
         {
@@ -2432,7 +2437,7 @@ void D_DoomMain (void)
     I_CheckIsScreensaver();
     I_InitTimer();
     I_InitJoystick();
-    I_InitSound(true);
+    I_InitSound(doom);
     I_InitMusic();
 
     // [crispy] check for SSG resources
@@ -2453,6 +2458,12 @@ void D_DoomMain (void)
                        (W_CheckNumForName("m_epi5") != -1) &&
                        (W_CheckNumForName("e5m1") != -1) &&
                        (W_CheckNumForName("wilv40") != -1);
+
+    // [crispy] check for presence of a 6th episode
+    crispy->haved1e6 = (gameversion == exe_ultimate) &&
+                       (W_CheckNumForName("m_epi6") != -1) &&
+                       (W_CheckNumForName("e6m1") != -1) &&
+                       (W_CheckNumForName("wilv50") != -1);
 
     // [crispy] check for presence of E1M10
     crispy->havee1m10 = (gamemode == retail) &&
@@ -2511,7 +2522,7 @@ void D_DoomMain (void)
     // @arg <n>
     // @vanilla
     //
-    // Start playing on episode n (1-4)
+    // Start playing episode n (1-4).
     //
 
 #if 0 // [AP] Warping disabled
@@ -2566,7 +2577,7 @@ void D_DoomMain (void)
     // @vanilla
     //
     // Start a game immediately, warping to ExMy (Doom 1) or MAPxy
-    // (Doom 2)
+    // (Doom 2).
     //
 
 #if 0 // [AP] Warping disabled
@@ -2717,6 +2728,19 @@ void D_DoomMain (void)
         DEH_printf("External statistics registered.\n");
     }
 #endif
+
+    //!
+    // @category game
+    //
+    // Start single player game with items spawns as in cooperative netgame.
+    //
+
+    p = M_ParmExists("-coop_spawns");
+
+    if (p)
+    {
+        coop_spawns = true;
+    }
 
     //!
     // @arg <x>

@@ -21,6 +21,7 @@
 #include "m_random.h"
 #include "p_local.h"
 #include "s_sound.h"
+#include "a11y.h" // [crispy] A11Y
 
 // MACROS ------------------------------------------------------------------
 
@@ -1187,9 +1188,17 @@ void A_MStaffAttack(mobj_t *actor, player_t *player, pspdef_t *psp)
     {
         player->damagecount = 0;
         player->bonuscount = 0;
-        I_SetPalette((byte *) W_CacheLumpNum(W_GetNumForName("playpal"),
+        // [crispy] A11Y
+        if(a11y_weapon_palette)
+        {
+#ifndef CRISPY_TRUECOLOR
+            I_SetPalette((byte *) W_CacheLumpNum(W_GetNumForName("playpal"),
                                              PU_CACHE) +
-                     STARTSCOURGEPAL * 768);
+                        STARTSCOURGEPAL * 768);
+#else
+            I_SetPalette(STARTSCOURGEPAL);
+#endif            
+        }
     }
 }
 
@@ -1203,15 +1212,20 @@ void A_MStaffPalette(mobj_t *actor, player_t *player, pspdef_t *psp)
 {
     int pal;
 
-    if (player == &players[consoleplayer])
+    // [crispy] A11Y
+    if (a11y_weapon_palette && player == &players[consoleplayer]) 
     {
         pal = STARTSCOURGEPAL + psp->state - (&states[S_MSTAFFATK_2]);
         if (pal == STARTSCOURGEPAL + 3)
         {                       // reset back to original playpal
             pal = 0;
         }
+#ifndef CRISPY_TRUECOLOR
         I_SetPalette((byte *) W_CacheLumpNum(W_GetNumForName("playpal"),
                                              PU_CACHE) + pal * 768);
+#else
+        I_SetPalette(pal);
+#endif
     }
 }
 
@@ -1929,8 +1943,16 @@ void A_CHolyAttack(mobj_t *actor, player_t *player, pspdef_t *psp)
     {
         player->damagecount = 0;
         player->bonuscount = 0;
-        I_SetPalette((byte *) W_CacheLumpNum(W_GetNumForName("playpal"),
-                                             PU_CACHE) + STARTHOLYPAL * 768);
+        // [crispy] A11Y
+        if(a11y_weapon_palette)
+        {
+#ifndef CRISPY_TRUECOLOR
+            I_SetPalette((byte *) W_CacheLumpNum(W_GetNumForName("playpal"),
+                                                PU_CACHE) + STARTHOLYPAL * 768);
+#else
+            I_SetPalette(STARTHOLYPAL);
+#endif
+        }
     }
     S_StartSound(player->mo, SFX_CHOLY_FIRE);
 }
@@ -1945,15 +1967,20 @@ void A_CHolyPalette(mobj_t *actor, player_t *player, pspdef_t *psp)
 {
     int pal;
 
-    if (player == &players[consoleplayer])
+    // [crispy] A11Y
+    if (a11y_weapon_palette && player == &players[consoleplayer])
     {
         pal = STARTHOLYPAL + psp->state - (&states[S_CHOLYATK_6]);
         if (pal == STARTHOLYPAL + 3)
         {                       // reset back to original playpal
             pal = 0;
         }
+#ifndef CRISPY_TRUECOLOR
         I_SetPalette((byte *) W_CacheLumpNum(W_GetNumForName("playpal"),
                                              PU_CACHE) + pal * 768);
+#else
+        I_SetPalette(pal);
+#endif
     }
 }
 

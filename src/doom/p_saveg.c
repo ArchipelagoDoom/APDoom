@@ -26,6 +26,7 @@
 #include "z_zone.h"
 #include "p_local.h"
 #include "p_saveg.h"
+#include "a11y.h"
 
 // State.
 #include "doomstat.h"
@@ -1302,6 +1303,9 @@ static void saveg_read_lightflash_t(lightflash_t *str)
 
     // int mintime;
     str->mintime = saveg_read32();
+
+    if (!a11y_sector_lighting)
+        str->sector->rlightlevel = str->maxlight;
 }
 
 static void saveg_write_lightflash_t(lightflash_t *str)
@@ -1357,6 +1361,10 @@ static void saveg_read_strobe_t(strobe_t *str)
 
     // int brighttime;
     str->brighttime = saveg_read32();
+
+    if (!a11y_sector_lighting && 
+            str->sector->rlightlevel < str->maxlight) // [crispy] Ensure maxlight among competing thinkers. 
+        str->sector->rlightlevel = str->maxlight;
 }
 
 static void saveg_write_strobe_t(strobe_t *str)
@@ -1406,6 +1414,9 @@ static void saveg_read_glow_t(glow_t *str)
 
     // int direction;
     str->direction = saveg_read32();
+
+    if (!a11y_sector_lighting)
+        str->sector->rlightlevel = str->maxlight;
 }
 
 static void saveg_write_glow_t(glow_t *str)

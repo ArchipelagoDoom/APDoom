@@ -27,6 +27,9 @@
 #include "s_sound.h"
 #include "v_video.h"
 #include "am_map.h"
+#include "v_trans.h" // [crispy] dp_translation & blend truecolor
+#include "a11y.h" // [crispy] A11Y
+
 #include "apdoom.h"
 #include "i_timer.h"
 
@@ -75,6 +78,10 @@ static void CheatSpecHitFunc(player_t *player, Cheat_t *cheat);
 static void CheatNoMomentumFunc(player_t *player, Cheat_t *cheat);
 static void CheatHomDetectFunc(player_t *player, Cheat_t *cheat);
 
+// [crispy] player crosshair functions
+static void HU_DrawCrosshair(void);
+static byte *R_CrosshairColor(void);
+
 // Public Data
 
 boolean DebugSound;             // debug flag for displaying sound info
@@ -89,6 +96,15 @@ static int DisplayTicker = 0;
 
 // [crispy] for widescreen status bar background
 pixel_t *st_backing_screen;
+
+// [crispy] for conditional drawing of status bar elements
+void (*V_DrawSBPatch)(int x, int y, patch_t *patch) = V_DrawPatch;
+
+// [crispy] on/off status bar translucency
+void SB_Translucent(boolean translucent)
+{
+    V_DrawSBPatch = translucent ? V_DrawTLPatch : V_DrawPatch;
+}
 
 // Private Data
 
@@ -128,6 +144,14 @@ patch_t *PatchCHAINBACK;
 int FontBNumBase;
 int spinbooklump;
 int spinflylump;
+
+// [crispy] keep in sync with multiitem_t multiitem_he_crosshairtype[] in mn_menu.c
+static crosshairpatch_t crosshairpatch_m[NUM_HE_CROSSHAIRTYPE] = {
+    {0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0},
+};
+static crosshairpatch_t *crosshairpatch = crosshairpatch_m;
 
 // Toggle god mode
 cheatseq_t CheatGodSeq = CHEAT("quicken", 0);
@@ -271,6 +295,32 @@ void SB_Init(void)
     spinbooklump = W_GetNumForName(DEH_String("SPINBK0"));
     spinflylump = W_GetNumForName(DEH_String("SPFLY0"));
 
+    // [crispy] initialize the crosshair types
+    for (i = 0; i < NUM_HE_CROSSHAIRTYPE; i++)
+    {
+        patch_t *patch = NULL;
+
+        if (i == CROSSHAIRTYPE_HE_DOT)
+        {
+            crosshairpatch[i].l = W_GetNumForName("FONTB28");
+        }
+        else if (i == CROSSHAIRTYPE_HE_CROSS1)
+        {
+            crosshairpatch[i].l = W_GetNumForName("TGLTH0");
+        }
+        else
+        {
+            crosshairpatch[i].l = W_GetNumForName("TGLTF0");
+        }
+
+        patch = W_CacheLumpNum(crosshairpatch[i].l, PU_STATIC);
+
+        crosshairpatch[i].w = SHORT(patch->width) / 2;
+        crosshairpatch[i].h = SHORT(patch->height) / 2;
+        crosshairpatch[i].loffset = SHORT(patch->leftoffset);
+        crosshairpatch[i].toffset = SHORT(patch->topoffset);
+    }
+
     st_backing_screen = (pixel_t *) Z_Malloc(MAXWIDTH * (42 << 1) * sizeof(*st_backing_screen), PU_STATIC, 0);
 }
 
@@ -320,6 +370,12 @@ void SB_Ticker(void)
         }
         HealthMarker += delta;
     }
+    // [crispy] play artifact flash animation independently of framerate
+    if (ArtifactFlash > 0)
+    {
+        ArtifactFlash--;
+    }
+    SB_PaletteFlash();
 }
 
 //---------------------------------------------------------------------------
@@ -340,30 +396,30 @@ static void DrINumber(signed int val, int x, int y)
     {
         if (val < -9)
         {
-            V_DrawPatch(x + 1, y + 1, W_CacheLumpName(DEH_String("LAME"), PU_CACHE));
+            V_DrawSBPatch(x + 1, y + 1, W_CacheLumpName(DEH_String("LAME"), PU_CACHE));
         }
         else
         {
             val = -val;
-            V_DrawPatch(x + 18, y, PatchINumbers[val]);
-            V_DrawPatch(x + 9, y, PatchNEGATIVE);
+            V_DrawSBPatch(x + 18, y, PatchINumbers[val]);
+            V_DrawSBPatch(x + 9, y, PatchNEGATIVE);
         }
         return;
     }
     if (val > 99)
     {
         patch = PatchINumbers[val / 100];
-        V_DrawPatch(x, y, patch);
+        V_DrawSBPatch(x, y, patch);
     }
     val = val % 100;
     if (val > 9 || oldval > 99)
     {
         patch = PatchINumbers[val / 10];
-        V_DrawPatch(x + 9, y, patch);
+        V_DrawSBPatch(x + 9, y, patch);
     }
     val = val % 10;
     patch = PatchINumbers[val];
-    V_DrawPatch(x + 18, y, patch);
+    V_DrawSBPatch(x + 18, y, patch);
 }
 
 //---------------------------------------------------------------------------
@@ -424,7 +480,7 @@ static void DrSmallNumber(int val, int x, int y)
     while (val)
     {
         patch = PatchSmNumbers[val % 10];
-        V_DrawPatch(x + 4, y, patch);
+        V_DrawSBPatch(x + 4, y, patch);
         val /= 10;
         x -= 4;
     }
@@ -438,20 +494,31 @@ static void DrSmallNumber(int val, int x, int y)
 
 static void ShadeLine(int x, int y, int height, int shade)
 {
-    byte *dest;
+    pixel_t *dest;
+#ifndef CRISPY_TRUECOLOR
     byte *shades;
+#endif
 
     x <<= crispy->hires;
     y <<= crispy->hires;
     height <<= crispy->hires;
 
+#ifndef CRISPY_TRUECOLOR
     shades = colormaps + 9 * 256 + shade * 2 * 256;
+#else
+    shade = 0xFF - (((9 + shade * 2) << 8) / 32); // [crispy] shade to darkest 32nd COLORMAP row
+#endif
     dest = I_VideoBuffer + y * SCREENWIDTH + x + (WIDESCREENDELTA << crispy->hires);
     while (height--)
     {
         if (crispy->hires)
+#ifndef CRISPY_TRUECOLOR
             *(dest + 1) = *(shades + *dest);
         *(dest) = *(shades + *dest);
+#else
+            *(dest + 1) = I_BlendDark(*dest, shade);
+        *(dest) = I_BlendDark(*dest, shade);
+#endif
         dest += SCREENWIDTH;
     }
 }
@@ -596,7 +663,6 @@ static void RefreshBackground()
 
     if ((SCREENWIDTH >> crispy->hires) != ORIGWIDTH)
     {
-        int x, y;
         byte *src;
         pixel_t *dest;
         const char *name = (gamemode == shareware) ?
@@ -606,17 +672,12 @@ static void RefreshBackground()
         src = W_CacheLumpName(name, PU_CACHE);
         dest = st_backing_screen;
 
-        for (y = SCREENHEIGHT - (42 << crispy->hires); y < SCREENHEIGHT; y++)
-        {
-            for (x = 0; x < SCREENWIDTH; x++)
-            {
-                *dest++ = src[((y & 63) << 6) + (x & 63)];
-            }
-        }
+        V_FillFlat(SCREENHEIGHT - (42 << crispy->hires), SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
 
         // [crispy] preserve bezel bottom edge
         if (scaledviewwidth == SCREENWIDTH)
         {
+            int x;
             patch_t *const patch = W_CacheLumpName("bordb", PU_CACHE);
 
             for (x = 0; x < WIDESCREENDELTA; x += 16)
@@ -707,7 +768,6 @@ void SB_Drawer(void)
             SB_state = 1;
         }
     }
-    SB_PaletteFlash();
 
     // Flight icons
     if (CPlayer->powers[pw_flight])
@@ -726,13 +786,13 @@ void SB_Drawer(void)
             {
                 if (hitCenterFrame && (frame != 15 && frame != 0))
                 {
-                    V_DrawPatch(spinfly_x, 17,
+                    V_DrawSBPatch(spinfly_x, 17,
                                 W_CacheLumpNum(spinflylump + 15,
                                                 PU_CACHE));
                 }
                 else
                 {
-                    V_DrawPatch(spinfly_x, 17,
+                    V_DrawSBPatch(spinfly_x, 17,
                                 W_CacheLumpNum(spinflylump + frame,
                                                 PU_CACHE));
                     hitCenterFrame = false;
@@ -742,14 +802,14 @@ void SB_Drawer(void)
             {
                 if (!hitCenterFrame && (frame != 15 && frame != 0))
                 {
-                    V_DrawPatch(spinfly_x, 17,
+                    V_DrawSBPatch(spinfly_x, 17,
                                 W_CacheLumpNum(spinflylump + frame,
                                                 PU_CACHE));
                     hitCenterFrame = false;
                 }
                 else
                 {
-                    V_DrawPatch(spinfly_x, 17,
+                    V_DrawSBPatch(spinfly_x, 17,
                                 W_CacheLumpNum(spinflylump + 15,
                                                 PU_CACHE));
                     hitCenterFrame = true;
@@ -777,7 +837,7 @@ void SB_Drawer(void)
             || !(CPlayer->powers[pw_weaponlevel2] & 16))
         {
             frame = (leveltime / 3) & 15;
-            V_DrawPatch(spinbook_x, 17,
+            V_DrawSBPatch(spinbook_x, 17,
                         W_CacheLumpNum(spinbooklump + frame, PU_CACHE));
             BorderTopRefresh = true;
             UpdateState |= I_MESSAGES;
@@ -788,6 +848,15 @@ void SB_Drawer(void)
             UpdateState |= I_MESSAGES;
         }
     }
+
+    // [crispy] draw player crosshair
+    if (crispy->crosshair)
+    {
+        SB_Translucent(crispy->crosshair == CROSSHAIR_HE_TRANSLUCENT);
+        HU_DrawCrosshair();
+        SB_Translucent(TRANSLUCENT_HUD);
+    }
+
 /*
 		if(CPlayer->powers[pw_weaponlevel2] > BLINKTHRESHOLD
 			|| (CPlayer->powers[pw_weaponlevel2]&8))
@@ -808,11 +877,18 @@ void SB_PaletteFlash(void)
 {
     static int sb_palette = 0;
     int palette;
+#ifndef CRISPY_TRUECOLOR
     byte *pal;
+#endif
 
     CPlayer = &players[consoleplayer];
 
-    if (CPlayer->damagecount)
+    // [crispy] A11Y
+    if (!a11y_palette_changes)
+    {
+        palette = 0;
+    }
+    else if (CPlayer->damagecount)
     {
         palette = (CPlayer->damagecount + 7) >> 3;
         if (palette >= NUMREDPALS)
@@ -837,8 +913,12 @@ void SB_PaletteFlash(void)
     if (palette != sb_palette)
     {
         sb_palette = palette;
+#ifndef CRISPY_TRUECOLOR
         pal = (byte *) W_CacheLumpNum(playpalette, PU_CACHE) + palette * 768;
         I_SetPalette(pal);
+#else
+        I_SetPalette(palette);
+#endif
     }
 }
 
@@ -900,7 +980,7 @@ void DrawMainBar(void)
         temp = W_GetNumForName(DEH_String("useartia")) + ArtifactFlash - 1;
 
         V_DrawPatch(182, 161, W_CacheLumpNum(temp, PU_CACHE));
-        ArtifactFlash--;
+        // ArtifactFlash--; [crispy] moved to SB_Ticker
         oldarti = -1;           // so that the correct artifact fills in after the flash
         UpdateState |= I_STATBAR;
     }
@@ -1067,15 +1147,139 @@ void DrawFullScreenStuff(void)
     int i;
     int x;
     int temp;
+    int xPosGem2; // [crispy] for intersect detection
+    int xPosKeys; // [crispy] for intersect detection
+    int sboffset; // [crispy] to apply WIDESCREENDELTA
 
     UpdateState |= I_FULLSCRN;
-    if (CPlayer->mo->health > 0)
+
+    // [crispy] check for widescreen HUD
+    if (screenblocks == 12 || screenblocks >= 15)
     {
-        DrBNumber(CPlayer->mo->health, 5, 180);
+        sboffset = WIDESCREENDELTA;
     }
     else
     {
-        DrBNumber(0, 5, 180);
+        sboffset = 0;
+    }
+
+    // [crispy] Crispy Hud
+    if (screenblocks >= 13)
+    {
+        xPosGem2 = 270;
+        xPosKeys = 214 + sboffset;
+
+        // Health
+        temp = CPlayer->mo->health;
+        if (temp > 0)
+        {
+            DrINumber(temp, 5 - sboffset, 180);
+        }
+        else
+        {
+            DrINumber(0, 5 - sboffset, 180);
+        }
+        // Armor
+        DrINumber(CPlayer->armorpoints, 286 + sboffset, 180);
+        // Frags
+        if (deathmatch)
+        {
+            temp = 0;
+            for (i = 0; i < MAXPLAYERS; i++)
+            {
+                if (playeringame[i])
+                {
+                    temp += CPlayer->frags[i];
+                }
+            }
+            DrINumber(temp, 5 - sboffset, 165);
+        }
+        // Items, Itemflash and Selection Bar
+        if (!inventory)
+        {
+            if (ArtifactFlash)
+            {
+                temp = W_GetNumForName(DEH_String("useartia")) + ArtifactFlash - 1;
+                V_DrawSBPatch(243 + sboffset, 171, W_CacheLumpNum(temp, PU_CACHE));
+                ArtifactFlash--;
+            }
+            else if (CPlayer->readyArtifact > 0)
+            {
+                patch = DEH_String(patcharti[CPlayer->readyArtifact]);
+                V_DrawSBPatch(240 + sboffset, 170, W_CacheLumpName(patch, PU_CACHE));
+                DrSmallNumber(CPlayer->inventory[inv_ptr].count, 262 + sboffset, 192);
+            }
+        }
+        else
+        {
+            x = inv_ptr - curpos;
+            for (i = 0; i < 7; i++)
+            {
+                // [crispy] check for translucent HUD
+                SB_Translucent(TRANSLUCENT_HUD);
+                V_DrawSBPatch(50 + i * 31, 168,
+                              W_CacheLumpName(DEH_String("ARTIBOX"), PU_CACHE));
+                SB_Translucent(false); // listed artifacts and selectbox are always opaque
+                if (CPlayer->inventorySlotNum > x + i
+                    && CPlayer->inventory[x + i].type != arti_none)
+                {
+                    patch = DEH_String(patcharti[CPlayer->inventory[x + i].type]);
+                    V_DrawSBPatch(50 + i * 31, 168,
+                                W_CacheLumpName(patch, PU_CACHE));
+                    DrSmallNumber(CPlayer->inventory[x + i].count, 69 + i * 31,
+                                  190);
+                }
+            }
+            V_DrawSBPatch(50 + curpos * 31, 197, PatchSELECTBOX);
+            // [crispy] check for translucent HUD
+            SB_Translucent(TRANSLUCENT_HUD);
+            if (x != 0)
+            {
+                V_DrawSBPatch(38, 167, !(leveltime & 4) ? PatchINVLFGEM1 :
+                            PatchINVLFGEM2);
+            }
+            if (CPlayer->inventorySlotNum - x > 7)
+            {
+                V_DrawSBPatch(xPosGem2, 167, !(leveltime & 4) ?
+                            PatchINVRTGEM1 : PatchINVRTGEM2);
+            }
+            // Check for Intersect
+            if (xPosGem2 + 10 >= xPosKeys)
+            {
+                return; // Stop drawing further widgets
+            }
+        }
+        // Ammo
+        temp = CPlayer->ammo[wpnlev1info[CPlayer->readyweapon].ammo];
+        if (temp && CPlayer->readyweapon > 0 && CPlayer->readyweapon < 7)
+        {
+            V_DrawSBPatch(55 - sboffset, 182,
+                        W_CacheLumpName(DEH_String(ammopic[CPlayer->readyweapon - 1]),
+                                        PU_CACHE));
+            DrINumber(temp, 53 - sboffset, 172);
+        }
+        // Keys
+        if (CPlayer->keys[key_yellow])
+        {
+            V_DrawSBPatch(xPosKeys, 174, W_CacheLumpName(DEH_String("ykeyicon"), PU_CACHE));
+        }
+        if (CPlayer->keys[key_green])
+        {
+            V_DrawSBPatch(xPosKeys, 182, W_CacheLumpName(DEH_String("gkeyicon"), PU_CACHE));
+        }
+        if (CPlayer->keys[key_blue])
+        {
+            V_DrawSBPatch(xPosKeys, 190, W_CacheLumpName(DEH_String("bkeyicon"), PU_CACHE));
+        }
+        return;
+    }
+    if (CPlayer->mo->health > 0)
+    {
+        DrBNumber(CPlayer->mo->health, 5 - sboffset, 180);
+    }
+    else
+    {
+        DrBNumber(0, 5 - sboffset, 180);
     }
     if (deathmatch)
     {
@@ -1087,16 +1291,16 @@ void DrawFullScreenStuff(void)
                 temp += CPlayer->frags[i];
             }
         }
-        DrINumber(temp, 45, 185);
+        DrINumber(temp, 45 - sboffset, 185);
     }
     if (!inventory)
     {
         if (CPlayer->readyArtifact > 0)
         {
             patch = DEH_String(patcharti[CPlayer->readyArtifact]);
-            V_DrawAltTLPatch(286, 170, W_CacheLumpName(DEH_String("ARTIBOX"), PU_CACHE));
-            V_DrawPatch(286, 170, W_CacheLumpName(patch, PU_CACHE));
-            DrSmallNumber(CPlayer->inventory[inv_ptr].count, 307, 192);
+            V_DrawAltTLPatch(286 + sboffset, 170, W_CacheLumpName(DEH_String("ARTIBOX"), PU_CACHE));
+            V_DrawPatch(286 + sboffset, 170, W_CacheLumpName(patch, PU_CACHE));
+            DrSmallNumber(CPlayer->inventory[inv_ptr].count, 307 + sboffset, 192);
         }
     }
     else
@@ -1764,6 +1968,54 @@ static void CheatNoTargetFunc(player_t *player, Cheat_t *cheat)
     }
 }
 
+// [crispy] crosshair color selection
+static byte *R_CrosshairColor (void)
+{
+    if (crispy->crosshaircolor == CROSSHAIRCOLOR_HE_GOLD)
+    {
+        return cr[CR_GOLD];
+    }
+    else if (crispy->crosshaircolor == CROSSHAIRCOLOR_HE_WHITE)
+    {
+        return cr[CR_GRAY];
+    }
+    else
+    {
+        return cr[CR_GREEN];
+    }
+}
+
+// [crispy] static, non-projected crosshair
+static void HU_DrawCrosshair (void)
+{
+    static int		lump;
+    static patch_t*	patch;
+    CPlayer = &players[consoleplayer];
+
+    if (wpnlev1info[CPlayer->readyweapon].ammo == am_noammo ||
+        wpnlev2info[CPlayer->readyweapon].ammo == am_noammo ||
+        CPlayer->playerstate != PST_LIVE ||
+        (automapactive && !crispy->automapoverlay) ||
+        MenuActive ||
+        paused)
+	    return;
+
+    if (lump != crosshairpatch[crispy->crosshairtype].l)
+    {
+        lump = crosshairpatch[crispy->crosshairtype].l;
+        patch = W_CacheLumpNum(lump, PU_STATIC);
+    }
+   
+    // crosshair color
+    dp_translation = R_CrosshairColor();
+    V_DrawSBPatch(ORIGWIDTH / 2 -
+            crosshairpatch[crispy->crosshairtype].w + crosshairpatch[crispy->crosshairtype].loffset,
+            ((screenblocks < 11) ? (ORIGHEIGHT - (SBARHEIGHT >> crispy->hires)) / 2 : ORIGHEIGHT / 2) -
+            crosshairpatch[crispy->crosshairtype].h + crosshairpatch[crispy->crosshairtype].toffset,
+            patch);
+    dp_translation = NULL;
+}
+
 //--------------------------------------------------------------------------
 // [AP] used for level select, to avoid re-tagging static graphics (causing later memory issues)
 
@@ -1774,7 +2026,7 @@ void SB_RightAlignedSmallNum(int x, int y, int digit)
     do
     {
         int i = digit % 10;
-        V_DrawPatch(x, y, PatchSmNumbers[i]);
+        V_DrawSBPatch(x, y, PatchSmNumbers[i]);
         x -= 4;
         digit /= 10;
     }

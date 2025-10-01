@@ -1174,11 +1174,9 @@ void A_SoAExplode(mobj_t *actor, player_t *player, pspdef_t *psp)
     }
     if (actor->args[0])
     {                           // Spawn an item
-#if 0 // Checks are not present in version 1.1
-        if (!nomonsters
+        if ((gameversion != exe_hexen_1_1r2) || !nomonsters
             || !(mobjinfo[TranslateThingType[actor->args[0]]].
                  flags & MF_COUNTKILL))
-#endif
         {                       // Only spawn monsters if not -nomonsters
             P_SpawnMobj(actor->x, actor->y, actor->z,
                         TranslateThingType[actor->args[0]]);
@@ -1340,4 +1338,6 @@ void A_TreeDeath(mobj_t *actor, player_t *player, pspdef_t *psp)
 void A_NoGravity(mobj_t *actor, player_t *player, pspdef_t *psp)
 {
     actor->flags |= MF_NOGRAVITY;
+    if (actor->type == MT_THROWINGBOMB)
+        actor->flags |= MF_TRANSLUCENT; // [crispy] make exploding throwingbombs translucent
 }

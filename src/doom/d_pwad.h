@@ -24,10 +24,16 @@
 #ifndef __D_PWAD__
 #define __D_PWAD__
 
-void D_LoadSigilWad(void);
+void D_LoadSigilWads(void);
 void D_LoadNerveWad(void);
 void D_LoadMasterlevelsWad(void);
+int D_CheckMasterlevelKex(void);
 
 #endif
+
+#else
+
+// Remove references to this function throughout the code
+#define D_CheckMasterlevelKex() (false)
 
 #endif

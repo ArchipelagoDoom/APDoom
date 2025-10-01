@@ -36,8 +36,9 @@
 #include "m_menu.h"
 #include "w_wad.h"
 #include "m_argv.h" // [crispy] M_ParmExists()
-#include "st_stuff.h" // [crispy] ST_HEIGHT
+#include "st_stuff.h" // [crispy] ST_HEIGHT, ST_WIDESCREENDELTA
 #include "p_setup.h" // maplumpinfo
+#include "d_pwad.h" // [crispy] kex masterlevels
 
 #include "s_sound.h"
 
@@ -47,7 +48,7 @@
 #include "dstrings.h"
 #include "sounds.h"
 
-#include "r_state.h" // [crispy] colormaps
+#include "r_state.h" // [crispy] pal_color
 #include "v_video.h" // [crispy] V_DrawPatch() et al.
 #include "v_trans.h" // [crispy] colored kills/items/secret/etc. messages
 
@@ -189,6 +190,17 @@ const char *mapnames[] =	// DOOM shareware/registered/retail (Ultimate) names.
     HUSTR_E5M7,
     HUSTR_E5M8,
     HUSTR_E5M9,
+
+    // [crispy] Sigil II
+    HUSTR_E6M1,
+    HUSTR_E6M2,
+    HUSTR_E6M3,
+    HUSTR_E6M4,
+    HUSTR_E6M5,
+    HUSTR_E6M6,
+    HUSTR_E6M7,
+    HUSTR_E6M8,
+    HUSTR_E6M9,
 
     "NEWLEVEL",
     "NEWLEVEL",
@@ -603,14 +615,45 @@ static void HU_SetSpecialLevelName (const char *wad, const char **name)
 
 static int hu_widescreendelta;
 
+#if 0 // [AP] Unreferenced
+static const int kex_masterlevels[] =
+{
+    1,  //  1
+    2,  //  2
+    3,  //  3
+    5,  //  4
+    4,  //  5
+    9,  //  6
+    8,  //  7
+    10, //  8
+    6,  //  9
+    19, // 10
+    12, // 11
+    13, // 12
+    16, // 13
+    17, // 14
+    18, // 15
+    7,  // 16
+    11, // 17
+    20, // 18
+    14, // 19
+    15, // 20
+    21  // 21
+};
+#endif
+
 void HU_Start(void)
 {
 
     int		i;
     const char *s;
-    // [crispy] string buffers for map title and WAD file name
-    //char	buf[8], *ptr;
+#if 1 // [AP] Show level name from AP in automap
     ap_level_info_t* level_info; // [AP]
+#else
+    // [crispy] string buffers for map title, WAD file name and level digits
+    char	buf[8], digitbuf[4];
+    char	*ptr = NULL, *replacement = NULL;
+#endif
 
     if (headsupactive)
 	HU_Stop();
@@ -628,15 +671,8 @@ void HU_Start(void)
     hu_widescreendelta = WIDESCREENDELTA;
 
     // create the message widget
-    int w_message_y = HU_MSGY;
-    //if (HU_MSGX <= -50)
-    //{
-    //    w_message_y = 20 * 8;
-    //}
-    //else
-    //{
-        w_message_y = 20 * 8;
-    //}
+    // [AP] Messages moved to bottom, AP messages are at top
+    const int w_message_y = 20 * 8;
     HUlib_initSText(&w_message,
 		    HU_MSGX, w_message_y, HU_MSGHEIGHT,
 		    hu_font,
@@ -760,7 +796,12 @@ void HU_Start(void)
 	break;
       case pack_master:
 	if (gamemap <= 21)
-	  s = HU_TITLEM;
+	{
+	  if (D_CheckMasterlevelKex())
+	    s = mapnames_commercial[(kex_masterlevels[gamemap-1] + 105 + 3) - 1];
+	  else
+	    s = HU_TITLEM;
+	}
 	else
 	  s = HU_TITLE2;
 	break;
@@ -799,6 +840,22 @@ void HU_Start(void)
 
     s = DEH_String(s);
     
+    // [crispy] replace map title numbers in kex
+    if (logical_gamemission == pack_master && D_CheckMasterlevelKex())
+    {
+        if (gamemap <= 21)
+        {
+            // store actual kex gamemap digits
+            M_snprintf(digitbuf, sizeof(digitbuf), "%d", gamemap);
+            // lookup psn/unity digits to be replaced 
+            M_snprintf(buf, sizeof(buf), "%d", kex_masterlevels[gamemap-1]);
+            
+            // replace unity digits with actual kex gamemap digits
+            replacement = M_StringReplace(s, buf, digitbuf);
+            s = replacement;
+        }
+    }
+
     // [crispy] print the map title in white from the first colon onward
     M_snprintf(buf, sizeof(buf), "%s%s", ":", crstr[CR_GRAY]);
     ptr = M_StringReplace(s, ":", buf);
@@ -808,6 +865,12 @@ void HU_Start(void)
 	HUlib_addCharToTextLine(&w_title, *(s++));
 
     free(ptr);
+
+    // [crispy] free kex digit replacement string
+    if (replacement != NULL)
+    {
+        free(replacement);
+    }
 #endif
 
     // create the chat widget
@@ -837,12 +900,12 @@ void HU_DemoProgressBar (void)
 //  V_DrawHorizLine(0, SCREENHEIGHT - 2, 1, 4); // [crispy] white start
 //  V_DrawHorizLine(i - 1, SCREENHEIGHT - 2, 1, 4); // [crispy] white end
 #else
-//  V_DrawHorizLine(0, SCREENHEIGHT - 3, i, colormaps[4]); // [crispy] white
-    V_DrawHorizLine(0, SCREENHEIGHT - 2, i, colormaps[0]); // [crispy] black
-    V_DrawHorizLine(0, SCREENHEIGHT - 1, i, colormaps[4]); // [crispy] white
+//  V_DrawHorizLine(0, SCREENHEIGHT - 3, i, pal_color[4]); // [crispy] white
+    V_DrawHorizLine(0, SCREENHEIGHT - 2, i, pal_color[0]); // [crispy] black
+    V_DrawHorizLine(0, SCREENHEIGHT - 1, i, pal_color[4]); // [crispy] white
 
-//  V_DrawHorizLine(0, SCREENHEIGHT - 2, 1, colormaps[4]); // [crispy] white start
-//  V_DrawHorizLine(i - 1, SCREENHEIGHT - 2, 1, colormaps[4]); // [crispy] white end
+//  V_DrawHorizLine(0, SCREENHEIGHT - 2, 1, pal_color[4]); // [crispy] white start
+//  V_DrawHorizLine(i - 1, SCREENHEIGHT - 2, 1, pal_color[4]); // [crispy] white end
 #endif
 }
 
@@ -1413,6 +1476,8 @@ void HU_Ticker(void)
     {
 	crispy_statsline_func_t crispy_statsline = crispy_statslines[crispy->statsformat];
 
+	w_kills.x = - ST_WIDESCREENDELTA;
+
 	w_kills.y = HU_TITLEY;
 
 	crispy_statsline(str, sizeof(str), "K ", plr->killcount, totalkills, extrakills);
@@ -1434,7 +1499,10 @@ void HU_Ticker(void)
     else
     if ((crispy->automapstats & WIDGETS_ALWAYS) || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
     {
+
 	crispy_statsline_func_t crispy_statsline = crispy_statslines[crispy->statsformat];
+
+	w_kills.x = HU_TITLEX; // to handle switching from Status bar to Always and Automap kills line options
 
 	crispy_statsline(str, sizeof(str), kills, plr->killcount, totalkills, extrakills);
 	HUlib_clearTextLine(&w_kills);

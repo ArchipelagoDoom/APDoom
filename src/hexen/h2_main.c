@@ -35,6 +35,7 @@
 #include "i_swap.h" // [crispy] SHORT()
 #include "i_system.h"
 #include "i_timer.h"
+#include "a11y.h" // [crispy] A11Y
 #include "m_argv.h"
 #include "m_config.h"
 #include "m_controls.h"
@@ -93,6 +94,7 @@ static void CrispyDrawStats(void); // [crispy]
 // PUBLIC DATA DEFINITIONS -------------------------------------------------
 
 GameMode_t gamemode;
+GameVersion_t gameversion = exe_hexen_1_1;
 static const char *gamedescription;
 char *iwadfile;
 static char demolumpname[9];    // Demo lump to start playing.
@@ -179,6 +181,12 @@ void D_BindVariables(void)
     M_BindIntVariable("messageson",             &messageson);
     M_BindIntVariable("screenblocks",           &screenblocks);
     M_BindIntVariable("snd_channels",           &snd_Channels);
+    M_BindIntVariable("a11y_sector_lighting",   &a11y_sector_lighting);
+    M_BindIntVariable("a11y_extra_lighting",    &a11y_extra_lighting);
+    M_BindIntVariable("a11y_weapon_flash",      &a11y_weapon_flash);
+    M_BindIntVariable("a11y_weapon_pspr",       &a11y_weapon_pspr);
+    M_BindIntVariable("a11y_palette_changes",   &a11y_palette_changes);
+    M_BindIntVariable("a11y_weapon_palette",    &a11y_weapon_palette);
     M_BindIntVariable("vanilla_savegame_limit", &vanilla_savegame_limit);
     M_BindIntVariable("vanilla_demo_limit",     &vanilla_demo_limit);
 
@@ -200,14 +208,23 @@ void D_BindVariables(void)
     M_BindIntVariable("crispy_automaprotate",   &crispy->automaprotate);
     M_BindIntVariable("crispy_bobfactor",       &crispy->bobfactor);
     M_BindIntVariable("crispy_centerweapon",    &crispy->centerweapon);
+    M_BindIntVariable("crispy_crosshair",       &crispy->crosshair);
+    M_BindIntVariable("crispy_crosshairtype",   &crispy->crosshairtype);
+    M_BindIntVariable("crispy_crosshaircolor",  &crispy->crosshaircolor);
     M_BindIntVariable("crispy_defaultskill",    &crispy->defaultskill);
     M_BindIntVariable("crispy_fpslimit",        &crispy->fpslimit);
     M_BindIntVariable("crispy_freelook",        &crispy->freelook_hh);
+    M_BindIntVariable("crispy_gamma",           &crispy->gamma);
     M_BindIntVariable("crispy_hires",           &crispy->hires);
     M_BindIntVariable("crispy_mouselook",       &crispy->mouselook);
     M_BindIntVariable("crispy_playercoords",    &crispy->playercoords);
     M_BindIntVariable("crispy_soundmono",       &crispy->soundmono);
-    M_BindIntVariable("crispy_smoothscaling",   &crispy->smoothscaling);
+    M_BindIntVariable("crispy_translucency",    &crispy->translucency);
+#ifdef CRISPY_TRUECOLOR
+    M_BindIntVariable("crispy_truecolor",       &crispy->truecolor);
+#endif
+    M_BindIntVariable("crispy_smoothlight",     &crispy->smoothlight);
+    M_BindIntVariable("crispy_smoothscaling",   &smooth_pixel_scaling);
     M_BindIntVariable("crispy_vsync",           &crispy->vsync);
     M_BindIntVariable("crispy_widescreen",      &crispy->widescreen);
     M_BindIntVariable("crispy_uncapped",        &crispy->uncapped);
@@ -375,6 +392,81 @@ void D_SetGameDescription(void)
     }
 }
 
+static const struct
+{
+    const char *description;
+    const char *cmdline;
+    GameVersion_t version;
+} gameversions[] = {
+    {"Hexen 1.1",            "1.1",        exe_hexen_1_1},
+    {"Hexen 1.1 (alt)",      "1.1r2",      exe_hexen_1_1r2},
+    { NULL,                  NULL,         0},
+};
+
+// Initialize the game version
+
+static void InitGameVersion(void)
+{
+    int p;
+
+    //!
+    // @arg <version>
+    // @category compat
+    //
+    // Emulate a specific version of Hexen.
+    // Valid values are "1.1" and "1.1r2".
+    //
+
+    p = M_CheckParmWithArgs("-gameversion", 1);
+
+    if (p)
+    {
+        int i;
+        for (i=0; gameversions[i].description != NULL; ++i)
+        {
+            if (!strcmp(myargv[p+1], gameversions[i].cmdline))
+            {
+                gameversion = gameversions[i].version;
+                break;
+            }
+        }
+
+        if (gameversions[i].description == NULL)
+        {
+            printf("Supported game versions:\n");
+
+            for (i=0; gameversions[i].description != NULL; ++i)
+            {
+                printf("\t%s (%s)\n", gameversions[i].cmdline,
+                        gameversions[i].description);
+            }
+
+            I_Error("Unknown game version '%s'", myargv[p+1]);
+        }
+    }
+    else
+    {
+        // Determine automatically
+
+        gameversion = exe_hexen_1_1;
+    }
+}
+
+void PrintGameVersion(void)
+{
+    int i;
+
+    for (i=0; gameversions[i].description != NULL; ++i)
+    {
+        if (gameversions[i].version == gameversion)
+        {
+            printf("Emulating the behavior of the "
+                   "'%s' executable.\n", gameversions[i].description);
+            break;
+        }
+    }
+}
+
 static const char *const loadparms[] = {"-file", "-merge", NULL}; // [crispy]
 
 //==========================================================================
@@ -460,12 +552,12 @@ void D_DoomMain(void)
     D_AddFile(iwadfile);
     W_CheckCorrectIWAD(hexen);
     D_IdentifyVersion();
+    InitGameVersion();
     D_SetGameDescription();
     AdjustForMacIWAD();
 
     //!
     // @category game
-    // @category mod
     //
     // Mana pickups give 50% more mana. This option is not allowed when recording a
     // demo, playing back a demo or when starting a network game.
@@ -475,7 +567,6 @@ void D_DoomMain(void)
 
     //!
     // @category game
-    // @category mod
     //
     // Fast monsters. This option is not allowed when recording a demo,
     // playing back a demo or when starting a network game.
@@ -485,7 +576,6 @@ void D_DoomMain(void)
 
     //!
     // @category game
-    // @category mod
     //
     // Automatic use of Quartz flasks and Mystic urns.
     //
@@ -533,7 +623,7 @@ void D_DoomMain(void)
     I_CheckIsScreensaver();
     I_InitTimer();
     I_InitJoystick();
-    I_InitSound(false);
+    I_InitSound(hexen);
     I_InitMusic();
 
     ST_Message("NET_Init: Init networking subsystem.\n");
@@ -563,6 +653,8 @@ void D_DoomMain(void)
 
     ST_Message("D_CheckNetGame: Checking network game status.\n");
     D_CheckNetGame();
+
+    PrintGameVersion();
 
     ST_Message("SB_Init: Loading patches.\n");
     SB_Init();
@@ -1007,6 +1099,18 @@ void H2_ProcessEvents(void)
 
 static void DrawAndBlit(void)
 {
+    if (crispy->uncapped)
+    {
+        I_UpdateFracTic();
+
+        if (!automapactive || crispy->automapoverlay)
+        {
+            I_StartDisplay();
+            G_FastResponder();
+            G_PrepTiccmd();
+        }
+    }
+
     // Change the view size if needed
     if (setsizeneeded)
     {
@@ -1036,10 +1140,13 @@ static void DrawAndBlit(void)
                 AM_Drawer();
                 BorderNeedRefresh = true;
             }
+            // [crispy] check for translucent HUD
+            SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
             CT_Drawer();
             UpdateState |= I_FULLVIEW;
             SB_Drawer();
             CrispyDrawStats();
+            SB_Translucent(false);
             break;
         case GS_INTERMISSION:
             IN_Drawer();
@@ -1070,8 +1177,13 @@ static void DrawAndBlit(void)
         }
     }
 
+    // [crispy] check for translucent HUD
+    SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
+
     // Draw current message
     DrawMessage();
+
+    SB_Translucent(false);
 
     // Draw Menu
     MN_Drawer();
@@ -1220,6 +1332,7 @@ void H2_DoAdvanceDemo(void)
     advancedemo = false;
     usergame = false;           // can't save/end game here
     paused = false;
+    demoextend = false; // [crispy] at this point demos should no longer be extended (demo-reel)
     gameaction = ga_nothing;
     demosequence = (demosequence + 1) % 7;
     switch (demosequence)
@@ -1280,7 +1393,7 @@ void H2_StartTitle(void)
 //
 // CheckRecordFrom
 //
-// -recordfrom <savegame num> <demoname>
+// -recordfrom <save-num> <demo-name>
 //
 //==========================================================================
 
@@ -1291,10 +1404,10 @@ static void CheckRecordFrom(void)
     //!
     // @vanilla
     // @category demo
-    // @arg <savenum> <demofile>
+    // @arg <save-num> <demo-name>
     //
-    // Record a demo, loading from the given filename. Equivalent
-    // to -loadgame <savenum> -record <demofile>.
+    // Load a game from the given savegame slot and record a demo from
+    // it.  Equivalent to -loadgame <save-num> -record <demo-name>.
     //
     p = M_CheckParm("-recordfrom");
     if (!p || p > myargc - 2)

@@ -27,6 +27,7 @@
 #include "i_swap.h"
 #include "s_sound.h"
 #include "p_local.h"
+#include "p_rejectpad.h"
 
 // MACROS ------------------------------------------------------------------
 
@@ -103,6 +104,7 @@ int numlines;
 line_t *lines;
 int numsides;
 side_t *sides;
+static int totallines;
 short *blockmaplump;            // offsets in blockmap are from here
 short *blockmap;
 int bmapwidth, bmapheight;      // in mapblocks
@@ -178,6 +180,10 @@ void P_LoadVertexes(int lump)
     {
         li->x = SHORT(ml->x) << FRACBITS;
         li->y = SHORT(ml->y) << FRACBITS;
+
+        // [crispy] initialize vertex coordinates *only* used in rendering
+        li->r_x = li->x;
+        li->r_y = li->y;
     }
 
     W_ReleaseLumpNum(lump);
@@ -232,6 +238,17 @@ void P_LoadSegs(int lump)
 
 // [crispy] fix long wall wobble
 
+static angle_t anglediff(angle_t a, angle_t b)
+{
+    if (b > a)
+        return anglediff(b, a);
+
+    if (a - b < ANG180)
+        return a - b;
+    else // [crispy] wrap around
+        return b - a;
+}
+
 static void P_SegLengths (void)
 {
     int i;
@@ -245,6 +262,17 @@ static void P_SegLengths (void)
         dy = li->v2->y - li->v1->y;
 
         li->length = (uint32_t)(sqrt((double)dx*dx + (double)dy*dy)/2);
+
+        // [crispy] re-calculate angle used for rendering
+        viewx = li->v1->r_x;
+        viewy = li->v1->r_y;
+        li->r_angle = R_PointToAngleCrispy(li->v2->r_x, li->v2->r_y);
+        // [crispy] more than just a little adjustment?
+        // back to the original angle then
+        if (anglediff(li->r_angle, li->angle) > ANG60/2)
+        {
+            li->r_angle = li->angle;
+        }
     }
 }
 
@@ -310,6 +338,8 @@ void P_LoadSectors(int lump)
         ss->floorpic = R_FlatNumForName(ms->floorpic);
         ss->ceilingpic = R_FlatNumForName(ms->ceilingpic);
         ss->lightlevel = SHORT(ms->lightlevel);
+        // [crispy] A11Y light level used for rendering
+        ss->rlightlevel = ss->lightlevel;
         ss->special = SHORT(ms->special);
         ss->tag = SHORT(ms->tag);
         ss->thinglist = NULL;
@@ -609,7 +639,7 @@ void P_LoadBlockMap(int lump)
 void P_GroupLines(void)
 {
     line_t **linebuffer;
-    int i, j, total;
+    int i, j;
     line_t *li;
     sector_t *sector;
     subsector_t *ss;
@@ -627,20 +657,20 @@ void P_GroupLines(void)
 
 // count number of lines in each sector
     li = lines;
-    total = 0;
+    totallines = 0;
     for (i = 0; i < numlines; i++, li++)
     {
-        total++;
+        totallines++;
         li->frontsector->linecount++;
         if (li->backsector && li->backsector != li->frontsector)
         {
             li->backsector->linecount++;
-            total++;
+            totallines++;
         }
     }
 
 // build line tables for each sector
-    linebuffer = Z_Malloc(total * sizeof(line_t *), PU_LEVEL, 0);
+    linebuffer = Z_Malloc(totallines * sizeof(line_t *), PU_LEVEL, 0);
     sector = sectors;
     for (i = 0; i < numsectors; i++, sector++)
     {
@@ -683,8 +713,38 @@ void P_GroupLines(void)
 
 }
 
+
+static void P_LoadReject(int lumpnum)
+{
+    int minlength;
+    int lumplen;
+
+    // Calculate the size that the REJECT lump *should* be.
+
+    minlength = (numsectors * numsectors + 7) / 8;
+
+    // If the lump meets the minimum length, it can be loaded directly.
+    // Otherwise, we need to allocate a buffer of the correct size
+    // and pad it with appropriate data.
+
+    lumplen = W_LumpLength(lumpnum);
+
+    if (lumplen >= minlength)
+    {
+        rejectmatrix = W_CacheLumpNum(lumpnum, PU_LEVEL);
+    }
+    else
+    {
+        rejectmatrix = Z_Malloc(minlength, PU_LEVEL, &rejectmatrix);
+        W_ReadLump(lumpnum, rejectmatrix);
+
+        PadRejectArray(rejectmatrix + lumplen, minlength - lumplen, totallines);
+    }
+}
+
 //=============================================================================
 
+lumpinfo_t *maplumpinfo;
 
 /*
 =================
@@ -725,6 +785,9 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
 
     M_snprintf(lumpname, sizeof(lumpname), "MAP%02d", map);
     lumpnum = W_GetNumForName(lumpname);
+
+    maplumpinfo = lumpinfo[lumpnum];
+
     //
     // Begin processing map lumps
     // Note: most of this ordering is important
@@ -737,12 +800,12 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     P_LoadSubsectors(lumpnum + ML_SSECTORS);
     P_LoadNodes(lumpnum + ML_NODES);
     P_LoadSegs(lumpnum + ML_SEGS);
-    rejectmatrix = W_CacheLumpNum(lumpnum + ML_REJECT, PU_LEVEL);
     P_GroupLines();
 
     // [crispy] fix long wall wobble
     P_SegLengths();
 
+    P_LoadReject(lumpnum + ML_REJECT);
     bodyqueslot = 0;
     po_NumPolyobjs = 0;
     deathmatch_p = deathmatchstarts;
@@ -802,6 +865,12 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     {                           // Probably fog ... don't use fullbright sprites
         LevelUseFullBright = false;
     }
+
+#ifdef CRISPY_TRUECOLOR
+    // [crispy] If true color is compiled in but disabled as an option,
+    // we still need to re-generate colormaps for proper colormaps[] array colors.
+    R_InitTrueColormaps(LevelUseFullBright ? "COLORMAP" : "FOGMAP");
+#endif
 
 // preload graphics
     if (precache)

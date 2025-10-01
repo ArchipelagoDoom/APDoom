@@ -70,8 +70,8 @@ void V_DrawPatchFullScreen(patch_t *patch, boolean flipped);
 // Draw a linear block of pixels into the view buffer.
 
 void V_DrawBlock(int x, int y, int width, int height, pixel_t *src);
-void V_DrawScaledBlock(int x, int y, int width, int height, pixel_t *src);
-void V_DrawScaledBlockTransparency(int x, int y, int width, int height, pixel_t *src);
+void V_DrawScaledBlock(int x, int y, int width, int height, byte *src);
+void V_DrawScaledBlockTransparency(int x, int y, int width, int height, byte *src);
 
 void V_MarkRect(int x, int y, int width, int height);
 
@@ -79,16 +79,13 @@ void V_DrawFilledBox(int x, int y, int w, int h, int c);
 void V_DrawHorizLine(int x, int y, int w, int c);
 void V_DrawVertLine(int x, int y, int h, int c);
 void V_DrawBox(int x, int y, int w, int h, int c);
-void V_CopyScaledBuffer(pixel_t *dest, pixel_t *src, size_t size);
-
-// Draw a raw screen lump
-
-void V_DrawRawScreen(pixel_t *raw);
 
 // Temporarily switch to using a different buffer to draw graphics, etc.
 
 void V_DrawFullscreenRawOrPatch(lumpindex_t index); // [crispy]
 void V_UseBuffer(pixel_t *buffer);
+void V_FillFlat(int y_start, int y_stop, int x_start, int x_stop,
+                const byte *src, pixel_t *dest);    // [crispy]
 
 // Return to using the normal screen buffer to draw graphics.
 
@@ -112,6 +109,8 @@ void V_LoadTintTable(void);
 void V_LoadXlaTable(void);
 
 void V_DrawMouseSpeedBox(int speed);
+
+boolean V_IsPatchLump(const int lump);
 
 #endif
 

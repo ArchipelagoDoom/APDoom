@@ -3,12 +3,13 @@ include ../config.make
 
 TOPLEVEL=../..
 
-SYS:=$(shell uname)
-ifneq (, $(findstring MINGW64, $(SYS)))
-  POSTFIX=win64
+ifeq ($(TARGET_OS),x64)
+    POSTFIX=win64
 else
-  POSTFIX=win32
+    POSTFIX=win32
 endif
+
+PANDOC_FLAGS = -f gfm -s --template=default.html5 -H ../style.html
 
 DOOM_ZIP=$(PROGRAM_PREFIX)doom-$(PACKAGE_VERSION)-$(POSTFIX).zip
 HERETIC_ZIP=$(PROGRAM_PREFIX)heretic-$(PACKAGE_VERSION)-$(POSTFIX).zip
@@ -33,12 +34,12 @@ $(STRIFE_ZIP): staging-strife hook-strife
 # Special hooks to custom modify files for particular games.
 
 hook-doom: staging-doom
-	-pandoc -f gfm -s -o $</NOT-BUGS.html $(TOPLEVEL)/NOT-BUGS.md
+	-pandoc $(PANDOC_FLAGS) -o $</NOT-BUGS.html $(TOPLEVEL)/NOT-BUGS.md
 
 # Chocolate Strife has its own custom README file:
 
 hook-strife: staging-strife
-	-pandoc -f gfm -s -o $</README.html $(TOPLEVEL)/README.Strife.md
+	-pandoc $(PANDOC_FLAGS) -o $</README.html $(TOPLEVEL)/README.Strife.md
 
 # Build up a staging dir for a particular game.
 
@@ -46,6 +47,8 @@ staging-%:
 	mkdir $@
 	LC_ALL=C ./cp-with-libs --ldflags="$(LDFLAGS)" --dll_path="$(MSYSTEM_PREFIX)/bin" \
 	               $(TOPLEVEL)/src/$(PROGRAM_PREFIX)$*.exe $@
+	-LC_ALL=C ./cp-with-libs --ldflags="$(LDFLAGS)" --dll_path="$(MSYSTEM_PREFIX)/bin" \
+	               $(TOPLEVEL)/src/$(PROGRAM_PREFIX)$*-truecolor.exe $@
 	LC_ALL=C ./cp-with-libs --ldflags="$(LDFLAGS)" --dll_path="$(MSYSTEM_PREFIX)/bin" \
 	               $(TOPLEVEL)/src/$(PROGRAM_PREFIX)setup.exe \
 	               $@/$(PROGRAM_PREFIX)$*-setup.exe
@@ -53,11 +56,11 @@ staging-%:
 	$(STRIP) $@/*.exe $@/*.dll
 
 	-for f in $(DOC_FILES); do                              \
-		pandoc  -f gfm -o $@/$$(basename $$f .md).html  \
-			-s $(TOPLEVEL)/$$f;                     \
+		pandoc $(PANDOC_FLAGS) $@/$$(basename $$f .md).html  \
+		       $(TOPLEVEL)/$$f;                     \
 	done
-	-pandoc -f gfm -s -o $@/CMDLINE.html $(TOPLEVEL)/man/CMDLINE.$*.md
-	-pandoc -f gfm -s -o $@/INSTALL.html $(TOPLEVEL)/man/INSTALL.$*
+	-pandoc $(PANDOC_FLAGS) -o $@/CMDLINE.html $(TOPLEVEL)/man/CMDLINE.$*.md
+	-pandoc $(PANDOC_FLAGS) -o $@/INSTALL.html $(TOPLEVEL)/man/INSTALL.$*
 
 clean:
 	rm -f $(ZIPS)

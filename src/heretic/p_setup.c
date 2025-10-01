@@ -25,6 +25,7 @@
 #include "m_argv.h"
 #include "m_bbox.h"
 #include "p_local.h"
+#include "p_rejectpad.h"
 #include "s_sound.h"
 #include "p_extnodes.h"
 
@@ -55,6 +56,8 @@ side_t *sides;
 
 int32_t *blockmap;	            // offsets in blockmap are from here // [crispy] BLOCKMAP limit
 int32_t *blockmaplump;          // [crispy] BLOCKMAP limit
+static int totallines;
+
 int bmapwidth, bmapheight;      // in mapblocks
 fixed_t bmaporgx, bmaporgy;     // origin of block map
 mobj_t **blocklinks;            // for thing chains
@@ -252,9 +255,10 @@ static angle_t anglediff(angle_t a, angle_t b)
         return b - a;
 }
 
-static void P_SegLengths(void)
+void P_SegLengths(boolean contrast_only)
 {
     int i;
+    const int rightangle = abs(finesine[(ANG60/2) >> ANGLETOFINESHIFT]);
 
     for (i = 0; i < numsegs; i++)
     {
@@ -264,6 +268,8 @@ static void P_SegLengths(void)
         dx = li->v2->r_x - li->v1->r_x;
         dy = li->v2->r_y - li->v1->r_y;
 
+        if (!contrast_only)
+        {
         li->length = (uint32_t)(sqrt((double)dx * dx + (double)dy * dy) / 2);
 
         // [crispy] re-calculate angle used for rendering
@@ -276,6 +282,22 @@ static void P_SegLengths(void)
         {
             li->r_angle = li->angle;
         }
+        }
+
+        // [crispy] smoother fake contrast
+        if (!dy)
+            li->fakecontrast = -LIGHTBRIGHT;
+        else
+        if (abs(finesine[li->r_angle >> ANGLETOFINESHIFT]) < rightangle)
+            li->fakecontrast = -LIGHTBRIGHT / 2;
+        else
+        if (!dx)
+            li->fakecontrast = LIGHTBRIGHT;
+        else
+        if (abs(finecosine[li->r_angle >> ANGLETOFINESHIFT]) < rightangle)
+            li->fakecontrast = LIGHTBRIGHT / 2;
+        else
+            li->fakecontrast = 0;
     }
 }
 
@@ -348,6 +370,8 @@ void P_LoadSectors(int lump)
         ss->floorpic = R_FlatNumForName(ms->floorpic);
         ss->ceilingpic = R_FlatNumForName(ms->ceilingpic);
         ss->lightlevel = SHORT(ms->lightlevel);
+        // [crispy] A11Y light level used for rendering
+        ss->rlightlevel = ss->lightlevel;
         ss->special = SHORT(ms->special);
         ss->tag = SHORT(ms->tag);
         ss->thinglist = NULL;
@@ -1266,15 +1290,20 @@ void P_LoadSideDefs(int lump)
 =================
 */
 
-void P_LoadBlockMap(int lump)
+boolean P_LoadBlockMap(int lump)
 {
     int i, count;
     int lumplen;
     short *wadblockmaplump;
 
-    lumplen = W_LumpLength(lump);
-
-    count = lumplen / 2; // [crispy] remove BLOCKMAP limit
+    // [crispy] (re-)create BLOCKMAP if necessary
+    if (M_CheckParm("-blockmap") ||
+        lump >= numlumps ||
+        (lumplen = W_LumpLength(lump)) < 8 ||
+        (count = lumplen / 2) >= 0x10000)
+    {
+        return false;
+    }
 
     // [crispy] remove BLOCKMAP limit
     wadblockmaplump = Z_Malloc(lumplen, PU_LEVEL, NULL);
@@ -1307,6 +1336,9 @@ void P_LoadBlockMap(int lump)
     count = sizeof(*blocklinks) * bmapwidth * bmapheight;
     blocklinks = Z_Malloc(count, PU_LEVEL, 0);
     memset(blocklinks, 0, count);
+
+    // [crispy] (re-)create BLOCKMAP if necessary
+    return true;
 }
 
 
@@ -1319,13 +1351,15 @@ void P_LoadBlockMap(int lump)
 =
 = Builds sector line lists and subsector sector numbers
 = Finds block bounding boxes for sectors
+= [crispy] updated old Doom 1.2 code with actual implementation of P_GroupLines
+= from Chocolate Doom for better handling and faster loading of complex levels
 =================
 */
 
 void P_GroupLines(void)
 {
     line_t **linebuffer;
-    int i, j, total;
+    int i, j;
     line_t *li;
     sector_t *sector;
     subsector_t *ss;
@@ -1343,37 +1377,65 @@ void P_GroupLines(void)
 
 // count number of lines in each sector
     li = lines;
-    total = 0;
+    totallines = 0;
     for (i = 0; i < numlines; i++, li++)
     {
-        total++;
+        totallines++;
         li->frontsector->linecount++;
         if (li->backsector && li->backsector != li->frontsector)
         {
             li->backsector->linecount++;
-            total++;
+            totallines++;
         }
     }
 
 // build line tables for each sector    
-    linebuffer = Z_Malloc(total * sizeof(line_t *), PU_LEVEL, 0);
+    linebuffer = Z_Malloc(totallines * sizeof(line_t *), PU_LEVEL, 0);
+    for (i = 0; i < numsectors; ++i)
+    {
+        // Assign the line buffer for this sector
+        sectors[i].lines = linebuffer;
+        linebuffer += sectors[i].linecount;
+
+        // Reset linecount to zero so in the next stage we can count
+        // lines into the list.
+        sectors[i].linecount = 0;
+    }
+
+// [crispy] assign lines to sectors
+    for (i = 0; i < numlines; ++i)
+    { 
+        li = &lines[i];
+
+        if (li->frontsector != NULL)
+        {
+            sector = li->frontsector;
+
+            sector->lines[sector->linecount] = li;
+            ++sector->linecount;
+        }
+
+        if (li->backsector != NULL && li->frontsector != li->backsector)
+        {
+            sector = li->backsector;
+
+            sector->lines[sector->linecount] = li;
+            ++sector->linecount;
+        }
+    }
+
+// [crispy] generate bounding boxes for sectors
     sector = sectors;
     for (i = 0; i < numsectors; i++, sector++)
     {
         M_ClearBox(bbox);
-        sector->lines = linebuffer;
-        li = lines;
-        for (j = 0; j < numlines; j++, li++)
+        for (j = 0; j < sector->linecount; j++)
         {
-            if (li->frontsector == sector || li->backsector == sector)
-            {
-                *linebuffer++ = li;
+                li = sector->lines[j];
+        
                 M_AddToBox(bbox, li->v1->x, li->v1->y);
                 M_AddToBox(bbox, li->v2->x, li->v2->y);
-            }
         }
-        if (linebuffer - sector->lines != sector->linecount)
-            I_Error("P_GroupLines: miscounted");
 
         // set the degenmobj_t to the middle of the bounding box
         sector->soundorg.x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
@@ -1397,6 +1459,35 @@ void P_GroupLines(void)
         sector->blockbox[BOXLEFT] = block;
     }
 
+}
+
+
+static void P_LoadReject(int lumpnum)
+{
+    int minlength;
+    int lumplen;
+
+    // Calculate the size that the REJECT lump *should* be.
+
+    minlength = (numsectors * numsectors + 7) / 8;
+
+    // If the lump meets the minimum length, it can be loaded directly.
+    // Otherwise, we need to allocate a buffer of the correct size
+    // and pad it with appropriate data.
+
+    lumplen = W_LumpLength(lumpnum);
+
+    if (lumplen >= minlength)
+    {
+        rejectmatrix = W_CacheLumpNum(lumpnum, PU_LEVEL);
+    }
+    else
+    {
+        rejectmatrix = Z_Malloc(minlength, PU_LEVEL, &rejectmatrix);
+        W_ReadLump(lumpnum, rejectmatrix);
+
+        PadRejectArray(rejectmatrix + lumplen, minlength - lumplen, totallines);
+    }
 }
 
 //=============================================================================
@@ -1455,6 +1546,8 @@ static void P_RemoveSlimeTrails(void)
 }
 lumpinfo_t *maplumpinfo;
 
+lumpinfo_t *maplumpinfo;
+
 /*
 =================
 =
@@ -1470,6 +1563,7 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     char lumpname[9];
     int lumpnum;
     mobj_t *mobj;
+    boolean crispy_validblockmap;
     mapformat_t crispy_mapformat;
 
     totalkills = totalitems = totalsecret = 0;
@@ -1512,13 +1606,21 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     crispy_mapformat = P_CheckMapFormat(lumpnum);
     maplumpinfo = lumpinfo[lumpnum];
 
+    maplumpinfo = lumpinfo[lumpnum];
+
 // note: most of this ordering is important     
-    P_LoadBlockMap(lumpnum + ML_BLOCKMAP);
+    crispy_validblockmap = P_LoadBlockMap(lumpnum + ML_BLOCKMAP); // [crispy] (re-)create BLOCKMAP if necessary
     P_LoadVertexes(lumpnum + ML_VERTEXES);
     P_LoadSectors(lumpnum + ML_SECTORS);
     P_LoadSideDefs(lumpnum + ML_SIDEDEFS);
 
     P_LoadLineDefs(lumpnum + ML_LINEDEFS);
+
+    // [crispy] (re-)create BLOCKMAP if necessary
+    if (!crispy_validblockmap)
+    {
+        P_CreateBlockMap();
+    }
 
     if (crispy_mapformat & (MFMT_ZDBSPX | MFMT_ZDBSPZ))
     {
@@ -1537,14 +1639,14 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     P_LoadSegs(lumpnum + ML_SEGS);
     }
 
-    rejectmatrix = W_CacheLumpNum(lumpnum + ML_REJECT, PU_LEVEL);
     P_GroupLines();
+    P_LoadReject(lumpnum + ML_REJECT);
 
     // [crispy] remove slime trails
     P_RemoveSlimeTrails();
 
     // [crispy] fix long wall wobble
-    P_SegLengths();
+    P_SegLengths(false);
 
     bodyqueslot = 0;
     deathmatch_p = deathmatchstarts;

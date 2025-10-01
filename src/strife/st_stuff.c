@@ -162,9 +162,6 @@ static boolean          st_firsttime;
 // lump number for PLAYPAL
 static int              lu_palette;
 
-// whether in automap or first-person
-static st_stateenum_t   st_gamestate;
-
 // whether left-side main status bar is active
 static boolean          st_statusbaron;
 
@@ -327,12 +324,10 @@ boolean ST_Responder(event_t* ev)
             switch(ev->data1)
             {
             case AM_MSGENTERED:
-                st_gamestate = AutomapState;
                 st_firsttime = true;
                 break;
 
             case AM_MSGEXITED:
-                st_gamestate = FirstPersonState;
                 break;
             }
 
@@ -820,6 +815,8 @@ void ST_updateWidgets(void)
 }
 */
 
+static void ST_doPaletteStuff(void);
+
 //
 // ST_Ticker
 //
@@ -869,6 +866,9 @@ void ST_Ticker (void)
         }
     }
 
+    // Do red-/gold-shifts from damage/items
+    ST_doPaletteStuff();
+
     // haleyjd 20100901: [STRIFE] Keys are handled on a popup
     // haleyjd 20100831: [STRIFE] No face widget
     // haleyjd 20100901: [STRIFE] Armor, weapons, frags, etc. handled elsewhere
@@ -888,11 +888,13 @@ static int st_palette = 0;
 // * Changed radsuit palette handling for Strife nukagecount.
 // * All other logic verified to be unmodified.
 //
-void ST_doPaletteStuff(void)
+static void ST_doPaletteStuff(void)
 {
 
     int		palette;
+#ifndef CRISPY_TRUECOLOR
     byte*	pal;
+#endif
     int		cnt;
     int		bzc;
 
@@ -940,8 +942,12 @@ void ST_doPaletteStuff(void)
     if (palette != st_palette)
     {
         st_palette = palette;
+#ifndef CRISPY_TRUECOLOR
         pal = (byte *) W_CacheLumpNum (lu_palette, PU_CACHE)+palette*768;
         I_SetPalette (pal);
+#else
+        I_SetPalette (palette);
+#endif
     }
 
 }
@@ -1003,14 +1009,19 @@ void ST_drawNumFontY2(int x, int y, int num)
 void ST_drawLine(int x, int y, int len, int color)
 {
     byte putcolor = (byte)(color);
-    byte *drawpos = I_VideoBuffer + (y << crispy->hires) * SCREENWIDTH + ((x + WIDESCREENDELTA) << crispy->hires);
+    pixel_t *drawpos = I_VideoBuffer + (y << crispy->hires) * SCREENWIDTH + ((x + WIDESCREENDELTA) << crispy->hires);
     int i = 0;
 
     while(i < (len << crispy->hires))
     {
         if (crispy->hires)
+#ifndef CRISPY_TRUECOLOR
             *(drawpos + SCREENWIDTH) = putcolor;
         *drawpos++ = putcolor;
+#else
+            *(drawpos + SCREENWIDTH) = pal_color[putcolor];
+        *drawpos++ = pal_color[putcolor];
+#endif
         ++i;
     }
 }
@@ -1020,7 +1031,6 @@ void ST_drawLine(int x, int y, int len, int color)
 // surround the non-fullscreen game window.
 static void RefreshBackground(void)
 {
-    int x, y;
     byte *src;
     pixel_t *dest;
 
@@ -1028,17 +1038,12 @@ static void RefreshBackground(void)
     src = W_CacheLumpName(back_flat, PU_CACHE);
     dest = st_backing_screen;
 
-    for (y = SCREENHEIGHT-(ST_HEIGHT<<crispy->hires); y < SCREENHEIGHT; y++)
-    {
-        for (x = 0; x < SCREENWIDTH; x++)
-        {
-            *dest++ = colormaps[src[((y&63)<<6) + (x&63)]];
-        }
-    }
+    V_FillFlat(SCREENHEIGHT-(ST_HEIGHT<<crispy->hires), SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
 
     // [crispy] preserve bezel bottom edge
     if (scaledviewwidth == SCREENWIDTH)
     {
+        int x;
         patch_t *const patch = W_CacheLumpName(DEH_String("brdr_b"), PU_CACHE);
 
         for (x = 0; x < WIDESCREENDELTA; x += 8)
@@ -1214,9 +1219,6 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 
     // [crispy] Crispy HUD
     st_crispyhud = screenblocks > 11 && (!automapactive || crispy->automapoverlay);
-
-    // Do red-/gold-shifts from damage/items
-    ST_doPaletteStuff();
 
     // If just after ST_Start(), refresh all
     ST_doRefresh();
@@ -1748,8 +1750,6 @@ void ST_initData(void)
     st_firsttime = true;
     plyr = &players[consoleplayer];
 
-    st_gamestate = FirstPersonState;
-
     st_statusbaron = true;
 
     st_palette = -1;
@@ -1816,7 +1816,11 @@ void ST_Stop (void)
     if (st_stopped)
         return;
 
+#ifndef CRISPY_TRUECOLOR
     I_SetPalette (W_CacheLumpNum (lu_palette, PU_CACHE));
+#else
+    I_SetPalette (0);
+#endif
 
     st_stopped = true;
 }

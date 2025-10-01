@@ -29,29 +29,31 @@
 #include "m_argv.h"
 #include "m_config.h"
 #include "m_misc.h"
+#include "p_local.h" // [crispy] kex masterlevels
 #include "w_main.h"
 #include "w_wad.h"
+#include "w_merge.h" // [crispy] W_MergeFile()
+#include "z_zone.h"  // [crispy] kex masterlevels
 
 extern char *iwadfile;
 
 // [crispy] auto-load SIGIL.WAD (and SIGIL_SHREDS.WAD) if available
-void D_LoadSigilWad (void)
+static boolean LoadSigilWad (const char *iwaddir, boolean pwadtexture)
 {
 	int i, j;
 	char *sigil_shreds = NULL;
 	const char *sigil_basename;
-	char *dirname, *autoload_dir;
+	char *autoload_dir;
 
 	const char *const sigil_wads[] = {
+		"SIGIL_V1_23_REG.wad",
+		"SIGIL_V1_23.wad",
 		"SIGIL_v1_21.wad",
 		"SIGIL_v1_2.wad",
 		"SIGIL.wad"
 	};
 
-	static const struct {
-		const char *name;
-		const char new_name[8];
-	} sigil_lumps [] = {
+	static const lump_rename_t sigil_lumps [] = {
 		{"CREDIT",   "SIGCREDI"},
 		{"HELP1",    "SIGHELP1"},
 		{"TITLEPIC", "SIGTITLE"},
@@ -64,12 +66,6 @@ void D_LoadSigilWad (void)
 		{"D_INTRO",  "D_SIGTIT"},
 	};
 
-	const char *const texture_files[] = {
-		"PNAMES",
-		"TEXTURE1",
-		"TEXTURE2",
-	};
-
 	// [crispy] don't load SIGIL.WAD if another PWAD already provides E5M1
 	i = W_CheckNumForName("E5M1");
 	if (i != -1)
@@ -79,34 +75,27 @@ void D_LoadSigilWad (void)
 		{
 			crispy->havesigil = (char *)-1;
 		}
-		return;
+		return false;
 	}
 
 	// [crispy] don't load SIGIL.WAD if SIGIL_COMPAT.WAD is already loaded
 	i = W_CheckNumForName("E3M1");
 	if (i != -1 && !strncasecmp(W_WadNameForLump(lumpinfo[i]), "SIGIL_COMPAT", 12))
 	{
-		return;
+		return false;
 	}
 
-	// [crispy] don't load SIGIL.WAD if another PWAD already modifies the texture files
-	for (i = 0; i < arrlen(texture_files); i++)
+	if (pwadtexture)
 	{
-		j = W_CheckNumForName(texture_files[i]);
-
-		if (j != -1 && !W_IsIWADLump(lumpinfo[j]))
-		{
-			return;
-		}
+		return false;
 	}
 
-	dirname = M_DirName(iwadfile);
-	sigil_shreds = M_StringJoin(dirname, DIR_SEPARATOR_S, "SIGIL_SHREDS.WAD", NULL);
+	sigil_shreds = M_StringJoin(iwaddir, DIR_SEPARATOR_S, "SIGIL_SHREDS.WAD", NULL);
 
 	// [crispy] load SIGIL.WAD
 	for (i = 0; i < arrlen(sigil_wads); i++)
 	{
-		crispy->havesigil = M_StringJoin(dirname, DIR_SEPARATOR_S, sigil_wads[i], NULL);
+		crispy->havesigil = M_StringJoin(iwaddir, DIR_SEPARATOR_S, sigil_wads[i], NULL);
 
 		if (M_FileExists(crispy->havesigil))
 		{
@@ -121,12 +110,11 @@ void D_LoadSigilWad (void)
 			break;
 		}
 	}
-	free(dirname);
 
 	if (crispy->havesigil == NULL)
 	{
 		free(sigil_shreds);
-		return;
+		return false;
 	}
 
 	printf(" [Sigil] adding %s\n", crispy->havesigil);
@@ -180,14 +168,154 @@ void D_LoadSigilWad (void)
 	{
 		if ((autoload_dir = M_GetAutoloadDir(sigil_basename, false)))
 		{
-			W_AutoLoadWADs(autoload_dir);
+			W_AutoLoadWADsRename(autoload_dir, sigil_lumps, arrlen(sigil_lumps));
 			DEH_AutoLoadPatches(autoload_dir);
 			free(autoload_dir);
 		}
 	}
 
-	// [crispy] regenerate the hashtable
-	W_GenerateHashTable();
+	return true;
+}
+
+// [crispy] auto-load Sigil II
+static boolean LoadSigil2Wad (const char *iwaddir, boolean pwadtexture)
+{
+    int i, j;
+    const char *sigil2_basename;
+    char *autoload_dir;
+
+    const char *const sigil2_wads[] = {
+        "SIGIL_II_MP3_V1_0.WAD",
+        "SIGIL_II_V1_0.WAD",
+    };
+
+    static const lump_rename_t sigil2_lumps [] = {
+        {"CREDIT",   "SG2CREDI"},
+        {"HELP1",    "SG2HELP1"},
+        {"TITLEPIC", "SG2TITLE"},
+        {"SIGILEND", "SGL2END"},
+        {"DEHACKED", "SG2_DEH"},
+        {"DEMO1",    "SG2DEMO1"},
+        {"DEMO2",    "SG2DEMO2"},
+        {"DEMO3",    "SG2DEMO3"},
+        {"DEMO4",    "SG2DEMO4"},
+        {"D_INTER",  "D_SG2INT"},
+        {"D_INTRO",  "D_SG2TIT"},
+    };
+
+    // [crispy] don't load Sigil II if another PWAD already provides E6M1
+    i = W_CheckNumForName("E6M1");
+    if (i != -1)
+    {
+        // [crispy] indicate that SIGIL_II_*.WAD is already loaded as a PWAD
+        if (!strncasecmp(W_WadNameForLump(lumpinfo[i]), "SIGIL_II", 8))
+        {
+            crispy->havesigil2 = (char *)-1;
+        }
+
+        return false;
+    }
+
+    // [crispy] don't load Sigil II if another PWAD already modifies the
+    // texture files
+    if (pwadtexture)
+    {
+        return false;
+    }
+
+    // [crispy] load Sigil II
+    for (i = 0; i < arrlen(sigil2_wads); i++)
+    {
+        crispy->havesigil2 = M_StringJoin(iwaddir, DIR_SEPARATOR_S,
+                                         sigil2_wads[i], NULL);
+
+        if (M_FileExists(crispy->havesigil2))
+        {
+            break;
+        }
+
+        free(crispy->havesigil2);
+        crispy->havesigil2 = D_FindWADByName(sigil2_wads[i]);
+
+        if (crispy->havesigil2)
+        {
+            break;
+        }
+    }
+
+    if (crispy->havesigil2 == NULL)
+    {
+        return false;
+    }
+
+    printf(" [Sigil II] adding %s\n", crispy->havesigil2);
+    W_MergeFile(crispy->havesigil2);
+    sigil2_basename = M_BaseName(crispy->havesigil2);
+
+    // [crispy] rename intrusive Sigil II graphics, demos and music lumps out
+    // of the way
+    for (i = 0; i < arrlen(sigil2_lumps); i++)
+    {
+        j = W_CheckNumForName(sigil2_lumps[i].name);
+
+        if (j != -1 && !strcasecmp(W_WadNameForLump(lumpinfo[j]), sigil2_basename))
+        {
+            memcpy(lumpinfo[j]->name, sigil2_lumps[i].new_name, 8);
+        }
+    }
+
+    // [crispy] load WAD and DEH files from autoload directories
+    if (!M_ParmExists("-noautoload"))
+    {
+        if ((autoload_dir = M_GetAutoloadDir(sigil2_basename, false)))
+        {
+            W_AutoLoadWADsRename(autoload_dir, sigil2_lumps, arrlen(sigil2_lumps));
+            DEH_AutoLoadPatches(autoload_dir);
+            free(autoload_dir);
+        }
+    }
+
+    return true;
+}
+
+// [crispy] auto-load Sigil and Sigil II if available
+void D_LoadSigilWads (void)
+{
+    int i, j;
+    boolean sigilloaded, sigil2loaded;
+    boolean pwadtexture = false;
+    char *iwaddir;
+
+    const char *const texture_file[] = {
+        "PNAMES",
+        "TEXTURE1",
+        "TEXTURE2",
+    };
+
+    // [crispy] don't load Sigils if another PWAD already modifies the texture
+    // files
+    for (i = 0; i < arrlen(texture_file); i++)
+    {
+        j = W_CheckNumForName(texture_file[i]);
+
+        if (j != -1 && !W_IsIWADLump(lumpinfo[j]))
+        {
+            pwadtexture = true;
+            break;
+        }
+    }
+
+    iwaddir = M_DirName(iwadfile);
+    sigilloaded = LoadSigilWad(iwaddir, pwadtexture);
+    sigil2loaded = LoadSigil2Wad(iwaddir, pwadtexture);
+
+    if (sigilloaded || sigil2loaded)
+    {
+        // [crispy] regenerate the hashtable
+        W_GenerateHashTable();
+    }
+
+    free(iwaddir);
 }
 
 // [crispy] check if NERVE.WAD is already loaded as a PWAD
@@ -224,12 +352,16 @@ static void CheckLoadNerve (void)
 	char *autoload_dir;
 	int i, j;
 
-	static const struct {
-		const char *name;
-		const char new_name[8];
-	} nerve_lumps [] = {
+	static const lump_rename_t nerve_lumps [] = {
 		{"TITLEPIC", "NERVEPIC"},
 		{"INTERPIC", "NERVEINT"},
+		{"M_DOOM",   "M_DOOM_N"},
+		{"DEMO1",    "DEMO1N"},
+		{"DEMO2",    "DEMO2N"},
+		{"DEMO3",    "DEMO3N"},
+		{"RSKY1",    "RSKY1N"},
+		{"RSKY2",    "RSKY2N"},
+		{"RSKY3",    "RSKY3N"},
 	};
 
 	// [crispy] don't load if another PWAD already provides MAP01
@@ -285,7 +417,7 @@ static void CheckLoadNerve (void)
 	{
 		j = W_CheckNumForName(nerve_lumps[i].name);
 
-		if (j != -1 && !strcasecmp(W_WadNameForLump(lumpinfo[j]), "NERVE.WAD"))
+		if (j != -1 && !strcasecmp(W_WadNameForLump(lumpinfo[j]), nerve_basename))
 		{
 			memcpy(lumpinfo[j]->name, nerve_lumps[i].new_name, 8);
 		}
@@ -296,7 +428,7 @@ static void CheckLoadNerve (void)
 	{
 		if ((autoload_dir = M_GetAutoloadDir(nerve_basename, false)))
 		{
-			W_AutoLoadWADs(autoload_dir);
+			W_AutoLoadWADsRename(autoload_dir, nerve_lumps, arrlen(nerve_lumps));
 			DEH_AutoLoadPatches(autoload_dir);
 			free(autoload_dir);
 		}
@@ -318,6 +450,63 @@ void D_LoadNerveWad (void)
 	}
 }
 
+// [crispy] check if the single MASTERLEVELS.WAD is the kex 2024 version
+int D_CheckMasterlevelKex (void)
+{
+	int lumpnum;
+	int width = 0;
+	patch_t *patch;
+	static int masterlevels_kex = -1;
+
+	// already checked?
+	if (masterlevels_kex > -1)
+	{
+		return masterlevels_kex;
+	}
+
+	// read width of patch CWILV17
+	lumpnum = W_CheckNumForName("MWILV17");
+	if (lumpnum == -1)
+	{
+		// loaded as PWAD?
+		lumpnum = W_CheckNumForName("CWILV17");
+	}
+
+	if (lumpnum > -1)
+	{
+		patch = W_CacheLumpNum(lumpnum, PU_CACHE);
+		width = patch->width;
+	}
+	else
+	{
+		// something's wrong
+		return masterlevels_kex = false;
+	}
+
+	// read width of patch CWILV14
+	lumpnum = W_CheckNumForName("MWILV14");
+	if (lumpnum == -1)
+	{
+		// loaded as PWAD
+		lumpnum = W_CheckNumForName("CWILV14");
+	}
+	patch = W_CacheLumpNum(lumpnum, PU_CACHE);
+
+	// compare width of patches CWILV17 vs CWILV14
+	// kex: CWILV17:"The Express Elevator\nTo Hell" > CWILV14:"Vesperas"
+	// psn/unity: CWILV17:"Vesperas" < CWILV14:"Mephistos Maosoleum"
+	if (patch != NULL && patch->width < width)
+	{
+		masterlevels_kex = true;
+	}
+	else
+	{
+		masterlevels_kex = false;
+	}
+
+	return masterlevels_kex;
+}
+
 // [crispy] check if the single MASTERLEVELS.WAD is already loaded as a PWAD
 static boolean CheckMasterlevelsLoaded (void)
 {
@@ -329,12 +518,25 @@ static boolean CheckMasterlevelsLoaded (void)
 	    !strcasecmp(W_WadNameForLump(lumpinfo[j]), "MASTERLEVELS.WAD"))
 	{
 		gamemission = pack_master;
+		D_CheckMasterlevelKex();
 
 		return true;
 	}
 
 	return false;
 }
+
+static const lump_rename_t master_lumps [] = {
+	{"TITLEPIC", "MASTRPIC"},
+	{"INTERPIC", "MASTRINT"},
+	{"M_DOOM",   "M_DOOM_M"},
+	{"DEMO1",    "DEMO1M"},
+	{"DEMO2",    "DEMO2M"},
+	{"DEMO3",    "DEMO3M"},
+	{"RSKY1",    "RSKY1M"},
+	{"RSKY2",    "RSKY2M"},
+	{"RSKY3",    "RSKY3M"},
+};
 
 // [crispy] auto-load the single MASTERLEVELS.WAD if available
 static boolean CheckLoadMasterlevels (void)
@@ -384,7 +586,7 @@ static boolean CheckLoadMasterlevels (void)
 
 		M_snprintf(lumpname, 9, "CWILV%2.2d", i);
 		j = W_GetNumForName(lumpname);
-		if (!strcasecmp(W_WadNameForLump(lumpinfo[j]), "MASTERLEVELS.WAD"))
+		if (!strcasecmp(W_WadNameForLump(lumpinfo[j]), master_basename))
 		{
 			lumpinfo[j]->name[0] = 'M';
 		}
@@ -400,12 +602,23 @@ static boolean CheckLoadMasterlevels (void)
 		strcat(lumpinfo[j]->name, "M");
 	}
 
+	// [crispy] if MASTERLEVELS.WAD contains TITLEPIC and INTERPIC, rename them
+	for (i = 0; i < arrlen(master_lumps); i++)
+	{
+		j = W_CheckNumForName(master_lumps[i].name);
+
+		if (j != -1 && !strcasecmp(W_WadNameForLump(lumpinfo[j]), master_basename))
+		{
+			memcpy(lumpinfo[j]->name, master_lumps[i].new_name, 8);
+		}
+	}
+
 	// [crispy] load WAD and DEH files from autoload directories
 	if (!M_ParmExists("-noautoload"))
 	{
 		if ((autoload_dir = M_GetAutoloadDir(master_basename, false)))
 		{
-			W_AutoLoadWADs(autoload_dir);
+			W_AutoLoadWADsRename(autoload_dir, master_lumps, arrlen(master_lumps));
 			DEH_AutoLoadPatches(autoload_dir);
 			free(autoload_dir);
 		}
@@ -413,6 +626,8 @@ static boolean CheckLoadMasterlevels (void)
 
 	// [crispy] regenerate the hashtable
 	W_GenerateHashTable();
+
+	D_CheckMasterlevelKex();
 
 	return true;
 }
@@ -507,6 +722,7 @@ static void LoadMasterlevelsWads (void)
 {
 	int i, j;
 	char lumpname[9];
+	char *autoload_dir;
 
 	const char *const sky_lumps[] = {
 		"RSKY1",
@@ -549,6 +765,17 @@ static void LoadMasterlevelsWads (void)
 
 	// [crispy] indicate this is not the single MASTERLEVELS.WAD
 	crispy->havemaster = (char *)-1;
+
+	// [crispy] autoload from MASTERLEVELS.WAD autoload directory
+	if (!M_ParmExists("-noautoload"))
+	{
+		if ((autoload_dir = M_GetAutoloadDir("MASTERLEVELS.WAD", false)))
+		{
+			W_AutoLoadWADsRename(autoload_dir, master_lumps, arrlen(master_lumps));
+			DEH_AutoLoadPatches(autoload_dir);
+			free(autoload_dir);
+		}
+	}
 
 	// [crispy] regenerate the hashtable
 	W_GenerateHashTable();

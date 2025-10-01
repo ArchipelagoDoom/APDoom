@@ -21,6 +21,7 @@
 #define __I_SOUND__
 
 #include "doomtype.h"
+#include "d_mode.h"
 
 // so that the individual game logic and sound driver code agree
 #define NORM_PITCH 127
@@ -115,7 +116,7 @@ typedef struct
     // Initialise sound module
     // Returns true if successfully initialised
 
-    boolean (*Init)(boolean use_sfx_prefix);
+    boolean (*Init)(GameMission_t mission);
 
     // Shutdown sound module
 
@@ -152,7 +153,7 @@ typedef struct
 
 } sound_module_t;
 
-void I_InitSound(boolean use_sfx_prefix);
+void I_InitSound(GameMission_t mission);
 void I_ShutdownSound(void);
 int I_GetSfxLumpNum(sfxinfo_t *sfxinfo);
 void I_UpdateSound(void);
@@ -275,10 +276,9 @@ extern char *music_pack_path;
 extern char *timidity_cfg_path;
 #ifdef _WIN32
 extern char *winmm_midi_device;
+extern int winmm_complevel;
 extern int winmm_reset_type;
 extern int winmm_reset_delay;
-extern int winmm_reverb_level;
-extern int winmm_chorus_level;
 #endif
 
 // For FluidSynth module:
@@ -297,6 +297,7 @@ extern float fsynth_reverb_damp;
 extern float fsynth_reverb_level;
 extern float fsynth_reverb_roomsize;
 extern float fsynth_reverb_width;
+extern float fsynth_gain;
 #endif // HAVE_FLUIDSYNTH
 
 #endif

@@ -24,7 +24,6 @@
 #include <string.h>
 #include <assert.h>
 #include "SDL.h"
-#include "SDL_mixer.h"
 
 #ifdef HAVE_LIBSAMPLERATE
 #include <samplerate.h>
@@ -53,10 +52,15 @@ int use_libsamplerate = 1;
 // of the time: with all the Doom IWAD sound effects, at least. If a PWAD
 // is used, clipping might occur.
 
-float libsamplerate_scale = 0.65f;
+// [crispy] Get full output from libsamplerate. Our default is to use linear
+// interpolation, which means the resampling process will not introduce any new
+// clipping. This will also better match vanilla's volume.
+float libsamplerate_scale = 1.0f;
 
 
 #ifndef DISABLE_SDL2MIXER
+
+#include "SDL_mixer.h"
 
 
 #define LOW_PASS_FILTER
@@ -1128,11 +1132,11 @@ static int GetSliceSize(void)
     return 1024;
 }
 
-static boolean I_SDL_InitSound(boolean _use_sfx_prefix)
+static boolean I_SDL_InitSound(GameMission_t mission)
 {
     int i;
 
-    use_sfx_prefix = _use_sfx_prefix;
+    use_sfx_prefix = (mission == doom || mission == strife);
 
     // No sounds yet
     for (i=0; i<NUM_CHANNELS; ++i)

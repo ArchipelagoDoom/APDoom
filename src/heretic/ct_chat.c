@@ -370,11 +370,11 @@ void CT_Drawer(void)
                 patch = W_CacheLumpNum(FontABaseLump +
                                        chat_msg[consoleplayer][i] - 33,
                                        PU_CACHE);
-                V_DrawPatch(x, 158-20, patch);
+                V_DrawSBPatch(x, 158-20, patch);
                 x += patch->width;
             }
         }
-        V_DrawPatch(x, 158-20, W_CacheLumpName(DEH_String("FONTA59"), PU_CACHE));
+        V_DrawSBPatch(x, 158-20, W_CacheLumpName(DEH_String("FONTA59"), PU_CACHE));
         BorderTopRefresh = true;
         UpdateState |= I_MESSAGES;
     }

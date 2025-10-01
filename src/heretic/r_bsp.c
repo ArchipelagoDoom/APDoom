@@ -29,10 +29,6 @@ sector_t *frontsector, *backsector;
 drawseg_t *drawsegs = NULL, *ds_p;
 int numdrawsegs = 0;
 
-// [AM] Fractional part of the current tic, in the half-open
-//      range of [0.0, 1.0).  Used for interpolation.
-extern fixed_t          fractionaltic;
-
 void R_StoreWallRange(int start, int stop);
 
 /*
@@ -216,11 +212,13 @@ void R_CheckInterpolateSector(sector_t* sector)
     {
         // Interpolate between current and last floor/ceiling position.
         if (sector->floorheight != sector->oldfloorheight)
-            sector->interpfloorheight = sector->oldfloorheight + FixedMul(sector->floorheight - sector->oldfloorheight, fractionaltic);
+            sector->interpfloorheight =
+                LerpFixed(sector->oldfloorheight, sector->floorheight);
         else
             sector->interpfloorheight = sector->floorheight;
         if (sector->ceilingheight != sector->oldceilingheight)
-            sector->interpceilingheight = sector->oldceilingheight + FixedMul(sector->ceilingheight - sector->oldceilingheight, fractionaltic);
+            sector->interpceilingheight =
+                LerpFixed(sector->oldceilingheight, sector->ceilingheight);
         else
             sector->interpceilingheight = sector->ceilingheight;
     }
@@ -315,7 +313,8 @@ void R_AddLine(seg_t * line)
 // reject empty lines used for triggers and special events
     if (backsector->ceilingpic == frontsector->ceilingpic
         && backsector->floorpic == frontsector->floorpic
-        && backsector->lightlevel == frontsector->lightlevel
+        && backsector->rlightlevel == frontsector->rlightlevel
+        && backsector->special == frontsector->special // [crispy] check for special as well
         && curline->sidedef->midtexture == 0)
         return;
 
@@ -466,16 +465,23 @@ void R_Subsector(int num)
 
     if (frontsector->interpfloorheight < viewz)
         floorplane = R_FindPlane(frontsector->interpfloorheight,
+                                 // [crispy] add support for MBF sky transfers
+                                 frontsector->floorpic == skyflatnum &&
+                                 frontsector->sky & PL_SKYFLAT ? frontsector->sky :
                                  frontsector->floorpic,
-                                 frontsector->lightlevel,
+                                 frontsector->rlightlevel, // [crispy] A11Y
                                  frontsector->special);
     else
         floorplane = NULL;
     if (frontsector->interpceilingheight > viewz
         || frontsector->ceilingpic == skyflatnum)
         ceilingplane = R_FindPlane(frontsector->interpceilingheight,
+                                   // [crispy] add support for MBF sky transfers
+                                   frontsector->ceilingpic == skyflatnum &&
+                                   frontsector->sky & PL_SKYFLAT ? frontsector->sky :
                                    frontsector->ceilingpic,
-                                   frontsector->lightlevel, 0);
+                                   frontsector->rlightlevel, // [crispy] A11Y
+                                   0);
     else
         ceilingplane = NULL;
 

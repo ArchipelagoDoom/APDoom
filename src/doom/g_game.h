@@ -58,6 +58,12 @@ void G_PlayDemo (char* name);
 void G_TimeDemo (char* name);
 boolean G_CheckDemoStatus (void);
 
+// [crispy] fast forward to next level while demo playback
+extern boolean netdemo; 
+extern boolean demo_gotonextlvl;
+void G_DoPlayDemo (void);
+void G_DemoGotoNextLevel (boolean start);
+
 void G_ExitLevel (void);
 void G_SecretExitLevel (void);
 
@@ -69,6 +75,8 @@ void G_BuildTiccmd (ticcmd_t *cmd, int maketic);
 
 void G_Ticker (void);
 boolean G_Responder (event_t*	ev);
+void G_FastResponder (void); // [crispy]
+void G_PrepTiccmd (void); // [crispy]
 
 void G_ScreenShot (void);
 void G_LevelSelect(void);

@@ -40,6 +40,7 @@
 #include "m_controls.h" // [crispy] key_*
 #include "m_misc.h" // [crispy] M_StringDuplicate()
 #include "m_random.h" // [crispy] Crispy_Random()
+#include "d_pwad.h" // [crispy] kex secret level
 
 #include "doomkeys.h"
 #include "level_select.h"
@@ -81,6 +82,7 @@ static textscreen_t textscreens[] =
     { doom,      3, 8,  "MFLR8_4",   E3TEXT},
     { doom,      4, 8,  "MFLR8_3",   E4TEXT},
     { doom,      5, 8,  "FLOOR7_2",  E5TEXT}, // [crispy] Sigil
+    { doom,      6, 8,  "FLOOR7_2",  E6TEXT}, // [crispy] Sigil II
 
     { doom2,     1, 6,  "SLIME16",   C1TEXT},
     { doom2,     1, 11, "RROCK14",   C2TEXT},
@@ -118,7 +120,7 @@ void	F_CastTicker (void);
 boolean F_CastResponder (event_t *ev);
 void	F_CastDrawer (void);
 
-extern void A_RandomJump();
+extern void A_RandomJump(void *, void *, void *);
 
 //
 // F_StartFinale
@@ -164,6 +166,12 @@ void F_StartFinale (void)
             finaletext = screen->text;
             finaleflat = screen->background;
         }
+    }
+
+    // Hack for kex masterlevels finale text
+    if (logical_gamemission == pack_master && D_CheckMasterlevelKex() && players[consoleplayer].didsecret)
+    {
+        finaletext = M2TEXT;
     }
 
     // Do dehacked substitutions of strings
@@ -229,6 +237,7 @@ void F_Ticker (void)
 	if (gamemission == pack_nerve && map_idx == 8)
 	  F_StartCast ();
 	else
+    // [crispy] kex lvl 20 (checked in G_WorldDone), psn/unity lvl 20 or 21
 	if (gamemission == pack_master && (map_idx == 20 || map_idx == 21))
 	  F_StartCast ();
 	else
@@ -296,7 +305,7 @@ void F_TextWrite (void)
     byte*	src;
     pixel_t*	dest;
     
-    int		x,y,w;
+    int		w;
     signed int	count;
     char *ch; // [crispy] un-const
     int		c;
@@ -307,26 +316,8 @@ void F_TextWrite (void)
     src = W_CacheLumpName ( finaleflat , PU_CACHE);
     dest = I_VideoBuffer;
 	
-    for (y=0 ; y<SCREENHEIGHT ; y++)
-    {
-#ifndef CRISPY_TRUECOLOR
-	for (x=0 ; x<SCREENWIDTH/64 ; x++)
-	{
-	    memcpy (dest, src+((y&63)<<6), 64);
-	    dest += 64;
-	}
-	if (SCREENWIDTH&63)
-	{
-	    memcpy (dest, src+((y&63)<<6), SCREENWIDTH&63);
-	    dest += (SCREENWIDTH&63);
-	}
-#else
-	for (x=0 ; x<SCREENWIDTH ; x++)
-	{
-		*dest++ = colormaps[src[((y&63)<<6) + (x&63)]];
-	}
-#endif
-    }
+    // [crispy] use unified flat filling function
+    V_FillFlat(0, SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
 
     V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
     
@@ -351,7 +342,7 @@ void F_TextWrite (void)
 	}
 		
 	c = toupper(c) - HU_FONTSTART;
-	if (c < 0 || c> HU_FONTSIZE)
+	if (c < 0 || c >= HU_FONTSIZE)
 	{
 	    cx += 4;
 	    continue;
@@ -368,8 +359,9 @@ void F_TextWrite (void)
 	    else
 	    break;
 	}
-	// [cispy] prevent text from being drawn off-screen vertically
-	if (cy + SHORT(hu_font[c]->height) > ORIGHEIGHT)
+	// [crispy] prevent text from being drawn off-screen vertically
+	if (cy + SHORT(hu_font[c]->height) - SHORT(hu_font[c]->topoffset) >
+	    ORIGHEIGHT)
 	{
 	    break;
 	}
@@ -602,7 +594,7 @@ void F_CastTicker (void)
 	    goto stopattack;	// Oh, gross hack!
 	*/
 	// [crispy] Allow A_RandomJump() in deaths in cast sequence
-	if (caststate->action.acp1 == A_RandomJump && Crispy_Random() < caststate->misc2)
+	if (caststate->action.acp3 == A_RandomJump && Crispy_Random() < caststate->misc2)
 	{
 	    st = caststate->misc1;
 	}
@@ -695,7 +687,7 @@ void F_CastTicker (void)
     if (casttics == -1)
     {
 	// [crispy] Allow A_RandomJump() in deaths in cast sequence
-	if (caststate->action.acp1 == A_RandomJump)
+	if (caststate->action.acp3 == A_RandomJump)
 	{
 	    if (Crispy_Random() < caststate->misc2)
 	    {
@@ -770,7 +762,7 @@ boolean F_CastResponder (event_t* ev)
     caststate = &states[mobjinfo[castorder[castnum].type].deathstate];
     casttics = caststate->tics;
     // [crispy] Allow A_RandomJump() in deaths in cast sequence
-    if (casttics == -1 && caststate->action.acp1 == A_RandomJump)
+    if (casttics == -1 && caststate->action.acp3 == A_RandomJump)
     {
         if (Crispy_Random() < caststate->misc2)
         {
@@ -818,7 +810,7 @@ void F_CastPrint (const char *text)
 	if (!c)
 	    break;
 	c = toupper(c) - HU_FONTSTART;
-	if (c < 0 || c> HU_FONTSIZE)
+	if (c < 0 || c >= HU_FONTSIZE)
 	{
 	    width += 4;
 	    continue;
@@ -837,7 +829,7 @@ void F_CastPrint (const char *text)
 	if (!c)
 	    break;
 	c = toupper(c) - HU_FONTSTART;
-	if (c < 0 || c> HU_FONTSIZE)
+	if (c < 0 || c >= HU_FONTSIZE)
 	{
 	    cx += 4;
 	    continue;
@@ -920,7 +912,7 @@ F_DrawPatchCol
 #ifndef CRISPY_TRUECOLOR
 	    *dest = source[srccol >> FRACBITS];
 #else
-	    *dest = colormaps[source[srccol >> FRACBITS]];
+	    *dest = pal_color[source[srccol >> FRACBITS]];
 #endif
 	    srccol += dyi;
 	    dest += SCREENWIDTH;
@@ -1058,6 +1050,19 @@ static void F_ArtScreenDrawer(void)
                 if (W_CheckNumForName(DEH_String(lumpname)) == -1)
                 {
                     return;
+                }
+                break;
+            // [crispy] Sigil II
+            case 6:
+                lumpname = "SGL2END";
+                if (W_CheckNumForName(DEH_String(lumpname)) == -1)
+                {
+                    lumpname = "SIGILEND";
+
+                    if (W_CheckNumForName(DEH_String(lumpname)) == -1)
+                    {
+                        return;
+                    }
                 }
                 break;
             default:

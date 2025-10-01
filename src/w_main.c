@@ -17,6 +17,7 @@
 //
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "config.h"
 #include "d_iwad.h"
@@ -233,7 +234,9 @@ boolean W_ParseCommandLine(void)
     // @arg <files>
     // @vanilla
     //
-    // Load the specified PWAD files.
+    // Load the specified PWAD files.  Each succeeding argument is
+    // treated as a PWAD file name until one starts with a dash or the
+    // argument list is exhausted.
     //
 
     p = M_CheckParmWithArgs ("-file", 1);
@@ -263,8 +266,15 @@ boolean W_ParseCommandLine(void)
 // Load all WAD files from the given directory.
 void W_AutoLoadWADs(const char *path)
 {
+    W_AutoLoadWADsRename(path, NULL, 0);
+}
+
+void W_AutoLoadWADsRename(const char *path, const lump_rename_t *renames,
+                          int num_renames)
+{
     glob_t *glob;
-    const char *filename;
+    const char *filename, *basename;
+    int i, j;
 
     glob = I_StartMultiGlob(path, GLOB_FLAG_NOCASE|GLOB_FLAG_SORTED,
                             "*.wad", "*.lmp", NULL);
@@ -277,6 +287,21 @@ void W_AutoLoadWADs(const char *path)
         }
         printf(" [autoload] merging %s\n", filename);
         W_MergeFile(filename);
+
+        if (renames && num_renames > 0)
+        {
+            basename = M_BaseName(filename);
+            for (i = 0; i < num_renames; i++)
+            {
+                j = W_CheckNumForName(renames[i].name);
+
+                if (j != -1 &&
+                    !strcasecmp(W_WadNameForLump(lumpinfo[j]), basename))
+                {
+                    memcpy(lumpinfo[j]->name, renames[i].new_name, 8);
+                }
+            }
+        }
     }
 
     I_EndGlob(glob);

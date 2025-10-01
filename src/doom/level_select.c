@@ -342,7 +342,12 @@ void ShowLevelSelect()
         G_DoSaveGame(); 
 
     if (crispy->ap_levelselectmusic)
-        S_ChangeMusic(mus_read_m, true);
+    {
+        if (gamemode == commercial)
+            S_ChangeMusic(mus_read_m, true);
+        else
+            S_ChangeMusic(mus_inter, true);
+    }
     else
         S_StopMusic();
 

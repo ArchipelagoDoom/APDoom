@@ -508,7 +508,7 @@ static default_t	doom_defaults_list[] =
     CONFIG_VARIABLE_INT(mouseb_mouselook),
 
     //!
-    // @game doom
+    // @game doom heretic hexen strife
     //
     // Quick 180° reverse.
     //
@@ -795,6 +795,12 @@ static default_t extra_defaults_list[] =
     //
 
     CONFIG_VARIABLE_INT(aspect_ratio_correct),
+
+    //!
+    // If non-zero, the screen will have smooth scaling.
+    //
+
+    CONFIG_VARIABLE_INT(smooth_pixel_scaling),
 
     //!
     // If non-zero, forces integer scales for resolution-independent rendering.
@@ -1096,6 +1102,13 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_FLOAT(fsynth_reverb_width),
 
     //!
+    // Fine tune the FluidSynth output level. Default is 1.0,
+    // range is 0.0 - 10.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_gain),
+
+    //!
     // Full path to a soundfont file to use with FluidSynth MIDI playback.
     //
 
@@ -1133,8 +1146,15 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_STRING(winmm_midi_device),
 
     //!
+    // Compatibility level for native Windows MIDI, default 1. Valid values are
+    // 0 (Vanilla), 1 (Standard), 2 (Full).
+    //
+
+    CONFIG_VARIABLE_INT(winmm_complevel),
+
+    //!
     // Reset device type for native Windows MIDI, default 1. Valid values are
-    // 0 (None), 1 (GS Mode), 2 (GM Mode), 3 (GM2 Mode), 4 (XG Mode).
+    // 0 (None), 1 (GM Mode), 2 (GS Mode), 3 (XG Mode).
     //
 
     CONFIG_VARIABLE_INT(winmm_reset_type),
@@ -1144,18 +1164,6 @@ static default_t extra_defaults_list[] =
     //
 
     CONFIG_VARIABLE_INT(winmm_reset_delay),
-
-    //!
-    // Reverb level for native Windows MIDI, default -1, range 0-127.
-    //
-
-    CONFIG_VARIABLE_INT(winmm_reverb_level),
-
-    //!
-    // Chorus level for native Windows MIDI, default -1, range 0-127.
-    //
-
-    CONFIG_VARIABLE_INT(winmm_chorus_level),
 #endif
 
     //!
@@ -1211,10 +1219,16 @@ static default_t extra_defaults_list[] =
 
     //!
     // If zero, this disables weapon flashes changing the ambient light
-    // level.
+    // level and flickering of torches.
     //
 
     CONFIG_VARIABLE_INT(a11y_weapon_flash),
+
+    //!
+    // If zero, this disables weapon palette changes 
+    //
+
+    CONFIG_VARIABLE_INT(a11y_weapon_palette),
 
     //!
     // If zero, this disables rendering of weapon flashes sprites.
@@ -2249,7 +2263,7 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_KEY(key_multi_msgplayer8),
 
     //!
-    // @game doom
+    // @game doom heretic hexen strife
     // Quick 180° reverse.
     //
 
@@ -2349,7 +2363,7 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(crispy_coloredhud),
 
     //!
-    // @game doom
+    // @game doom, heretic, hexen, strife
     //
     // Draw a crosshair.
     //
@@ -2357,7 +2371,7 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(crispy_crosshair),
 
     //!
-    // @game doom
+    // @game doom, strife
     //
     // Crosshair Color indicates Health.
     //
@@ -2373,12 +2387,20 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(crispy_crosshairtarget),
 
     //!
-    // @game doom
+    // @game doom, heretic, hexen
     //
     // Crosshair type.
     //
 
     CONFIG_VARIABLE_INT(crispy_crosshairtype),
+
+    //!
+    // @game heretic, hexen
+    //
+    // Crosshair color.
+    //
+
+    CONFIG_VARIABLE_INT(crispy_crosshaircolor),
 
     //!
     // @game doom heretic hexen
@@ -2467,6 +2489,14 @@ static default_t extra_defaults_list[] =
     //
 
     CONFIG_VARIABLE_INT(crispy_freelook),
+
+    //!
+    // @game doom heretic hexen strife
+    //
+    // Crispy's variable to support intermediate and negative gamma levels.
+    //
+
+    CONFIG_VARIABLE_INT(crispy_gamma),
 
     //!
     // @game doom
@@ -2589,6 +2619,14 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(crispy_soundmono),
 
     //!
+    // @game heretic
+    //
+    // Level Weapon Sounds
+    //
+
+    CONFIG_VARIABLE_INT(crispy_lvlwpnsnd),
+
+    //!
     // @game doom
     //
     // Level Stats Format.
@@ -2597,7 +2635,7 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(crispy_statsformat),
 
     //!
-    // @game doom
+    // @game doom heretic hexen
     //
     // Enable translucency.
     //
@@ -3305,8 +3343,8 @@ char *M_GetSaveGameDir(const char *iwadname)
     //!
     // @arg <directory>
     //
-    // Specify a path from which to load and save games. If the directory
-    // does not exist then it will automatically be created.
+    // Specify a path from which to load and save games.  If the
+    // directory does not exist then it will automatically be created.
     //
 
     p = M_CheckParmWithArgs("-savedir", 1);
@@ -3392,4 +3430,3 @@ char *M_GetAutoloadDir(const char *iwadname, boolean makedir)
 
     return result;
 }
-

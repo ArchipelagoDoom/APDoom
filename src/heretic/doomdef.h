@@ -259,6 +259,7 @@ typedef struct
 
 #define	MF_TRANSLATION	0xc000000 // if 0x4 0x8 or 0xc, use a translation
 #define	MF_TRANSSHIFT	26      // table for player colormaps
+#define MF_TRANSLUCENT  0x80000000 // [crispy] translucent sprite
 
 // --- mobj.flags2 ---
 
@@ -536,6 +537,8 @@ extern boolean usergame;        // ok to save / end game
 
 extern boolean ravpic;          // checkparm of -ravpic
 
+extern boolean coop_spawns;     // [crispy] checkparm of -coop_spawns
+
 extern boolean altpal;          // checkparm to use an alternate palette routine
 
 extern boolean cdrom;           // true if cd-rom mode active ("-cdrom")
@@ -618,6 +621,8 @@ extern int testcontrols_mousespeed;
 
 extern int vanilla_savegame_limit;
 extern int vanilla_demo_limit;
+
+extern FILE *SaveGameFP; // [crispy] for usage in extsavg
 
 /*
 ===============================================================================
@@ -717,7 +722,8 @@ void G_SaveGame(int slot, char *description);
 char *SV_Filename(int slot);
 void SV_Open(char *fileName);
 void SV_OpenRead(char *fileName);
-void SV_Close(char *fileName);
+void SV_WriteSaveGameEOF(void);
+void SV_Close(void);
 void SV_Write(void *buffer, int size);
 void SV_WriteByte(byte val);
 void SV_WriteWord(unsigned short val);
@@ -754,6 +760,8 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic);
 
 void G_Ticker(void);
 boolean G_Responder(event_t * ev);
+void G_FastResponder(void); // [crispy]
+void G_PrepTiccmd(void); // [crispy]
 
 void G_ScreenShot(void);
 
@@ -763,10 +771,15 @@ void G_ScreenShot(void);
 
 extern lumpinfo_t *maplumpinfo;
 
+extern int init_thinkers_count;
+
 void P_Ticker(void);
 // called by C_Ticker
 // can call G_PlayerExited
 // carries out all thinking of monsters and players
+
+// [crispy] (re-)create BLOCKMAP if necessary
+void P_CreateBlockMap(void);
 
 void P_SetupLevel(int episode, int map, int playermask, skill_t skill);
 // called by W_Ticker
@@ -866,6 +879,7 @@ void F_StartFinale(void);
 // STATUS BAR (SB_bar.c)
 //----------------------
 
+#define CURPOS_MAX 6 // [crispy] 7 total artifact frames
 
 extern boolean inventory;
 extern int curpos;

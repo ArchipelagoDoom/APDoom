@@ -5117,6 +5117,7 @@ mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
 	sfx_None,		// activesound
 	MF_SPECIAL|MF_NOTDMATCH,		// flags
 	S_NULL,		// raisestate
+	0, // gibhealth
 	0, // actualheight
 	0, // droppeditem
 	0, // meleethreshold

@@ -23,6 +23,7 @@
 #include "config.h"
 #include "doomstat.h"
 #include "doomtype.h"
+#include "deh_main.h"
 #include "m_misc.h"
 #include "p_extsaveg.h"
 #include "p_local.h"
@@ -31,6 +32,7 @@
 #include "s_sound.h"
 #include "s_musinfo.h"
 #include "z_zone.h"
+#include "a11y.h"
 
 #define MAX_LINE_LEN 260
 #define MAX_STRING_LEN 80
@@ -63,9 +65,9 @@ static void P_ReadWadFileName (const char *key)
 		if (sscanf(line, "%s", string) == 1 &&
 		    !strncmp(string, key, MAX_STRING_LEN))
 		{
-			if (sscanf(line, "%*s %s", string) == 1)
+			if (strlen(line) > strlen(key) + 1)
 			{
-				savewadfilename = strdup(string);
+				savewadfilename = strdup(CleanString(line + strlen(key) + 1));
 			}
 		}
 	}
@@ -163,6 +165,9 @@ static void P_ReadFireFlicker (const char *key)
 
 		flick->thinker.function.acp1 = (actionf_p1)T_FireFlicker;
 
+		if (!a11y_sector_lighting)
+			flick->sector->rlightlevel = flick->maxlight;
+
 		P_AddThinker(&flick->thinker);
 	}
 }
@@ -232,40 +237,6 @@ static void P_ReadOldSpecial (const char *key)
 	    !strncmp(string, key, MAX_STRING_LEN))
 	{
 		sectors[sector].oldspecial = oldspecial;
-	}
-}
-
-// sector->rlightlevel
-
-static void P_WriteRLightlevel (const char *key)
-{
-	int i;
-	sector_t *sector;
-
-	for (i = 0, sector = sectors; i < numsectors; i++, sector++)
-	{
-		if (sector->rlightlevel != sector->lightlevel)
-		{
-			M_snprintf(line, MAX_LINE_LEN, "%s %d %d\n",
-			           key,
-			           i,
-			           (int)sector->rlightlevel);
-			fputs(line, save_stream);
-		}
-	}
-}
-
-static void P_ReadRLightlevel (const char *key)
-{
-	int sector, rlightlevel;
-
-	if (sscanf(line, "%s %d %d\n",
-	           string,
-	           &sector,
-	           &rlightlevel) == 3 &&
-	    !strncmp(string, key, MAX_STRING_LEN))
-	{
-		sectors[sector].rlightlevel = (short)rlightlevel;
 	}
 }
 
@@ -483,7 +454,6 @@ static const extsavegdata_t extsavegdata[] =
 	{"fireflicker", P_WriteFireFlicker, P_ReadFireFlicker, 1},
 	{"soundtarget", P_WriteSoundTarget, P_ReadSoundTarget, 1},
 	{"oldspecial", P_WriteOldSpecial, P_ReadOldSpecial, 1},
-	{"rlightlevel", P_WriteRLightlevel, P_ReadRLightlevel, 1},
 	{"button", P_WriteButton, P_ReadButton, 1},
 	{"braintarget", P_WriteBrainTarget, P_ReadBrainTarget, 1},
 	{"markpoints", P_WriteMarkPoints, P_ReadMarkPoints, 1},

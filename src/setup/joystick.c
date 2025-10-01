@@ -92,7 +92,7 @@ static int joystick_y_dead_zone = 33;
 static int joystick_strafe_dead_zone = 33;
 static int joystick_look_dead_zone = 33;
 
-int use_analog = 0;
+int use_analog = 1; // [crispy] use analog by default
 
 int joystick_turn_sensitivity = 10;
 int joystick_move_sensitivity = 10;
@@ -1173,12 +1173,9 @@ static void AdjustAnalog(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(unused))
         TXT_NewLabel("Turn"),
         TXT_NewSpinControl(&joystick_turn_sensitivity, 0, 20),
         NULL);
-    if (gamemission == heretic || gamemission == hexen || gamemission == strife)
-    {
         TXT_AddWidgets(window,
             TXT_NewLabel("Look"),
             TXT_NewSpinControl(&joystick_look_sensitivity, 0, 20), NULL);
-    }
     TXT_SetWindowAction(window, TXT_HORIZ_LEFT, NULL);
     TXT_SetWindowAction(window, TXT_HORIZ_CENTER,
         TXT_NewWindowEscapeAction(window));
@@ -1315,12 +1312,6 @@ void ConfigJoystick(TXT_UNCAST_ARG(widget), void *user_data)
         TXT_AddWidget(window,
                        TXT_NewButton2("More controls...", MoreControls, NULL));
         TXT_AddWidget(window, TXT_TABLE_EOL);
-        AddJoystickControl(window, "Use artifact", &joybuseartifact);
-        AddJoystickControl(window, "Inventory left", &joybinvleft);
-        AddJoystickControl(window, "Inventory right", &joybinvright);
-        AddJoystickControl(window, "Fly up", &joybflyup);
-        AddJoystickControl(window, "Fly down", &joybflydown);
-        AddJoystickControl(window, "Fly center", &joybflycenter);
     }
 
     TXT_SignalConnect(joystick_button, "pressed", CalibrateJoystick, window);

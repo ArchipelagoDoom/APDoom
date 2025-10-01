@@ -194,6 +194,21 @@ animdef_t animdefs_vanilla[] = {
     {false, "FLATHUH4", "FLATHUH1", 8}, // Super Lava
     {true, "LAVAFL3", "LAVAFL1", 6},    // Texture: Lavaflow
     {true, "WATRWAL3", "WATRWAL1", 4},  // Texture: Waterfall
+    // [crispy] Support animated textures and flats from H+H IWAD.
+    {false, "FLTFLWS3", "FLTFLWS1", 9}, // River - South
+    {false, "FLTLAVF3", "FLTLAVF1", 6}, // River Lava - West
+    {false, "FLTLAVS3", "FLTLAVS1", 6}, // River Lava - South
+    {false, "FLTBLOD3", "FLTBLOD1", 8}, // Blood
+    {true, "BLUEGLO4", "BLUEGLO1", 6},  // Texture: Blue Glowing Gem
+    {true, "CANDLES3", "CANDLES1", 6},  // Texture: Candles
+    {true, "CISTDRN3", "CISTDRN1", 8},  // Texture: Cistern Drain
+    {true, "CISTERN3", "CISTERN1", 8},  // Texture: Cistern
+    {true, "IRONLMP4", "IRONLMP1", 8},  // Texture: Iron Lava Lamp
+    {true, "LAMPLAV4", "LAMPLAV1", 8},  // Texture: Double Lava Lamp
+    {true, "SEWPIP3", "SEWPIP1", 4},    // Texture: Sewer Pipe
+    {true, "WLLBLOD3", "WLLBLOD1", 6},  // Texture: Bloodfall
+    {true, "WLLMURK3", "WLLMURK1", 6},  // Texture: Murkyfall
+    {true, "WLLSLUD3", "WLLSLUD1", 6},  // Texture: Sludgefall
     {-1}
 };
 
@@ -214,14 +229,14 @@ struct
     { "FLTLAVA1", FLOOR_LAVA },
     { "FLATHUH1", FLOOR_LAVA },
     { "FLTSLUD1", FLOOR_SLUDGE },
+    // [crispy] Support terrain types from H+H IWAD.
+    { "FLTFLWS1", FLOOR_WATER },
+    { "FLTLAVF1", FLOOR_LAVA },
+    { "FLTLAVS1", FLOOR_LAVA },
     { "END", -1 }
 };
 
 mobj_t LavaInflictor;
-
-// [AM] Fractional part of the current tic, in the half-open
-//      range of [0.0, 1.0).  Used for interpolation.
-extern fixed_t          fractionaltic;
 
 //----------------------------------------------------------------------------
 //
@@ -903,6 +918,7 @@ void P_ShootSpecialLine(mobj_t * thing, line_t * line)
 void P_PlayerInSpecialSector(player_t * player)
 {
     sector_t *sector;
+    static sector_t *error; // [crispy] for sectors with unknown special
     static int pushTab[5] = {
         2048 * 5,
         2048 * 10,
@@ -1025,8 +1041,14 @@ void P_PlayerInSpecialSector(player_t * player)
             break;
 
         default:
-            I_Error("P_PlayerInSpecialSector: "
-                    "unknown special %i", sector->special);
+            // [crispy] ignore unknown special sectors
+            if (error != sector)
+            {
+                error = sector;
+                printf("P_PlayerInSpecialSector: "
+                       "unknown special %i\n", sector->special);
+            }
+            break;
     }
 }
 
@@ -1090,7 +1112,7 @@ void P_UpdateSpecials(void)
         }
     }
     // Handle buttons
-    for (i = 0; i < MAXBUTTONS; i++)
+    for (i = 0; i < maxbuttons; i++)
     {
         if (buttonlist[i].btimer)
         {
@@ -1292,6 +1314,7 @@ void P_SpawnSpecials(void)
     //
     numlinespecials = 0;
     for (i = 0; i < numlines; i++)
+    {
         switch (lines[i].special)
         {
             case 48:           // Effect_Scroll_Left
@@ -1299,7 +1322,22 @@ void P_SpawnSpecials(void)
                 linespeciallist[numlinespecials] = &lines[i];
                 numlinespecials++;
                 break;
+            // [crispy] add support for MBF sky transfers
+            case 271:
+            case 272:
+              {
+                int secnum;
+                for (secnum = 0; secnum < numsectors; secnum++)
+                  {
+                    if (sectors[secnum].tag == lines[i].tag)
+                        {
+                            sectors[secnum].sky = i | PL_SKYFLAT;
+                        }
+                  }
+              }
+             break;
         }
+    }
 
     //
     //      Init other misc stuff
@@ -1308,7 +1346,7 @@ void P_SpawnSpecials(void)
         activeceilings[i] = NULL;
     for (i = 0; i < MAXPLATS; i++)
         activeplats[i] = NULL;
-    for (i = 0; i < MAXBUTTONS; i++)
+    for (i = 0; i < maxbuttons; i++)
         memset(&buttonlist[i], 0, sizeof(button_t));
 }
 

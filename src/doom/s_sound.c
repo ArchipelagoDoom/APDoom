@@ -37,6 +37,8 @@
 #include "p_local.h"
 #include "w_wad.h"
 #include "z_zone.h"
+#include "g_game.h" // [crispy] demo_gotonextlvl
+#include "d_pwad.h" // [crispy] masterlevel kex music
 
 #include "apdoom.h"
 
@@ -233,6 +235,59 @@ static void S_RegisterAltMusic()
 	}
 }
 
+// If no unique music lumps exist for E4Mx / NRFTLx / etc,
+// correct them to their original music choices when trying to play them.
+
+int S_CorrectMusic(int orig_mnum)
+{
+    switch (orig_mnum)
+    {
+        // --- Thy Flesh Consumed ---
+        case mus_e4m1: return mus_e3m4;
+        case mus_e4m2: return mus_e3m2;
+        case mus_e4m3: return mus_e3m3;
+        case mus_e4m4: return mus_e1m5;
+        case mus_e4m5: return mus_e2m7;
+        case mus_e4m6: return mus_e2m4;
+        case mus_e4m7: return mus_e2m6;
+        case mus_e4m8: return mus_e2m5;
+        case mus_e4m9: return mus_e1m9;
+        // --- No Rest for the Living ---
+        case mus_nrftl1: return mus_messag;
+        case mus_nrftl2: return mus_ddtblu;
+        case mus_nrftl3: return mus_doom;
+        case mus_nrftl4: return mus_shawn;
+        case mus_nrftl5: return mus_in_cit;
+        case mus_nrftl6: return mus_the_da;
+        case mus_nrftl7: return mus_in_cit;
+        case mus_nrftl8: return mus_shawn2;
+        case mus_nrftl9: return mus_ddtbl2;
+        // --- Master Levels ---
+        case mus_mlvlk1: return mus_dm2int;
+        case mus_mlvlk2: return mus_e2m2;
+        case mus_mlvlk3: return mus_the_da;
+        case mus_mlvlk4: return mus_e1m6;
+        case mus_mlvlk5: return mus_dead;
+        case mus_mlvlk6: return mus_stalks;
+        case mus_mlvlk7: return mus_in_cit;
+        case mus_mlvlk8: return mus_ddtblu;
+        case mus_mlvlk9: return mus_e3m3;
+        case mus_mlvlk10: return mus_victor;
+        case mus_mlvlk11: return mus_e1m5;
+        case mus_mlvlk12: return mus_e2m6;
+        case mus_mlvlk13: return mus_romero;
+        case mus_mlvlk14: return mus_e2m7;
+        case mus_mlvlk15: return mus_e1m8;
+        case mus_mlvlk16: return mus_messag;
+        case mus_mlvlk17: return mus_e1m7;
+        case mus_mlvlk18: return mus_e3m1;
+        case mus_mlvlk19: return mus_tense;
+        case mus_mlvlk20: return mus_read_m;
+        case mus_mlvlk21: return mus_openin;
+        default: return orig_mnum;
+    }
+}
+
 //
 // Initializes sound stuff, including volume
 // Sets channels, SFX and music volume,
@@ -295,7 +350,7 @@ void S_Init(int sfxVolume, int musicVolume)
     I_AtExit(S_Shutdown, true);
 
     // [crispy] initialize dedicated music tracks for the 4th episode
-    for (i = mus_e4m1; i <= mus_e5m9; i++)
+    for (i = mus_e4m1; i <= mus_e6m9; i++)
     {
         musicinfo_t *const music = &S_music[i];
         char namebuf[9];
@@ -381,74 +436,124 @@ void S_Start(void)
     ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
     mnum = level_state->music;
     if (!mnum)
-    {
-        if (gamemode == commercial)
-        {
-            const int nmus[] =
-            {
-                mus_messag,
-                mus_ddtblu,
-                mus_doom,
-                mus_shawn,
-                mus_in_cit,
-                mus_the_da,
-                mus_in_cit,
-                mus_shawn2,
-                mus_ddtbl2,
-            };
+        mnum = (commercial ? mus_runnin : mus_e1m1);
+    if (S_music[mnum].lumpnum == -1)
+        mnum = S_CorrectMusic(mnum);
 
-            if ((gameepisode == 2 || gamemission == pack_nerve) &&
-                gamemap <= arrlen(nmus))
+#if 0 // [AP] Upstream music determination code
+    if (gamemode == commercial)
+    {
+        const int nmus[9][2] =
+        {
+            {mus_nrftl1, mus_messag},
+            {mus_nrftl2, mus_ddtblu},
+            {mus_nrftl3, mus_doom},
+            {mus_nrftl4, mus_shawn},
+            {mus_nrftl5, mus_in_cit},
+            {mus_nrftl6, mus_the_da},
+            {mus_nrftl7, mus_in_cit},
+            {mus_nrftl8, mus_shawn2},
+            {mus_nrftl9, mus_ddtbl2},
+        };
+
+        const int mlvlkmus[21][2] =
+        {
+            {mus_mlvlk1, mus_dm2int},
+            {mus_mlvlk2, mus_e2m2},
+            {mus_mlvlk3, mus_the_da},
+            {mus_mlvlk4, mus_e1m6},
+            {mus_mlvlk5, mus_dead},
+            {mus_mlvlk6, mus_stalks},
+            {mus_mlvlk7, mus_in_cit},
+            {mus_mlvlk8, mus_ddtblu},
+            {mus_mlvlk9, mus_e3m3},
+            {mus_mlvlk10, mus_victor},
+            {mus_mlvlk11, mus_e1m5},
+            {mus_mlvlk12, mus_e2m6},
+            {mus_mlvlk13, mus_romero},
+            {mus_mlvlk14, mus_e2m7},
+            {mus_mlvlk15, mus_e1m8},
+            {mus_mlvlk16, mus_messag},
+            {mus_mlvlk17, mus_e1m7},
+            {mus_mlvlk18, mus_e3m1},
+            {mus_mlvlk19, mus_tense},
+            {mus_mlvlk20, mus_read_m},
+            {mus_mlvlk21, mus_openin},
+        };
+
+        if ((gameepisode == 2 || gamemission == pack_nerve) &&
+            gamemap <= arrlen(nmus))
+        {
+            char name[9];
+
+            mnum = nmus[gamemap - 1][0];
+            M_snprintf(name, sizeof(name), "d_%s", S_music[mnum].name);
+            if (W_CheckNumForName(name) == -1)
             {
-                mnum = nmus[gamemap - 1];
+                mnum = nmus[gamemap - 1][1];
             }
-            else
-            mnum = mus_runnin + gamemap - 1;
+        }
+        else
+        if ((gameepisode == 3 || gamemission == pack_master) && D_CheckMasterlevelKex() &&
+            gamemap <= arrlen(mlvlkmus))
+        {
+            char name[9];
+
+            mnum = mlvlkmus[gamemap - 1][0];
+            M_snprintf(name, sizeof(name), "d_%s", S_music[mnum].name);
+            if (W_CheckNumForName(name) == -1)
+            {
+                mnum = mlvlkmus[gamemap - 1][1];
+            }            
+        }
+        else
+        mnum = mus_runnin + gamemap - 1;
+    }
+    else
+    {
+        int spmus[]=
+        {
+            // Song - Who? - Where?
+
+            mus_e3m4,        // American     e4m1
+            mus_e3m2,        // Romero       e4m2
+            mus_e3m3,        // Shawn        e4m3
+            mus_e1m5,        // American     e4m4
+            mus_e2m7,        // Tim          e4m5
+            mus_e2m4,        // Romero       e4m6
+            mus_e2m6,        // J.Anderson   e4m7 CHIRON.WAD
+            mus_e2m5,        // Shawn        e4m8
+            mus_e1m9,        // Tim          e4m9
+        };
+
+        if (gameepisode < 4 || gameepisode == 5 || gameepisode == 6) // [crispy] Sigil
+        {
+            mnum = mus_e1m1 + (gameepisode-1)*9 + gamemap-1;
         }
         else
         {
-            int spmus[]=
-            {
-                // Song - Who? - Where?
+            mnum = spmus[gamemap-1];
 
-                mus_e3m4,        // American     e4m1
-                mus_e3m2,        // Romero       e4m2
-                mus_e3m3,        // Shawn        e4m3
-                mus_e1m5,        // American     e4m4
-                mus_e2m7,        // Tim          e4m5
-                mus_e2m4,        // Romero       e4m6
-                mus_e2m6,        // J.Anderson   e4m7 CHIRON.WAD
-                mus_e2m5,        // Shawn        e4m8
-                mus_e1m9,        // Tim          e4m9
-            };
-
-            if (gameepisode < 4 || gameepisode == 5) // [crispy] Sigil
+            // [crispy] support dedicated music tracks for the 4th episode
             {
-                mnum = mus_e1m1 + (gameepisode-1)*9 + gamemap-1;
-            }
-            else
-            {
-                mnum = spmus[gamemap-1];
+                const int sp_mnum = mus_e1m1 + 3 * 9 + gamemap - 1;
 
-                // [crispy] support dedicated music tracks for the 4th episode
+                if (S_music[sp_mnum].lumpnum > 0)
                 {
-                    const int sp_mnum = mus_e1m1 + 3 * 9 + gamemap - 1;
-
-                    if (S_music[sp_mnum].lumpnum > 0)
-                    {
-                        mnum = sp_mnum;
-                    }
+                    mnum = sp_mnum;
                 }
             }
         }
     }
+
+#endif
 
     // [crispy] do not change music if not changing map (preserves IDMUS choice)
 #if 0 // [AP] Ok we actually want that for AP
     {
 	const short curmap = (gameepisode << 8) + gamemap;
 
-	if (prevmap == curmap || (nodrawers && singletics))
+	if (prevmap == curmap || (nodrawers && singletics && !demo_gotonextlvl))
 	    return;
 
 	prevmap = curmap;
@@ -961,7 +1066,7 @@ void S_ChangeMusic(int musicnum, int looping)
     musinfo.current_item = -1;
 
     // [crispy] play no music if this is not the right map
-    if (nodrawers && singletics)
+    if (nodrawers && singletics && !demo_gotonextlvl)
 	return;
 
     // [crispy] restart current music if IDMUS00 is entered
@@ -995,7 +1100,14 @@ void S_ChangeMusic(int musicnum, int looping)
 
         if (gamemode == commercial)
         {
-            musicnum = mus_runnin + (umusicnum % (NUMMUSIC - mus_runnin));
+            if (logical_gamemission == pack_master && D_CheckMasterlevelKex())
+            {
+                // mlvlk using Doom 1 tracks - do not correct.
+            }
+            else
+            {
+                musicnum = mus_runnin + (umusicnum % (mus_nrftl1 - mus_runnin));
+            }
         }
         else
         {

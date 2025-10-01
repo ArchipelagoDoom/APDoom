@@ -480,26 +480,15 @@ static int get_original_music_for_level(int ep, int map)
 	{
 		case ap_game_t::doom:
 		{
-			int ep4_music[] = {
-				// Song - Who? - Where?
-
-				2 * 9 + 3 + 1, //mus_e3m4,        // American     e4m1
-				2 * 9 + 1 + 1, //mus_e3m2,        // Romero       e4m2
-				2 * 9 + 2 + 1, //mus_e3m3,        // Shawn        e4m3
-				0 * 9 + 4 + 1, //mus_e1m5,        // American     e4m4
-				1 * 9 + 6 + 1, //mus_e2m7,        // Tim          e4m5
-				1 * 9 + 3 + 1, //mus_e2m4,        // Romero       e4m6
-				1 * 9 + 5 + 1, //mus_e2m6,        // J.Anderson   e4m7 CHIRON.WAD
-				1 * 9 + 4 + 1, //mus_e2m5,        // Shawn        e4m8
-				0 * 9 + 8 + 1  //mus_e1m9,        // Tim          e4m9
-			};
-
-			if (ep == 4) return ep4_music[map - 1];
-			return 1 + (ep - 1) * ap_get_map_count(ep) + (map - 1);
+			// Correcting Episode 4's music is no longer needed
+			return 1 + (ep - 1) * 9 + (map - 1);
 		}
 		case ap_game_t::doom2:
 		{
-			return 52 + ap_index_to_map({ep - 1, map - 1}) - 1;
+			int d2map = ap_index_to_map({ep - 1, map - 1});
+			// Hack for NRFTL, should really give this a proper fix at some point
+			if (d2map > 40) return 97 + (d2map - 40) - 1;
+			return 62 + d2map - 1;
 		}
 		case ap_game_t::heretic:
 		{

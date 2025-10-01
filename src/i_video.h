@@ -21,6 +21,8 @@
 #define __I_VIDEO__
 
 #include "doomtype.h"
+#include "i_truecolor.h"
+#include "m_fixed.h" // [crispy] fixed_t
 #include "crispy.h"
 
 // Screen width and height.
@@ -36,6 +38,7 @@ extern int SCREENHEIGHT;
 extern int NONWIDEWIDTH; // [crispy] non-widescreen SCREENWIDTH
 extern int WIDESCREENDELTA; // [crispy] horizontal widescreen offset
 void I_GetScreenDimensions (void); // [crispy] re-calculate WIDESCREENDELTA
+void I_ToggleVsync (void); // [crispy] calls native SDL vsync toggle
 
 // Screen height used when aspect_ratio_correct=true.
 
@@ -63,6 +66,11 @@ int I_GetPaletteIndex(int r, int g, int b);
 void I_SetPalette (int palette);
 extern const pixel_t I_MapRGB (const uint8_t r, const uint8_t g, const uint8_t b);
 #endif
+
+extern byte gamma2table[18][256];
+void I_SetGammaTable (void);
+
+extern fixed_t fractionaltic;
 
 void I_UpdateNoBlit (void);
 void I_FinishUpdate (void);
@@ -93,6 +101,9 @@ void I_StartFrame (void);
 
 void I_StartTic (void);
 
+void I_UpdateFracTic (void); // [crispy]
+void I_StartDisplay (void); // [crispy]
+
 // Enable the loading disk image displayed when reading from disk.
 
 void I_EnableLoadingDisk(int xoffs, int yoffs);
@@ -110,6 +121,7 @@ extern int screen_height;
 extern int fullscreen;
 extern int aspect_ratio_correct;
 extern int integer_scaling;
+extern int smooth_pixel_scaling;
 extern int vga_porch_flash;
 extern int force_software_renderer;
 

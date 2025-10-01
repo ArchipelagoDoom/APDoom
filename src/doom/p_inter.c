@@ -78,7 +78,7 @@ P_GiveAmmo
     if (ammo == am_noammo)
 	return false;
 		
-    if (ammo > NUMAMMO)
+    if (ammo >= NUMAMMO)
 	I_Error ("P_GiveAmmo: bad type %i", ammo);
 		
     if ( player->ammo[ammo] == player->maxammo[ammo]  )
@@ -848,7 +848,11 @@ P_KillMobj_Real // So we can specify death by death link
         target->type == MT_BARREL)
         target->flags |= MF_TRANSLUCENT;
 
-    if (target->health < -target->info->spawnhealth 
+    if ((target->health < -target->info->spawnhealth
+    // [JN] Gib health feature from DOOM Retro.
+    // Logic: if gibhealth < 0, i.e. explicitly modified via DEHACKED,
+    // and the current health is lower than the defined gibhealth.
+    || (target->info->gibhealth < 0 && target->health < target->info->gibhealth))
 	&& target->info->xdeathstate)
     {
 	P_SetMobjState (target, target->info->xdeathstate);
@@ -1063,7 +1067,7 @@ P_DamageMobj
     target->reactiontime = 0;		// we're awake now...	
 
     if ( (!target->threshold || target->type == MT_VILE)
-	 && source && (source != target || gameversion <= exe_doom_1_2)
+	 && source && (source != target || gameversion < exe_doom_1_5)
 	 && source->type != MT_VILE)
     {
 	// if not intent on another player,

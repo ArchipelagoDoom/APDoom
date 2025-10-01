@@ -73,6 +73,8 @@
 //#endif
 #define HEXEN_VERSIONTEXT ((gamemode == shareware) ? \
                            "DEMO 10 16 95" : \
+                           (gameversion != exe_hexen_1_1r2) ? \
+                           "VERSION 1.1 MAR 12 1996 (CBI)" : \
                            "VERSION 1.1 MAR 22 1996 (BCP)")
 
 // all exterior data is defined here
@@ -291,6 +293,7 @@ typedef struct
 //#define       MF_TRANSLATION  0xc000000       // if 0x4 0x8 or 0xc, use a translation
 #define	MF_TRANSLATION	0x1c000000      // use a translation table (>>MF_TRANSHIFT)
 #define	MF_TRANSSHIFT	26      // table for player colormaps
+#define MF_TRANSLUCENT  0x80000000 // [crispy] translucent sprite
 
 
 // --- mobj.flags2 ---
@@ -611,7 +614,8 @@ void NET_SendFrags(player_t * player);
 
 #define TELEFOGHEIGHT (32*FRACUNIT)
 
-extern GameMode_t gamemode;         // Always commercial
+extern GameMode_t gamemode;
+extern GameVersion_t gameversion;
 
 extern gameaction_t gameaction;
 
@@ -714,6 +718,8 @@ extern int testcontrols_mousespeed;
 
 extern int vanilla_savegame_limit;
 extern int vanilla_demo_limit;
+
+extern FILE *SavingFP; // [crispy] for usage in extsavg
 
 extern boolean usearti;
 
@@ -846,6 +852,8 @@ void G_WorldDone(void);
 void G_BuildTiccmd(ticcmd_t *cmd, int maketic);
 void G_Ticker(void);
 boolean G_Responder(event_t * ev);
+void G_FastResponder(void); // [crispy]
+void G_PrepTiccmd(void); // [crispy]
 
 void G_ScreenShot(void);
 
@@ -885,6 +893,8 @@ void SV_ClearSaveSlot(int slot); // [crispy]
 //-----
 //PLAY
 //-----
+
+extern lumpinfo_t *maplumpinfo;
 
 void P_Ticker(void);
 // called by C_Ticker
@@ -1101,6 +1111,8 @@ void F_StartFinale(void);
 //----------------------
 // STATUS BAR (SB_bar.c)
 //----------------------
+
+#define CURPOS_MAX 6 // [crispy] 7 total artifact frames
 
 extern int inv_ptr;
 extern int curpos;

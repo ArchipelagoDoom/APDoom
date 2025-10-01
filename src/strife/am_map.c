@@ -60,6 +60,7 @@ extern boolean inhelpscreens; // [crispy]
 #define THINGCOLORS     233         // villsa [STRIFE]
 #define MISSILECOLORS   227         // villsa [STRIFE]
 #define SHOOTABLECOLORS 235         // villsa [STRIFE]
+#define XHAIRCOLORS     5           // [crispy]
 
 // [crispy] FRACTOMAPBITS: overflow-safe coordinate system.
 // Written by Andrey Budko (entryway), adapted from prboom-plus/src/am_map.*
@@ -199,8 +200,6 @@ mline_t thintriangle_guy[] = {
 static int 	cheating = 0;
 //static int 	grid = 0;     [STRIFE]: no such variable
 
-static int 	leveljuststarted = 1; 	// kluge until AM_LevelInit() is called
-
 boolean    	automapactive = false;
 //static int 	finit_width = SCREENWIDTH;
 //static int 	finit_height = SCREENHEIGHT - (32 << crispy->hires);
@@ -286,6 +285,7 @@ void (*AM_drawFline)(fline_t*, int) = AM_drawFline_Vanilla;
 // [crispy] automap rotate mode needs these early on
 void AM_rotate (int64_t *x, int64_t *y, angle_t a);
 static void AM_rotatePoint (mpoint_t *pt);
+static void AM_drawCrosshair(int color, boolean force); // [crispy] restore crosshair
 static mpoint_t mapcenter;
 static angle_t mapangle;
 
@@ -322,8 +322,8 @@ void AM_activateNewScale(void)
     m_y -= m_h/2;
     m_x2 = m_x + m_w;
     m_y2 = m_y + m_h;
-    next_m_x = m_x; // [crispy]
-    next_m_y = m_y; // [crispy]
+    next_m_x = prev_m_x = m_x; // [crispy]
+    next_m_y = prev_m_y = m_y; // [crispy]
 }
 
 //
@@ -355,8 +355,8 @@ void AM_restoreScaleAndLoc(void)
     }
     m_x2 = m_x + m_w;
     m_y2 = m_y + m_h;
-    next_m_x = m_x; // [crispy]
-    next_m_y = m_y; // [crispy]
+    next_m_x = prev_m_x = m_x; // [crispy]
+    next_m_y = prev_m_y = m_y; // [crispy]
 
     // Change the scaling multipliers
     scale_mtof = FixedDiv(f_w<<FRACBITS, m_w);
@@ -368,8 +368,19 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    markpoints[markpointnum].x = plr->mo->x >> FRACTOMAPBITS; // 20160306 [STRIFE]: use player position
-    markpoints[markpointnum].y = plr->mo->y >> FRACTOMAPBITS;
+    // [crispy] keep the map static in overlay mode
+    // if not following the player
+    if (!(!followplayer && crispy->automapoverlay))
+    {
+        markpoints[markpointnum].x = m_x + m_w/2;
+        markpoints[markpointnum].y = m_y + m_h/2;
+    }
+    else
+    {
+        markpoints[markpointnum].x = plr->mo->x >> FRACTOMAPBITS; // 20160306 [STRIFE]: use player position
+        markpoints[markpointnum].y = plr->mo->y >> FRACTOMAPBITS;
+    }
+    
     //markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
     ++markpointnum; // haleyjd 20141101: [STRIFE] does not wrap around
 }
@@ -572,8 +583,6 @@ void AM_LevelInit(boolean reinit)
     // [crispy] Only need to precalculate color lookup tables once
     static int precalc_once;
 
-    leveljuststarted = 0;
-
     f_x = f_y = 0;
     f_w = SCREENWIDTH;
     f_h = SCREENHEIGHT - (ST_HEIGHT << crispy->hires);
@@ -588,6 +597,7 @@ void AM_LevelInit(boolean reinit)
     if (reinit && f_h_old)
     {
         scale_mtof = scale_mtof * f_h / f_h_old;
+        AM_drawCrosshair(XHAIRCOLORS, true);
     }
     else
     {
@@ -640,12 +650,13 @@ void AM_Stop (void)
     stopped = true;
 }
 
+// [crispy] moved here for extended savegames
+static int lastlevel = -1;
 //
 //
 //
 void AM_Start (void)
 {
-    static int lastlevel = -1;
     //static int lastepisode = -1;
 
     if (!stopped) AM_Stop();
@@ -1239,7 +1250,12 @@ AM_drawFline_Vanilla
 	return;
     }
 
-#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
+#define PUTDOT_RAW(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
+#ifndef CRISPY_TRUECOLOR
+#define PUTDOT(xx,yy,cc) PUTDOT_RAW(xx,yy,cc)
+#else
+#define PUTDOT(xx,yy,cc) PUTDOT_RAW(xx,yy,(pal_color[(cc)]))
+#endif
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
@@ -1311,7 +1327,7 @@ static void AM_drawFline_Smooth(fline_t* fl, int color)
        the line and so needs no weighting */
     /* Always write the raw color value because we've already performed the necessary lookup
      * into colormap */
-    PUTDOT(X0, Y0, BaseColor[0]);
+    PUTDOT_RAW(X0, Y0, BaseColor[0]);
 
     if ((DeltaX = X1 - X0) >= 0)
     {
@@ -1331,7 +1347,7 @@ static void AM_drawFline_Smooth(fline_t* fl, int color)
         while (DeltaX-- != 0)
         {
             X0 += XDir;
-            PUTDOT(X0, Y0, BaseColor[0]);
+            PUTDOT_RAW(X0, Y0, BaseColor[0]);
         }
         return;
     }
@@ -1341,7 +1357,7 @@ static void AM_drawFline_Smooth(fline_t* fl, int color)
         do
         {
             Y0++;
-            PUTDOT(X0, Y0, BaseColor[0]);
+            PUTDOT_RAW(X0, Y0, BaseColor[0]);
         }
         while (--DeltaY != 0);
         return;
@@ -1353,7 +1369,7 @@ static void AM_drawFline_Smooth(fline_t* fl, int color)
         {
             X0 += XDir;
             Y0++;
-            PUTDOT(X0, Y0, BaseColor[0]);
+            PUTDOT_RAW(X0, Y0, BaseColor[0]);
         }
         while (--DeltaY != 0);
         return;
@@ -1387,12 +1403,12 @@ static void AM_drawFline_Smooth(fline_t* fl, int color)
                intensity weighting for this pixel, and the complement of the
                weighting for the paired pixel */
             Weighting = ErrorAcc >> IntensityShift;
-            PUTDOT(X0, Y0, BaseColor[Weighting]);
-            PUTDOT(X0 + XDir, Y0, BaseColor[(Weighting ^ WeightingComplementMask)]);
+            PUTDOT_RAW(X0, Y0, BaseColor[Weighting]);
+            PUTDOT_RAW(X0 + XDir, Y0, BaseColor[(Weighting ^ WeightingComplementMask)]);
         }
         /* Draw the final pixel, which is always exactly intersected by the line
            and so needs no weighting */
-        PUTDOT(X1, Y1, BaseColor[0]);
+        PUTDOT_RAW(X1, Y1, BaseColor[0]);
         return;
     }
     /* It's an X-major line; calculate 16-bit fixed-point fractional part of a
@@ -1414,13 +1430,13 @@ static void AM_drawFline_Smooth(fline_t* fl, int color)
            intensity weighting for this pixel, and the complement of the
            weighting for the paired pixel */
         Weighting = ErrorAcc >> IntensityShift;
-        PUTDOT(X0, Y0, BaseColor[Weighting]);
-        PUTDOT(X0, Y0 + 1, BaseColor[(Weighting ^ WeightingComplementMask)]);
+        PUTDOT_RAW(X0, Y0, BaseColor[Weighting]);
+        PUTDOT_RAW(X0, Y0 + 1, BaseColor[(Weighting ^ WeightingComplementMask)]);
 
     }
     /* Draw the final pixel, which is always exactly intersected by the line
        and so needs no weighting */
-    PUTDOT(X1, Y1, BaseColor[0]);
+    PUTDOT_RAW(X1, Y1, BaseColor[0]);
 }
 
 //
@@ -1722,8 +1738,8 @@ void AM_drawPlayers(void)
 	// [crispy] interpolate other player arrows
 	if (crispy->uncapped && leveltime > oldleveltime)
 	{
-	    pt.x = (p->mo->oldx + FixedMul(p->mo->x - p->mo->oldx, fractionaltic)) >> FRACTOMAPBITS;
-	    pt.y = (p->mo->oldy + FixedMul(p->mo->y - p->mo->oldy, fractionaltic)) >> FRACTOMAPBITS;
+	    pt.x = LerpFixed(p->mo->oldx, p->mo->x) >> FRACTOMAPBITS;
+	    pt.y = LerpFixed(p->mo->oldy, p->mo->y) >> FRACTOMAPBITS;
 	}
 	else
 	{
@@ -1738,7 +1754,7 @@ void AM_drawPlayers(void)
 	}
 	else
 	{
-        theirangle = R_InterpolateAngle(p->mo->oldangle, p->mo->angle, fractionaltic);
+        theirangle = LerpAngle(p->mo->oldangle, p->mo->angle);
 	}
 
 	AM_drawLineCharacter
@@ -1778,8 +1794,8 @@ void AM_drawThings(void)
             // [crispy] interpolate thing triangles movement
             if (leveltime > oldleveltime)
             {
-                pt.x = (t->oldx + FixedMul(t->x - t->oldx, fractionaltic)) >> FRACTOMAPBITS;
-                pt.y = (t->oldy + FixedMul(t->y - t->oldy, fractionaltic)) >> FRACTOMAPBITS;
+                pt.x = LerpFixed(t->oldx, t->x) >> FRACTOMAPBITS;
+                pt.y = LerpFixed(t->oldy, t->y) >> FRACTOMAPBITS;
             }
             else
             {
@@ -1839,24 +1855,49 @@ void AM_drawMarks(void)
             {
                 AM_rotatePoint(&pt);
             }
-            fx = (CXMTOF(pt.x) >> crispy->hires) - 3 - WIDESCREENDELTA;
+            fx = (CXMTOF(pt.x) >> crispy->hires) - 3;
             fy = (CYMTOF(pt.y) >> crispy->hires) - 3;
             if (fx >= f_x && fx <= (f_w >> crispy->hires) - w && fy >= f_y && fy <= (f_h >> crispy->hires) - h)
             {
                 // villsa [STRIFE]
                 if(i >= mapmarknum)
-                    V_DrawPatch(fx, fy, marknums[i]);
+                    V_DrawPatch(fx - WIDESCREENDELTA, fy, marknums[i]);
             }
         }
     }
 
 }
 
-// villsa [STRIFE] unused
-/*void AM_drawCrosshair(int color)
+// [crispy] activate crosshair
+static void AM_drawCrosshair(int color, boolean force)
 {
+    // [crispy] draw an actual crosshair
+    if (!followplayer || force)
+    {
+        static fline_t h, v;
+
+        if (!h.a.x || force)
+        {
+            h.a.x = h.b.x = v.a.x = v.b.x = f_x + f_w / 2;
+            h.a.y = h.b.y = v.a.y = v.b.y = f_y + f_h / 2;
+            h.a.x -= 2; h.b.x += 2;
+            v.a.y -= 2; v.b.y += 2;
+        }
+
+        AM_drawFline(&h, color);
+        AM_drawFline(&v, color);
+    }
+// [crispy] do not draw the useless dot on the player arrow
+/*
+    else
+#ifndef CRISPY_TRUECOLOR
     fb[(f_w*(f_h+1))/2] = color; // single point for now
-}*/
+#else
+    fb[(f_w*(f_h+1))/2] = pal_color[color]; // single point for now
+#endif
+*/
+
+}
 
 void AM_Drawer (void)
 {
@@ -1889,7 +1930,11 @@ void AM_Drawer (void)
 
     if (!crispy->automapoverlay)
     {
+#ifndef CRISPY_TRUECOLOR
         AM_clearFB(BACKGROUND);
+#else
+        AM_clearFB(pal_color[BACKGROUND]);
+#endif
         pspr_interp = false; // [crispy] interpolate weapon bobbing
     }
 
@@ -1904,10 +1949,52 @@ void AM_Drawer (void)
     if(cheating == 2 || plr->powers[pw_allmap] > 1)
         AM_drawThings();
 
-    // villsa [STRIFE] not used
-    //AM_drawCrosshair(XHAIRCOLORS);
+    // [crispy] activate crosshair
+    AM_drawCrosshair(XHAIRCOLORS, false);
 
     AM_drawMarks();
     V_MarkRect(f_x, f_y, f_w, f_h);
 
+}
+
+
+//===========================================================================
+//
+// [crispy] Get & Set marks for extended savegame
+//
+//===========================================================================
+
+void AM_GetMarkPoints (int *n, long *p)
+{
+    int i;
+
+    *n = markpointnum;
+    *p = -1L;
+
+    // [crispy] prevent saving markpoints from previous map
+    if (lastlevel == gamemap /* && lastepisode == gameepisode */)
+    {
+        for (i = 0; i < AM_NUMMARKPOINTS; i++)
+        {
+            *p++ = (long)markpoints[i].x;
+            *p++ = (markpoints[i].x == -1) ? 0L : (long)markpoints[i].y;
+        }
+    }
+}
+
+void AM_SetMarkPoints (int n, long *p)
+{
+    int i;
+
+    AM_LevelInit(false);
+    lastlevel = gamemap;
+    // lastepisode = gameepisode;
+
+    markpointnum = n;
+
+    for (i = 0; i < AM_NUMMARKPOINTS; i++)
+    {
+        markpoints[i].x = (int64_t)*p++;
+        markpoints[i].y = (int64_t)*p++;
+    }
 }

@@ -528,6 +528,7 @@ boolean P_LookForPlayers(mobj_t * actor, boolean allaround)
     player_t *player;
     angle_t an;
     fixed_t dist;
+    int consecutive_missing = 0; // for breaking infinite loop
 
     if (!netgame && players[0].health <= 0)
     {                           // Single player game and player is dead, look for monsters
@@ -535,18 +536,38 @@ boolean P_LookForPlayers(mobj_t * actor, boolean allaround)
     }
     c = 0;
 
-    // NOTE: This behavior has been changed from the Vanilla behavior, where
-    // an infinite loop can occur if players 0-3 all quit the game. Although
-    // technically this is not what Vanilla does, fixing this is highly
-    // desirable, and having the game simply lock up is not acceptable.
-    // stop = (actor->lastlook - 1) & 3;
-    // for (;; actor->lastlook = (actor->lastlook + 1) & 3)
+    // The 3 below is probably a mistake (it should be MAXPLAYERS - 1, or 7)
+    // and in vanilla this can potentially cause an infinite loop in
+    // multiplayer. Unfortunately we can't correct the mistake - doing so will
+    // cause desyncs. Upon spawning, each enemy's lastlook is initialized to a
+    // random value between 0 and 7 (i.e MAXPLAYERS - 1). There's a chance
+    // that the first call of this function for that enemy will return early
+    // courtesy of the actor->lastlook == stop condition. In a single-player
+    // game this occurs when (actor->lastlook - 1) & 3 equals 0, or when
+    // lastlook equals 1 or 5.
 
-    stop = (actor->lastlook + maxplayers - 1) % maxplayers;
-    for (;; actor->lastlook = (actor->lastlook + 1) % maxplayers)
+    // If you use MAXPLAYERS - 1, it has the side effect of altering which
+    // enemies are affected by an early actor->lastlook == stop return. Now it
+    // happens when (actor->lastlook - 1) & 7 equals 0, or when lastlook equals
+    // 1, *not* 1 and 5 as above.
+
+    stop = (actor->lastlook - 1) & 3;
+    for (;; actor->lastlook = (actor->lastlook + 1) & 3)
     {
         if (!playeringame[actor->lastlook])
+        {
+            // Break the vanilla infinite loop here. It can occur if there are
+            // > 4 players and players 0 - 3 all quit the game. Error out
+            // instead.
+            if (consecutive_missing == 4)
+            {
+                I_Error("P_LookForPlayers: No player 1 - 4.\n");
+            }
+            consecutive_missing++;
             continue;
+        }
+
+        consecutive_missing = 0;
 
         if (c++ == 2 || actor->lastlook == stop)
             return false;       // done looking
@@ -1673,6 +1694,7 @@ void A_Explode(mobj_t *actor, player_t *player, pspdef_t *psp)
         case MT_SORCBALL3:
             distance = 255;
             damage = 255;
+            actor->flags |= MF_TRANSLUCENT; // [crispy]
             actor->args[0] = 1; // don't play bounce
             break;
         case MT_SORCFX1:       // Sorcerer spell 1
@@ -2902,14 +2924,27 @@ static void DragonSeek(mobj_t * actor, angle_t thresh, angle_t turnMax)
                                             actor->target->y);
             for (i = 0; i < 5; i++)
             {
+                int mo_x, mo_y;
                 if (!target->args[i])
                 {
                     continue;
                 }
                 search = -1;
                 mo = P_FindMobjFromTID(target->args[i], &search);
+                // [crispy] fix wyvern + porkalator bug
+                if (mo == NULL)
+                {
+                    fprintf(stderr, "DragonSeek: P_FindMobjFromTID() returned NULL mobj!\n");
+                    mo_x = 0;
+                    mo_y = 0;
+                }
+                else
+                {
+                    mo_x = mo->x;
+                    mo_y = mo->y;
+                }
                 angleToSpot = R_PointToAngle2(actor->x, actor->y,
-                                              mo->x, mo->y);
+                                              mo_x, mo_y);
                 if (abs((int) angleToSpot - (int) angleToTarget) < bestAngle)
                 {
                     bestAngle = abs((int) angleToSpot - (int) angleToTarget);
@@ -4768,10 +4803,6 @@ void A_FreezeDeath(mobj_t *actor, player_t *player, pspdef_t *psp)
         actor->player->damagecount = 0;
         actor->player->poisoncount = 0;
         actor->player->bonuscount = 0;
-        if (actor->player == &players[consoleplayer])
-        {
-            SB_PaletteFlash(false);
-        }
     }
     else if (actor->flags & MF_COUNTKILL && actor->special)
     {

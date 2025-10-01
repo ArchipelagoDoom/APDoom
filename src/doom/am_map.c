@@ -27,6 +27,7 @@
 #include "st_stuff.h"
 #include "p_local.h"
 #include "w_wad.h"
+#include "p_tick.h"
 
 #include "m_cheat.h"
 #include "m_controls.h"
@@ -37,6 +38,9 @@
 
 // Needs access to LFB.
 #include "v_video.h"
+
+// V_GetPaletteIndex
+#include "v_trans.h"
 
 // State.
 #include "doomstat.h"
@@ -79,9 +83,8 @@ extern boolean inhelpscreens; // [crispy]
 #define CDWALLRANGE	YELLOWRANGE
 #define THINGCOLORS	GREENS
 #define THINGRANGE	GREENRANGE
-#define SECRETWALLCOLORS	252 // [crispy] purple
+#define SECRETWALLCOLORS WALLCOLORS
 #define CRISPY_HIGHLIGHT_REVEALED_SECRETS
-#define REVEALEDSECRETWALLCOLORS	112 // [crispy] green
 #define SECRETWALLRANGE WALLRANGE
 #define GRIDCOLORS	(GRAYS + GRAYSRANGE/2)
 #define GRIDRANGE	0
@@ -126,6 +129,10 @@ static int m_zoomout_kbd;
 static int m_zoomin_mouse;
 static int m_zoomout_mouse;
 static boolean mousewheelzoom;
+
+// [JN] Make wall colors of secret sectors palette-independent.
+static int secretwallcolors = -1;
+static int revealedsecretwallcolors = -1;
 
 // translates between frame-buffer and map distances
 // [crispy] fix int overflow that causes map and grid lines to disappear
@@ -243,8 +250,6 @@ static mline_t square_mark[] = {
 static int 	cheating = 0;
 static int 	grid = 0;
 
-static int 	leveljuststarted = 1; 	// kluge until AM_LevelInit() is called
-
 boolean    	automapactive = false;
 //static int 	finit_width = SCREENWIDTH;
 //static int 	finit_height = SCREENHEIGHT - (ST_HEIGHT << crispy->hires);
@@ -314,6 +319,9 @@ static int markpointnum = 0; // next point to be assigned
 static int followplayer = 1; // specifies whether to follow the player around
 
 cheatseq_t cheat_amap = CHEAT("iddt", 0);
+cheatseq_t cheat_iddst = CHEAT("iddst", 0);
+cheatseq_t cheat_iddit = CHEAT("iddit", 0);
+cheatseq_t cheat_iddkt = CHEAT("iddkt", 0);
 
 static boolean stopped = true;
 
@@ -369,8 +377,8 @@ void AM_activateNewScale(void)
     m_y -= m_h/2;
     m_x2 = m_x + m_w;
     m_y2 = m_y + m_h;
-    next_m_x = m_x; // [crispy]
-    next_m_y = m_y; // [crispy]
+    next_m_x = prev_m_x = m_x; // [crispy]
+    next_m_y = prev_m_y = m_y; // [crispy]
 }
 
 //
@@ -402,8 +410,8 @@ void AM_restoreScaleAndLoc(void)
     }
     m_x2 = m_x + m_w;
     m_y2 = m_y + m_h;
-    next_m_x = m_x; // [crispy]
-    next_m_y = m_y; // [crispy]
+    next_m_x = prev_m_x = m_x; // [crispy]
+    next_m_y = prev_m_y = m_y; // [crispy]
 
     // Change the scaling multipliers
     scale_mtof = FixedDiv(f_w<<FRACBITS, m_w);
@@ -626,8 +634,6 @@ void AM_LevelInit(boolean reinit)
     // [crispy] Only need to precalculate color lookup tables once
     static int precalc_once;
 
-    leveljuststarted = 0;
-
     f_x = f_y = 0;
     f_w = SCREENWIDTH;
     f_h = SCREENHEIGHT - (ST_HEIGHT << crispy->hires);
@@ -658,9 +664,11 @@ void AM_LevelInit(boolean reinit)
 
     f_h_old = f_h;
 
-    // [crispy] Precalculate color lookup tables for antialised line drawing using COLORMAP
+    // [crispy] Precalculate color lookup tables for antialiased line drawing using COLORMAP
     if (!precalc_once)
     {
+        unsigned char *playpal = W_CacheLumpName("PLAYPAL", PU_STATIC);
+
         precalc_once = 1;
         for (int color = 0; color < 256; ++color)
         {
@@ -676,6 +684,12 @@ void AM_LevelInit(boolean reinit)
                 color_shades[color * NUMSHADES + shade] = colormaps[shade_index[shade]];
             }
         }
+		
+        // [crispy] Make secret wall colors independent from PLAYPAL color indexes
+        secretwallcolors = V_GetPaletteIndex(playpal, 255, 0, 255);
+        revealedsecretwallcolors = V_GetPaletteIndex(playpal, 119, 255, 111);
+
+        W_ReleaseLumpName("PLAYPAL");
     }
 }
 
@@ -718,6 +732,129 @@ void AM_Start (void)
 void AM_ResetIDDTcheat (void)
 {
 	cheating = 0;
+}
+
+// [crispy] center automap on point
+static void AM_SetMapCenter(fixed_t px, fixed_t py)
+{
+	// [crispy] FTOM(MTOF()) is needed to fix map line jitter in follow mode.
+	if (crispy->hires)
+	{
+		m_x = (px >> FRACTOMAPBITS) - m_w/2;
+		m_y = (py >> FRACTOMAPBITS) - m_h/2;
+	}
+	else
+	{
+		m_x = FTOM(MTOF(px >> FRACTOMAPBITS)) - m_w/2;
+		m_y = FTOM(MTOF(py >> FRACTOMAPBITS)) - m_h/2;
+	}
+	next_m_x = m_x;
+	next_m_y = m_y;
+	m_x2 = m_x + m_w;
+	m_y2 = m_y + m_h;
+}
+
+// [woof] center the automap around the lowest numbered unfound secret sector
+static void AM_CheatRevealSecret(void)
+{
+	static int last_secret = -1;
+
+	if (automapactive)
+	{
+		int i, start_i;
+
+		i = last_secret + 1;
+		if (i >= numsectors)
+			i = 0;
+		start_i = i;
+
+		do
+		{
+			sector_t *sec = &sectors[i];
+
+			if (sec->special == 9)
+			{
+				followplayer = false;
+
+				// This is probably not necessary
+				if (sec->lines && sec->lines[0] && sec->lines[0]->v1)
+				{
+					AM_SetMapCenter(sec->lines[0]->v1->x, sec->lines[0]->v1->y);
+					last_secret = i;
+					break;
+				}
+			}
+
+			i++;
+			if (i >= numsectors)
+				i = 0;
+		} while (i != start_i);
+	}
+}
+
+
+// [woof] auxiliary function for "reveal item" and "reveal kill" cheats
+static void AM_CycleMobj(mobj_t **last_mobj, int *last_count, int flags, int alive)
+{
+	thinker_t *th, *start_th;
+
+	// If the thinkers have been wiped, addresses are invalid
+	if (*last_count != init_thinkers_count)
+	{
+		*last_count = init_thinkers_count;
+		*last_mobj = NULL;
+	}
+
+	if (*last_mobj)
+		th = &(*last_mobj)->thinker;
+	else
+		th = &thinkercap;
+
+	start_th = th;
+
+	do
+	{
+		th = th->next;
+		if (th->function.acp1 == (actionf_p1)P_MobjThinker)
+		{
+			mobj_t *mobj;
+
+			mobj = (mobj_t *) th;
+
+			if ((!alive || mobj->health > 0) && mobj->flags & flags)
+			{
+				followplayer = false;
+				AM_SetMapCenter(mobj->x, mobj->y);
+				*last_mobj = mobj;
+				break;
+			}
+		}
+	} while (th != start_th);
+}
+
+
+// [woof] center the automap around the lowest numbered alive monster that counts towards the kill percentage
+static void AM_CheatRevealKill(void)
+{
+	if (automapactive)
+	{
+		static int last_count;
+		static mobj_t *last_mobj;
+
+		AM_CycleMobj(&last_mobj, &last_count, MF_COUNTKILL, true);
+	}
+}
+
+// [woof] center the automap around the lowest numbered uncollected item that counts towards the item percentage
+static void AM_CheatRevealItem(void)
+{
+	if (automapactive)
+	{
+		static int last_count;
+		static mobj_t *last_mobj;
+
+		AM_CycleMobj(&last_mobj, &last_count, MF_COUNTITEM, false);
+	}
 }
 
 //
@@ -846,9 +983,8 @@ AM_Responder
 	if (!followplayer && (ev->data2 || ev->data3))
 	{
 		// [crispy] mouse sensitivity for strafe
-		m_paninc2.x = crispy->fliplevels ?
-            -FTOM(ev->data2*(mouseSensitivity_x2+5)/(160 >> crispy->hires)) :
-            FTOM(ev->data2*(mouseSensitivity_x2+5)/(160 >> crispy->hires));
+		const int flip_x = (ev->data2*(mouseSensitivity_x2+5)/(160 >> crispy->hires));
+		m_paninc2.x = crispy->fliplevels ? -FTOM(flip_x) : FTOM(flip_x);
 		m_paninc2.y = FTOM(ev->data3*(mouseSensitivity_x2+5)/(160 >> crispy->hires));
 		rc = true;
 	}
@@ -970,6 +1106,12 @@ AM_Responder
             rc = false;
             cheating = (cheating + 1) % 3;
         }
+        else if (cht_CheckCheat(&cheat_iddst, ev->data2))
+	        AM_CheatRevealSecret();
+        else if (cht_CheckCheat(&cheat_iddkt, ev->data2))
+	        AM_CheatRevealKill();
+        else if (cht_CheckCheat(&cheat_iddit, ev->data2))
+	        AM_CheatRevealItem();
     }
     else if (ev->type == ev_keyup)
     {
@@ -1030,34 +1172,12 @@ void AM_changeWindowScale(void)
 	AM_activateNewScale();
 }
 
-
 //
 //
 //
 void AM_doFollowPlayer(void)
 {
-    // [crispy] FTOM(MTOF()) is needed to fix map line jitter in follow mode.
-    if (crispy->hires)
-    {
-        m_x = (viewx >> FRACTOMAPBITS) - m_w/2;
-        m_y = (viewy >> FRACTOMAPBITS) - m_h/2;
-    }
-    else
-    {
-        m_x = FTOM(MTOF(viewx >> FRACTOMAPBITS)) - m_w/2;
-        m_y = FTOM(MTOF(viewy >> FRACTOMAPBITS)) - m_h/2;
-    }
-        next_m_x = m_x;
-        next_m_y = m_y;
-	m_x2 = m_x + m_w;
-	m_y2 = m_y + m_h;
-
-	//  m_x = FTOM(MTOF(plr->mo->x - m_w/2));
-	//  m_y = FTOM(MTOF(plr->mo->y - m_h/2));
-	//  m_x = plr->mo->x - m_w/2;
-	//  m_y = plr->mo->y - m_h/2;
-
-
+	AM_SetMapCenter(viewx, viewy);
 }
 
 //
@@ -1302,7 +1422,7 @@ AM_drawFline_Vanilla
 #ifndef CRISPY_TRUECOLOR
 #define PUTDOT(xx,yy,cc) PUTDOT_RAW(xx,yy,cc)
 #else
-#define PUTDOT(xx,yy,cc) PUTDOT_RAW(xx,yy,(colormaps[(cc)]))
+#define PUTDOT(xx,yy,cc) PUTDOT_RAW(xx,yy,(pal_color[(cc)]))
 #endif
 
     dx = fl->b.x - fl->a.x;
@@ -1676,13 +1796,13 @@ void AM_drawWalls(void)
 		// [crispy] draw 1S secret sector boundaries in purple
 		if (crispy->extautomap &&
 		    cheating && (lines[i].frontsector->special == 9))
-		    AM_drawMline(&l, SECRETWALLCOLORS);
+		    AM_drawMline(&l, secretwallcolors);
 #if defined CRISPY_HIGHLIGHT_REVEALED_SECRETS
 		// [crispy] draw revealed secret sector boundaries in green
 		else
 		if (crispy->extautomap &&
 		    crispy->secretmessage && (lines[i].frontsector->oldspecial == 9))
-		    AM_drawMline(&l, REVEALEDSECRETWALLCOLORS);
+		    AM_drawMline(&l, revealedsecretwallcolors);
 #endif
 		else
 		AM_drawMline(&l, WALLCOLORS+lightlev);
@@ -1701,7 +1821,7 @@ void AM_drawWalls(void)
 		{
 		    // [crispy] NB: Choco has this check, but (SECRETWALLCOLORS == WALLCOLORS)
 		    // Boom/PrBoom+ does not have this check at all
-		    if (false && cheating) AM_drawMline(&l, SECRETWALLCOLORS + lightlev);
+		    if (false && cheating) AM_drawMline(&l, secretwallcolors + lightlev);
 		    else AM_drawMline(&l, WALLCOLORS+lightlev);
 		}
 #if defined CRISPY_HIGHLIGHT_REVEALED_SECRETS
@@ -1710,7 +1830,7 @@ void AM_drawWalls(void)
 		    (lines[i].backsector->oldspecial == 9 ||
 		    lines[i].frontsector->oldspecial == 9))
 		{
-		    AM_drawMline(&l, REVEALEDSECRETWALLCOLORS);
+		    AM_drawMline(&l, revealedsecretwallcolors);
 		}
 #endif
 		// [crispy] draw 2S secret sector boundaries in purple
@@ -1718,7 +1838,7 @@ void AM_drawWalls(void)
 		    (lines[i].backsector->special == 9 ||
 		    lines[i].frontsector->special == 9))
 		{
-		    AM_drawMline(&l, SECRETWALLCOLORS);
+		    AM_drawMline(&l, secretwallcolors);
 		}
 		else if (lines[i].backsector->floorheight
 			   != lines[i].frontsector->floorheight) {
@@ -1903,8 +2023,8 @@ void AM_drawPlayers(void)
 	// [crispy] interpolate other player arrows
 	if (crispy->uncapped && leveltime > oldleveltime)
 	{
-	    pt.x = (p->mo->oldx + FixedMul(p->mo->x - p->mo->oldx, fractionaltic)) >> FRACTOMAPBITS;
-	    pt.y = (p->mo->oldy + FixedMul(p->mo->y - p->mo->oldy, fractionaltic)) >> FRACTOMAPBITS;
+	    pt.x = LerpFixed(p->mo->oldx, p->mo->x) >> FRACTOMAPBITS;
+	    pt.y = LerpFixed(p->mo->oldy, p->mo->y) >> FRACTOMAPBITS;
 	}
 	else
 	{
@@ -1919,7 +2039,7 @@ void AM_drawPlayers(void)
 	}
 	else
 	{
-        theirangle = R_InterpolateAngle(p->mo->oldangle, p->mo->angle, fractionaltic);
+        theirangle = LerpAngle(p->mo->oldangle, p->mo->angle);
 	}
 
 	AM_drawLineCharacter
@@ -1954,8 +2074,8 @@ AM_drawThings
 	    // [crispy] interpolate thing triangles movement
 	    if (leveltime > oldleveltime)
 	    {
-	    pt.x = (t->oldx + FixedMul(t->x - t->oldx, fractionaltic)) >> FRACTOMAPBITS;
-	    pt.y = (t->oldy + FixedMul(t->y - t->oldy, fractionaltic)) >> FRACTOMAPBITS;
+	    pt.x = LerpFixed(t->oldx, t->x) >> FRACTOMAPBITS;
+	    pt.y = LerpFixed(t->oldy, t->y) >> FRACTOMAPBITS;
 	    }
 	    else
 	    {
@@ -2045,6 +2165,7 @@ AM_drawThings
 void AM_drawMarks(void)
 {
     int i, fx, fy, w, h;
+    int fx_flip; // [crispy] support for marks drawing in flipped levels
     mpoint_t pt;
 
     for (i=0;i<AM_NUMMARKPOINTS;i++)
@@ -2062,10 +2183,11 @@ void AM_drawMarks(void)
 	    {
 		AM_rotatePoint(&pt);
 	    }
-	    fx = (flipscreenwidth[CXMTOF(pt.x)] >> crispy->hires) - 1 - WIDESCREENDELTA;
+	    fx = (CXMTOF(pt.x) >> crispy->hires) - 1;
 	    fy = (CYMTOF(pt.y) >> crispy->hires) - 2;
+	    fx_flip = (flipscreenwidth[CXMTOF(pt.x)] >> crispy->hires) - 1;
 	    if (fx >= f_x && fx <= (f_w >> crispy->hires) - w && fy >= f_y && fy <= (f_h >> crispy->hires) - h)
-		V_DrawPatch(fx, fy, marknums[i]);
+		V_DrawPatch(fx_flip - WIDESCREENDELTA, fy, marknums[i]);
 	}
     }
 
@@ -2137,7 +2259,7 @@ static void AM_drawCrosshair(int color, boolean force)
 #ifndef CRISPY_TRUECOLOR
     fb[(f_w*(f_h+1))/2] = color; // single point for now
 #else
-    fb[(f_w*(f_h+1))/2] = colormaps[color]; // single point for now
+    fb[(f_w*(f_h+1))/2] = pal_color[color]; // single point for now
 #endif
 */
 

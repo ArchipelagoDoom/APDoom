@@ -47,6 +47,8 @@
 #include "st_stuff.h" // [crispy] ST_DrawDemoTimer()
 #include "wi_stuff.h"
 
+#include "d_pwad.h" // [crispy] kex secret level
+
 //
 // Data needed to add patches to full screen intermission pics.
 // Patches are statistics messages, and animations.
@@ -542,7 +544,7 @@ WI_drawOnLnode
 
 
 
-void WI_initAnimatedBack(void)
+void WI_initAnimatedBack(boolean firstcall)
 {
     int		i;
     anim_t*	a;
@@ -558,6 +560,10 @@ void WI_initAnimatedBack(void)
 	a = &anims[wbs->epsd][i];
 
 	// init variables
+	// [crispy] Do not reset animation timers upon switching to "Entering" state
+	// via WI_initShowNextLoc. Fixes notable blinking of Tower of Babel drawing
+	// and the rest of animations from being restarted.
+	if (firstcall)
 	a->ctr = -1;
 
 	// specify the next time to draw it
@@ -823,7 +829,7 @@ void WI_initShowNextLoc(void)
     acceleratestage = 0;
     cnt = SHOWNEXTLOCDELAY * TICRATE;
 
-    WI_initAnimatedBack();
+    WI_initAnimatedBack(false);
 }
 
 void WI_updateShowNextLoc(void)
@@ -883,7 +889,7 @@ void WI_drawShowNextLoc(void)
 
     if ((gamemission == pack_nerve && wbs->last == 7) ||
         (gamemission == pack_master && wbs->last == 19 && !secretexit) ||
-        (gamemission == pack_master && wbs->last == 20))
+        (gamemission == pack_master && !D_CheckMasterlevelKex() && wbs->last == 20))
         return;
 
     // draws which level you are entering..
@@ -954,7 +960,7 @@ void WI_initDeathmatchStats(void)
 	}
     }
     
-    WI_initAnimatedBack();
+    WI_initAnimatedBack(true);
 }
 
 
@@ -1173,7 +1179,7 @@ void WI_initNetgameStats(void)
 
     dofrags = !!dofrags;
 
-    WI_initAnimatedBack();
+    WI_initAnimatedBack(true);
 }
 
 
@@ -1399,7 +1405,7 @@ void WI_initStats(void)
     cnt_time = cnt_par = -1;
     cnt_pause = TICRATE;
 
-    WI_initAnimatedBack();
+    WI_initAnimatedBack(true);
 }
 
 void WI_updateStats(void)
@@ -1564,7 +1570,7 @@ static boolean WI_drawParTime (void)
 		}
 
 		// [crispy] PWAD: par times for Sigil
-		if (wbs->epsd == 4)
+		if (wbs->epsd == 4 || wbs->epsd == 5)
 		{
 			result = true;
 		}
@@ -1685,6 +1691,9 @@ void WI_Ticker(void)
 	// [crispy] Sigil
 	else if (crispy->haved1e5 && wbs->epsd == 4 && W_CheckNumForName(DEH_String("D_SIGINT")) != -1)
 	  S_ChangeMusic(mus_sigint, true);
+	// [crispy] Sigil II
+	else if (crispy->haved1e6 && wbs->epsd == 5 && W_CheckNumForName(DEH_String("D_SG2INT")) != -1)
+	  S_ChangeMusic(mus_sg2int, true);
 	else
 	  S_ChangeMusic(mus_inter, true); 
     }
@@ -1871,6 +1880,10 @@ static void WI_loadUnloadData(load_callback_t callback)
         {
             M_StringCopy(name, DEH_String("NERVEINT"), sizeof(name));
         }
+        else if (crispy->havemaster && wbs->epsd == 2 && W_CheckNumForName(DEH_String("MASTRINT")) != -1) // [crispy] gamemission == pack_master
+        {
+            M_StringCopy(name, DEH_String("MASTRINT"), sizeof(name));
+        }
         else
         {
         M_StringCopy(name, DEH_String("INTERPIC"), sizeof(name));
@@ -1883,6 +1896,10 @@ static void WI_loadUnloadData(load_callback_t callback)
     else if (crispy->haved1e5 && wbs->epsd == 4 && W_CheckNumForName(DEH_String("SIGILINT")) != -1) // [crispy] Sigil
     {
         M_StringCopy(name, DEH_String("SIGILINT"), sizeof(name));
+    }
+    else if (crispy->haved1e6 && wbs->epsd == 5 && W_CheckNumForName(DEH_String("SIGILIN2")) != -1) // [crispy] Sigil
+    {
+        M_StringCopy(name, DEH_String("SIGILIN2"), sizeof(name));
     }
     else
     {

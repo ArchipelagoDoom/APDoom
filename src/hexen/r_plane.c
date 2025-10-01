@@ -150,18 +150,24 @@ void R_MapPlane(int y, int x1, int x2)
 
 // [crispy] visplanes with the same flats now match up far better than before
 // adapted from prboom-plus/src/r_plane.c:191-239, translated to fixed-point math
+//
+// SoM: because centery is an actual row of pixels (and it isn't really the
+// center row because there are an even number of rows) some corrections need
+// to be made depending on where the row lies relative to the centery row.
 
-    if (!(dy = abs(centery - y)))
+    if (centery == y)
     {
 	return;
     }
+
+    dy = (abs(centery - y) << FRACBITS) + (y < centery ? -FRACUNIT : FRACUNIT) / 2;
 
     if (planeheight != cachedheight[y])
     {
         cachedheight[y] = planeheight;
         distance = cacheddistance[y] = FixedMul(planeheight, yslope[y]);
-        ds_xstep = cachedxstep[y] = (FixedMul(viewsin, planeheight) / dy) << detailshift;
-        ds_ystep = cachedystep[y] = (FixedMul(viewcos, planeheight) / dy) << detailshift;
+        ds_xstep = cachedxstep[y] = FixedDiv(FixedMul(viewsin, planeheight), dy) << detailshift;
+        ds_ystep = cachedystep[y] = FixedDiv(FixedMul(viewcos, planeheight), dy) << detailshift;
     }
     else
     {
@@ -379,8 +385,6 @@ void R_MakeSpans(int x, unsigned int t1, unsigned int b1, unsigned int t2, unsig
 //
 //==========================================================================
 
-extern fixed_t fractionaltic; // [crispy]
-
 #define SKYTEXTUREMIDSHIFTED 200
 
 void R_DrawPlanes(void)
@@ -392,7 +396,7 @@ void R_DrawPlanes(void)
     byte *tempSource;
     byte *source;
     byte *source2;
-    byte *dest;
+    pixel_t *dest;
     int count;
     int offset;
     int skyTexture;
@@ -403,6 +407,8 @@ void R_DrawPlanes(void)
     int fracstep = FRACUNIT >> crispy->hires;
     static int interpfactor; // [crispy]
     int heightmask; // [crispy]
+    static int prev_skyTexture, prev_skyTexture2, skyheight; // [crispy]
+    int angle2, smoothDelta1 = 0, smoothDelta2 = 0; // [crispy] smooth sky scrolling
 
 #ifdef RANGECHECK
     if (ds_p - drawsegs > MAXDRAWSEGS)
@@ -432,10 +438,30 @@ void R_DrawPlanes(void)
         {                       // Sky flat
             if (DoubleSky)
             {                   // Render 2 layers, sky 1 in front
-                offset = Sky1ColumnOffset >> 16;
                 skyTexture = texturetranslation[Sky1Texture];
-                offset2 = Sky2ColumnOffset >> 16;
                 skyTexture2 = texturetranslation[Sky2Texture];
+                if (crispy->uncapped)
+                {
+                    offset = 0;
+                    offset2 = 0;
+                    smoothDelta1 = Sky1ColumnOffset << 6;
+                    smoothDelta2 = Sky2ColumnOffset << 6;
+                }
+                else
+                {
+                    offset = Sky1ColumnOffset >> 16;
+                    offset2 = Sky2ColumnOffset >> 16;
+                }
+
+                if (skyTexture != prev_skyTexture ||
+                    skyTexture2 != prev_skyTexture2)
+                {
+                    skyheight = MIN(R_GetPatchHeight(skyTexture, 0),
+                                    R_GetPatchHeight(skyTexture2, 0));
+                    prev_skyTexture = skyTexture;
+                    prev_skyTexture2 = skyTexture2;
+                }
+
                 for (x = pl->minx; x <= pl->maxx; x++)
                 {
                     dc_yl = pl->top[x];
@@ -447,19 +473,19 @@ void R_DrawPlanes(void)
                         {
                             return;
                         }
-                        angle = (viewangle + xtoviewangle[x])
+                        angle = (viewangle + smoothDelta1 + xtoviewangle[x])
+                            >> ANGLETOSKYSHIFT;
+                        angle2 = (viewangle + smoothDelta2 + xtoviewangle[x])
                             >> ANGLETOSKYSHIFT;
                         source = R_GetColumn(skyTexture, angle + offset);
-                        source2 = R_GetColumn(skyTexture2, angle + offset2);
+                        source2 = R_GetColumn(skyTexture2, angle2 + offset2);
                         dest = ylookup[dc_yl] + columnofs[x];
                         frac = SKYTEXTUREMIDSHIFTED * FRACUNIT + (dc_yl - centery) * fracstep;
-                        heightmask = SKYTEXTUREMIDSHIFTED - 1; // [crispy]
 
                         // not a power of 2 -- killough
-                        if (SKYTEXTUREMIDSHIFTED & heightmask)
+                        if (skyheight & (skyheight - 1))
                         {
-                            heightmask++;
-                            heightmask <<= FRACBITS;
+                            heightmask = skyheight << FRACBITS;
 
                             if (frac < 0)
                                 while ((frac += heightmask) < 0);
@@ -471,11 +497,19 @@ void R_DrawPlanes(void)
                             {
                                 if (source[frac >> FRACBITS])
                                 {
+#ifndef CRISPY_TRUECOLOR
                                     *dest = source[frac >> FRACBITS];
+#else
+                                    *dest = pal_color[source[frac >> FRACBITS]];
+#endif
                                 }
                                 else
                                 {
+#ifndef CRISPY_TRUECOLOR
                                     *dest = source2[frac >> FRACBITS];
+#else
+                                    *dest = pal_color[source2[frac >> FRACBITS]];
+#endif
                                 }
                                 dest += SCREENWIDTH;
                                 if ((frac += fracstep) >= heightmask)
@@ -487,15 +521,25 @@ void R_DrawPlanes(void)
                         // texture height is a power of 2 -- killough
                         else
                         {
+                            heightmask = skyheight - 1;
+
                             do
                             {
                                 if (source[(frac >> FRACBITS) & heightmask])
                                 {
+#ifndef CRISPY_TRUECOLOR
                                     *dest = source[(frac >> FRACBITS) & heightmask];
+#else
+                                    *dest = pal_color[source[(frac >> FRACBITS) & heightmask]];
+#endif
                                 }
                                 else
                                 {
+#ifndef CRISPY_TRUECOLOR
                                     *dest = source2[(frac >> FRACBITS) & heightmask];
+#else
+                                    *dest = pal_color[source2[(frac >> FRACBITS) & heightmask]];
+#endif
                                 }
 
                                 dest += SCREENWIDTH;
@@ -515,9 +559,24 @@ void R_DrawPlanes(void)
                 }
                 else
                 {               // Use sky 1
-                    offset = Sky1ColumnOffset >> 16;
+                    if (crispy->uncapped)
+                    {
+                        offset = 0;
+                        smoothDelta1 = Sky1ColumnOffset << 6;
+                    }
+                    else
+                    {
+                        offset = Sky1ColumnOffset >> 16;
+                    }
                     skyTexture = texturetranslation[Sky1Texture];
                 }
+
+                if (skyTexture != prev_skyTexture)
+                {
+                    skyheight = R_GetPatchHeight(skyTexture, 0);
+                    prev_skyTexture = skyTexture;
+                }
+
                 for (x = pl->minx; x <= pl->maxx; x++)
                 {
                     dc_yl = pl->top[x];
@@ -529,17 +588,15 @@ void R_DrawPlanes(void)
                         {
                             return;
                         }
-                        angle = (viewangle + xtoviewangle[x])
+                        angle = (viewangle + smoothDelta1 + xtoviewangle[x])
                             >> ANGLETOSKYSHIFT;
                         source = R_GetColumn(skyTexture, angle + offset);
                         dest = ylookup[dc_yl] + columnofs[x];
                         frac = SKYTEXTUREMIDSHIFTED * FRACUNIT + (dc_yl - centery) * fracstep;
-                        heightmask = SKYTEXTUREMIDSHIFTED - 1; // [crispy]
                         // not a power of 2 -- killough
-                        if (SKYTEXTUREMIDSHIFTED & heightmask)
+                        if (skyheight & (skyheight - 1))
                         {
-                            heightmask++;
-                            heightmask <<= FRACBITS;
+                            heightmask = skyheight << FRACBITS;
 
                             if (frac < 0)
                                 while ((frac += heightmask) < 0);
@@ -549,7 +606,11 @@ void R_DrawPlanes(void)
 
                             do
                             {
+#ifndef CRISPY_TRUECOLOR
                                 *dest = source[frac >> FRACBITS];
+#else
+                                *dest = pal_color[source[frac >> FRACBITS]];
+#endif
                                 dest += SCREENWIDTH;
 
                                 if ((frac += fracstep) >= heightmask)
@@ -561,9 +622,15 @@ void R_DrawPlanes(void)
                         // texture height is a power of 2 -- killough
                         else
                         {
+                            heightmask = skyheight - 1;
+
                             do
                             {
+#ifndef CRISPY_TRUECOLOR
                                 *dest = source[(frac >> FRACBITS) & heightmask];
+#else
+                                *dest = pal_color[source[(frac >> FRACBITS) & heightmask]];
+#endif
                                 dest += SCREENWIDTH;
                                 frac += fracstep;
                             } while (count--);
@@ -675,7 +742,7 @@ void R_DrawPlanes(void)
                 break;
         }
         planeheight = abs(pl->height - viewz);
-        light = (pl->lightlevel >> LIGHTSEGSHIFT) + extralight;
+        light = (pl->lightlevel >> LIGHTSEGSHIFT) + (extralight * LIGHTBRIGHT); // [crispy] smooth diminishing lighting
         if (light >= LIGHTLEVELS)
         {
             light = LIGHTLEVELS - 1;

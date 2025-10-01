@@ -141,6 +141,7 @@ texture_t**     textures_hashtable;
 
 
 int*			texturewidthmask;
+int*			texturewidth; // [crispy] texture width for wrapping column getter function
 // needed for texture pegging
 fixed_t*		textureheight;		
 int*			texturecompositesize;
@@ -158,6 +159,7 @@ fixed_t*	spriteoffset;
 fixed_t*	spritetopoffset;
 
 lighttable_t	*colormaps;
+lighttable_t	*pal_color; // [crispy] array holding palette colors for true color mode
 
 
 //
@@ -378,10 +380,24 @@ R_GetColumn
 ( int		tex,
   int		col )
 {
-    int		lump;
-    int		ofs;
-	
-    col &= texturewidthmask[tex];
+    const int width = texturewidth[tex];
+    const int mask = texturewidthmask[tex];
+    int lump, ofs;
+
+    while (col < 0)
+    {
+        col += width;
+    }
+
+    if (mask + 1 == width)
+    {
+        col &= mask;
+    }
+    else
+    {
+        col %= width;
+    }
+
     lump = texturecolumnlump[tex][col];
     ofs = texturecolumnofs[tex][col];
     
@@ -517,6 +533,7 @@ void R_InitTextures (void)
     texturecomposite = Z_Malloc (numtextures * sizeof(*texturecomposite), PU_STATIC, 0);
     texturecompositesize = Z_Malloc (numtextures * sizeof(*texturecompositesize), PU_STATIC, 0);
     texturewidthmask = Z_Malloc (numtextures * sizeof(*texturewidthmask), PU_STATIC, 0);
+    texturewidth = Z_Malloc (numtextures * sizeof(*texturewidth), PU_STATIC, 0);
     textureheight = Z_Malloc (numtextures * sizeof(*textureheight), PU_STATIC, 0);
 
     //	Really complex printing shit...
@@ -598,6 +615,9 @@ void R_InitTextures (void)
 
         texturewidthmask[i] = j-1;
         textureheight[i] = texture->height<<FRACBITS;
+
+        // [crispy] texture width for wrapping column getter function
+        texturewidth[i] = texture->width;
     }
 
     Z_Free(patchlookup);
@@ -690,37 +710,134 @@ void R_InitSpriteLumps (void)
 //
 void R_InitColormaps (void)
 {
+#ifndef CRISPY_TRUECOLOR
     int	lump;
 
     // Load in the light tables, 256 byte align tables.
     lump = W_GetNumForName(DEH_String("COLORMAP"));
     colormaps = W_CacheLumpNum(lump, PU_STATIC);
+    NUMCOLORMAPS = 32; // [crispy] smooth diminishing lighting
+#else
+	int c, i, j = 0;
+	byte r, g, b;
 
-    // [crispy] initialize color translation and color strings tables
-    {
-        byte *playpal = W_CacheLumpName("PLAYPAL", PU_STATIC);
-        char c[3];
-        int i, j;
+	byte *const playpal = W_CacheLumpName("PLAYPAL", PU_STATIC);
+	byte *const colormap = W_CacheLumpName("COLORMAP", PU_STATIC);
 
-        if (!crstr)
-            crstr = I_Realloc(NULL, CRMAX * sizeof(*crstr));
+	// [crispy] Smoothest diminishing lighting.
+	// Compiled in but not enabled TrueColor mode
+	// can't use more than original 32 colormaps.
+	if (crispy->truecolor && crispy->smoothlight)
+	{
+		NUMCOLORMAPS = 256;
+	}
+	else
+	{
+		NUMCOLORMAPS = 32;
+	}
 
-        // [crispy] CRMAX - 2: don't override the original GREN and BLUE2 Boom tables
-        for (i = 0; i < CRMAX - 2; i++)
-        {
-            for (j = 0; j < 256; j++)
-            {
-                cr[i][j] = V_Colorize(playpal, i, j, false);
-            }
+	colormaps = I_Realloc(colormaps, (NUMCOLORMAPS + 1) * 256 * sizeof(lighttable_t));
 
-            M_snprintf(c, sizeof(c), "%c%c", cr_esc, '0' + i);
-            crstr[i] = M_StringDuplicate(c);
-        }
+	if (crispy->truecolor)
+	{
+		for (c = 0; c < NUMCOLORMAPS; c++)
+		{
+			const float scale = 1. * c / NUMCOLORMAPS;
 
-        W_ReleaseLumpName("PLAYPAL");
-    }
+			for (i = 0; i < 256; i++)
+			{
+				const byte k = colormap[i];
+
+				if (i < 224)
+				{
+					r = gamma2table[crispy->gamma][playpal[3 * k + 0]] * (1. - scale) + gamma2table[crispy->gamma][0] * scale;
+					g = gamma2table[crispy->gamma][playpal[3 * k + 1]] * (1. - scale) + gamma2table[crispy->gamma][0] * scale;
+					b = gamma2table[crispy->gamma][playpal[3 * k + 2]] * (1. - scale) + gamma2table[crispy->gamma][0] * scale;
+				}
+				else
+				{
+					// [crispy] Vanilla Strife is using COLORMAP columns 224-255 without fading to black
+					// so they work as brightmaps. To replicate it, lock such indexes on first light level.
+					r = gamma2table[crispy->gamma][playpal[3 * k + 0]];
+					g = gamma2table[crispy->gamma][playpal[3 * k + 1]];
+					b = gamma2table[crispy->gamma][playpal[3 * k + 2]];
+				}
+
+				colormaps[j++] = 0xff000000 | (r << 16) | (g << 8) | b;
+			}
+		}
+
+		// [crispy] Sigil weapon effect (c == COLORMAPS)
+		for (i = 0; i < 256; i++)
+		{
+			const byte gray = 0xff -
+			     (byte) (0.299 * playpal[3 * i + 0] +
+			             0.587 * playpal[3 * i + 1] +
+			             0.114 * playpal[3 * i + 2]);
+			r = g = b = gamma2table[crispy->gamma][gray];
+
+			colormaps[j++] = 0xff000000 | (r << 16) | (g << 8) | b;
+		}
+	}
+	else
+	{
+		for (c = 0; c <= NUMCOLORMAPS; c++)
+		{
+			for (i = 0; i < 256; i++)
+			{
+				r = gamma2table[crispy->gamma][playpal[3 * colormap[c * 256 + i] + 0]] & ~3;
+				g = gamma2table[crispy->gamma][playpal[3 * colormap[c * 256 + i] + 1]] & ~3;
+				b = gamma2table[crispy->gamma][playpal[3 * colormap[c * 256 + i] + 2]] & ~3;
+
+				colormaps[j++] = 0xff000000 | (r << 16) | (g << 8) | b;
+			}
+		}
+	}
+
+	W_ReleaseLumpName("COLORMAP");
+
+	if (!pal_color)
+	{
+		pal_color = (pixel_t*) Z_Malloc(256 * sizeof(pixel_t), PU_STATIC, 0);
+	}
+
+	for (i = 0, j = 0; i < 256; i++)
+	{
+		r = gamma2table[crispy->gamma][playpal[3 * i + 0]];
+		g = gamma2table[crispy->gamma][playpal[3 * i + 1]];
+		b = gamma2table[crispy->gamma][playpal[3 * i + 2]];
+
+		pal_color[j++] = 0xff000000 | (r << 16) | (g << 8) | b;
+	}
+
+	W_ReleaseLumpName("PLAYPAL");
+#endif
 }
 
+// [crispy] initialize color translation and color string tables
+static void R_InitHSVColors (void)
+{
+	byte *playpal = W_CacheLumpName("PLAYPAL", PU_STATIC);
+	char c[3];
+	int i, j;
+
+	if (!crstr)
+	    crstr = I_Realloc(NULL, CRMAX * sizeof(*crstr));
+
+	// [crispy] CRMAX - 2: don't override the original GREN and BLUE2 Boom tables
+	for (i = 0; i < CRMAX - 2; i++)
+	{
+	    for (j = 0; j < 256; j++)
+	    {
+		cr[i][j] = V_Colorize(playpal, i, j, false);
+	    }
+
+	    M_snprintf(c, sizeof(c), "%c%c", cr_esc, '0' + i);
+	    crstr[i] = M_StringDuplicate(c);
+	}
+
+	W_ReleaseLumpName("PLAYPAL");
+}
 
 
 //
@@ -749,7 +866,11 @@ void R_InitData (void)
     else
         D_IntroTick();
 
-    R_InitColormaps ();
+    // [crispy] Moved to D_DoomMain for color arrays
+    // initialization before introduction sequence.
+    // R_InitColormaps ();
+    // [crispy] Initialize color translation and color string tables.
+    R_InitHSVColors ();
 }
 
 

@@ -149,6 +149,26 @@ static const byte flame[256] =
     0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
+static const byte serptorch[256] =
+{
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+};
+
 static const byte ethereal[256] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -247,6 +267,11 @@ static const fullbright_t fullbright_walls[] = {
     {"SW1OFF",   surfaces},
     {"SW2ON",    surfaces},
     {"SW2OFF",   surfaces},
+    // [crispy] H+H IWAD textures
+    {"DOOREXI3", surfaces},
+    {"DOOREXI4", surfaces},
+    {"METLSIG1", surfaces},
+    {"METLSIG2", surfaces},
 };
 
 const byte *R_BrightmapForTexName (const char *texname)
@@ -326,10 +351,6 @@ const byte *R_BrightmapForSprite (const int state)
             case S_FIREBRAZIER6:
             case S_FIREBRAZIER7:
             case S_FIREBRAZIER8:
-            // Serpent Torch
-            case S_SERPTORCH1:
-            case S_SERPTORCH2:
-            case S_SERPTORCH3:
             // Torch (artifact)
             case S_ARTI_TRCH1:
             case S_ARTI_TRCH2:
@@ -353,6 +374,14 @@ const byte *R_BrightmapForSprite (const int state)
             case S_CLINK_DIE6:
             {
                 return flame;
+                break;
+            }
+            // Serpent Torch, has stray pixels with 'flame' map
+            case S_SERPTORCH1:
+            case S_SERPTORCH2:
+            case S_SERPTORCH3:
+            {
+                return serptorch;
                 break;
             }
             // Iron Lich (idle and attack states)
@@ -406,6 +435,19 @@ const byte *R_BrightmapForSprite (const int state)
             case S_SOR2_ATK1:
             case S_SOR2_ATK2:
             case S_SOR2_ATK3:
+            // Walking D'Sparil (teleport states)
+            case S_SOR2_TELE1:
+            case S_SOR2_TELE2:
+            case S_SOR2_TELE3:
+            case S_SOR2_TELE4:
+            case S_SOR2_TELE5:
+            case S_SOR2_TELE6:
+            case S_SOR2TELEFADE1:
+            case S_SOR2TELEFADE2:
+            case S_SOR2TELEFADE3:
+            case S_SOR2TELEFADE4:
+            case S_SOR2TELEFADE5:
+            case S_SOR2TELEFADE6:
             // Walking D'Sparil (death states)
             case S_SOR2_DIE1:
             case S_SOR2_DIE2:

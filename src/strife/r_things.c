@@ -32,6 +32,7 @@
 #include "w_wad.h"
 
 #include "r_local.h"
+#include "v_trans.h" // [crispy] blending functions
 
 #include "doomstat.h"
 
@@ -445,6 +446,9 @@ R_DrawVisSprite
             colfunc = R_DrawTRTLColumn;
             dc_translation = translationtables - 256 + (translation >> (MF_TRANSSHIFT - 8));
         }
+#ifdef CRISPY_TRUECOLOR
+	blendfunc = vis->blendfunc;
+#endif
     }
     else if(vis->mobjflags & MF_MVIS)
     {
@@ -490,6 +494,9 @@ R_DrawVisSprite
     }
 
     colfunc = basecolfunc;
+#ifdef CRISPY_TRUECOLOR
+    blendfunc = I_BlendOverXlatab;
+#endif
 }
 
 
@@ -537,10 +544,10 @@ void R_ProjectSprite (mobj_t* thing)
     // [AM] Interpolate between current and last position, if prudent.
     if (crispy->uncapped && thing->interp == true && leveltime > oldleveltime)
     {
-        interpx = thing->oldx + FixedMul(thing->x - thing->oldx, fractionaltic);
-        interpy = thing->oldy + FixedMul(thing->y - thing->oldy, fractionaltic);
-        interpz = thing->oldz + FixedMul(thing->z - thing->oldz, fractionaltic);
-        interpangle = R_InterpolateAngle(thing->oldangle, thing->angle, fractionaltic);
+        interpx = LerpFixed(thing->oldx, thing->x);
+        interpy = LerpFixed(thing->oldy, thing->y);
+        interpz = LerpFixed(thing->oldz, thing->z);
+        interpangle = LerpAngle(thing->oldangle, thing->angle);
     }
     else
     {
@@ -680,6 +687,15 @@ void R_ProjectSprite (mobj_t* thing)
 
 	vis->colormap = spritelights[index];
     }	
+
+#ifdef CRISPY_TRUECOLOR
+    if (thing->flags & MF_SHADOW)
+    {
+        // [crispy] not using additive blending (I_BlendAdd) here 
+        // to preserve look & feel of original Strife translucency
+        vis->blendfunc = I_BlendOverAltXlatab;
+    }
+#endif
 }
 
 
@@ -704,7 +720,7 @@ void R_AddSprites (sector_t* sec)
     // Well, now it will be done.
     sec->validcount = validcount;
 	
-    lightnum = (sec->lightlevel >> LIGHTSEGSHIFT)+(extralight * LIGHTBRIGHT); // [crispy] smooth diminishing lighting
+    lightnum = (sec->rlightlevel >> LIGHTSEGSHIFT)+(extralight * LIGHTBRIGHT); // [crispy] smooth diminishing lighting, A11Y
 
     if (lightnum < 0)		
 	spritelights = scalelight[0];
@@ -759,7 +775,8 @@ void R_DrawPSprite (pspdef_t* psp, psprnum_t psprnum) // [crispy] read psprnum
     // calculate edges of the shape
     tx = psp->sx2-(ORIGWIDTH/2)*FRACUNIT;
 
-    tx -= spriteoffset[lump];	
+    // [crispy] fix sprite offsets for mirrored sprites
+    tx -= flip ? 2 * tx - spriteoffset[lump] + spritewidth[lump] : spriteoffset[lump];
     x1 = (centerxfrac + FixedMul (tx,pspritescale) ) >>FRACBITS;
 
     // off the right side
@@ -859,10 +876,10 @@ void R_DrawPSprite (pspdef_t* psp, psprnum_t psprnum) // [crispy] read psprnum
         if (lump == oldlump && pspr_interp)
         {
             int deltax = vis->x2 - vis->x1;
-            vis->x1 = oldx1 + FixedMul(vis->x1 - oldx1, fractionaltic);
+            vis->x1 = LerpFixed(oldx1, vis->x1);
             vis->x2 = vis->x1 + deltax;
             vis->x2 = vis->x2 >= viewwidth ? viewwidth - 1 : vis->x2;
-            vis->texturemid = oldtexturemid + FixedMul(vis->texturemid - oldtexturemid, fractionaltic);
+            vis->texturemid = LerpFixed(oldtexturemid, vis->texturemid);
         }
         else
         {
@@ -874,7 +891,7 @@ void R_DrawPSprite (pspdef_t* psp, psprnum_t psprnum) // [crispy] read psprnum
     }
 
     // [crispy] free look
-    vis->texturemid += FixedMul(vis->xiscale, (centery - viewheight / 2) << FRACBITS);
+    vis->texturemid += FixedMul(pspriteiscale, (centery - viewheight / 2) << FRACBITS);
 
     R_DrawVisSprite (vis, vis->x1, vis->x2);
 }
@@ -892,8 +909,8 @@ void R_DrawPlayerSprites (void)
     
     // get light level
     lightnum =
-	(viewplayer->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT) 
-	+(extralight * LIGHTBRIGHT); // [crispy] smooth diminishing lighting
+	(viewplayer->mo->subsector->sector->rlightlevel >> LIGHTSEGSHIFT) 
+	+(extralight * LIGHTBRIGHT); // [crispy] smooth diminishing lighting, A11Y
 
     if (lightnum < 0)		
 	spritelights = scalelight[0];
@@ -931,7 +948,7 @@ void R_SortVisSprites (void)
     int			count;
     vissprite_t*	ds;
     vissprite_t*	best;
-    vissprite_t		unsorted;
+    static vissprite_t	unsorted;
     fixed_t		bestscale;
 
     count = vissprite_p - vissprites;

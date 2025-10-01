@@ -192,6 +192,7 @@ typedef enum
     //  use a translation table for player colormaps
     MF_TRANSLATION  	= 0xc000000,
     // Hmm ???.
+    // [crispy] Turns MF_TRANSLATION into player index and vice versa
     MF_TRANSSHIFT	= 26,
 
     // [NS] Beta projectile bouncing.

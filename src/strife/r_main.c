@@ -75,6 +75,7 @@ fixed_t			viewz;
 int                     viewpitch;  // villsa [STRIFE]
 
 angle_t			viewangle;
+localview_t		localview; // [crispy]
 
 fixed_t			viewcos;
 fixed_t			viewsin;
@@ -109,6 +110,7 @@ lighttable_t***		zlight = NULL;
 int			extralight;			
 
 // [crispy] parameterized for smooth diminishing lighting
+int NUMCOLORMAPS;
 int LIGHTLEVELS;
 int LIGHTSEGSHIFT;
 int LIGHTBRIGHT;
@@ -717,13 +719,30 @@ void R_InitLightTables (void)
     // [crispy] smooth diminishing lighting
     if (crispy->smoothlight)
     {
-        LIGHTLEVELS = 32;
-        LIGHTSEGSHIFT = 3;
-        LIGHTBRIGHT = 2;
-        MAXLIGHTSCALE = 48;
-        LIGHTSCALESHIFT = 12;
-        MAXLIGHTZ = 1024;
-        LIGHTZSHIFT = 17;
+#ifdef CRISPY_TRUECOLOR
+    if (crispy->truecolor)
+    {
+	    // [crispy] if in TrueColor mode, use smoothest diminished lighting
+	    LIGHTLEVELS =      16 << 4;
+	    LIGHTSEGSHIFT =     4 -  4;
+	    LIGHTBRIGHT =       1 << 4;
+	    MAXLIGHTSCALE =    48 << 3;
+	    LIGHTSCALESHIFT =  12 -  3;
+	    MAXLIGHTZ =       128 << 6;
+	    LIGHTZSHIFT =      20 -  6;
+    }
+    else
+#endif
+    {
+	    // [crispy] else, use paletted approach
+	    LIGHTLEVELS =      16 << 1;
+	    LIGHTSEGSHIFT =     4 -  1;
+	    LIGHTBRIGHT =       1 << 1;
+	    MAXLIGHTSCALE =    48 << 0;
+	    LIGHTSCALESHIFT =  12 -  0;
+	    MAXLIGHTZ =       128 << 3;
+	    LIGHTZSHIFT =      20 -  3;
+    }
     }
     else
     {
@@ -744,6 +763,7 @@ void R_InitLightTables (void)
     //  for each level / distance combination.
     for (i=0 ; i< LIGHTLEVELS ; i++)
     {
+	scalelight[i] = malloc(MAXLIGHTSCALE * sizeof(**scalelight));
 	zlight[i] = malloc(MAXLIGHTZ * sizeof(**zlight));
 
 	startmap = ((LIGHTLEVELS-LIGHTBRIGHT-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
@@ -899,7 +919,6 @@ void R_ExecuteSetViewSize (void)
     //  for each level / scale combination.
     for (i=0 ; i< LIGHTLEVELS ; i++)
     {
-	scalelight[i] = malloc(MAXLIGHTSCALE * sizeof(**scalelight));
 
 	startmap = ((LIGHTLEVELS-LIGHTBRIGHT-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
 	for (j=0 ; j<MAXLIGHTSCALE ; j++)
@@ -1019,6 +1038,23 @@ void R_SetupPitch(int pitch)
     }
 }
 
+// [crispy]
+static inline boolean CheckLocalView(const player_t *player)
+{
+  return (
+    // Don't use localview if the player is spying.
+    player == &players[consoleplayer] &&
+    // Don't use localview if the player is dead.
+    player->playerstate != PST_DEAD &&
+    // Don't use localview if the player just teleported.
+    !player->mo->reactiontime &&
+    // Don't use localview if a demo is playing.
+    !demoplayback &&
+    // Don't use localview during a netgame (single-player only).
+    !netgame
+  );
+}
+
 
 //
 // R_SetupFrame
@@ -1034,11 +1070,23 @@ void R_SetupFrame (player_t* player)
     if (crispy->uncapped && leveltime > 1 && player->mo->interp == true &&
         leveltime > oldleveltime && !screenwipe)
     {
-        viewx = player->mo->oldx + FixedMul(player->mo->x - player->mo->oldx, fractionaltic);
-        viewy = player->mo->oldy + FixedMul(player->mo->y - player->mo->oldy, fractionaltic);
-        viewz = player->oldviewz + FixedMul(player->viewz - player->oldviewz, fractionaltic);
-        viewangle = R_InterpolateAngle(player->mo->oldangle, player->mo->angle, fractionaltic) + viewangleoffset;
-        pitch = player->oldpitch + (player->pitch - player->oldpitch) * FIXED2DOUBLE(fractionaltic);
+        const boolean use_localview = CheckLocalView(player);
+
+        viewx = LerpFixed(player->mo->oldx, player->mo->x);
+        viewy = LerpFixed(player->mo->oldy, player->mo->y);
+        viewz = LerpFixed(player->oldviewz, player->viewz);
+        if (use_localview)
+        {
+            viewangle = (player->mo->angle + localview.angle -
+                        localview.ticangle + LerpAngle(localview.oldticangle,
+                                                       localview.ticangle)) + viewangleoffset;
+        }
+        else
+        {
+            viewangle = LerpAngle(player->mo->oldangle, player->mo->angle) + viewangleoffset;
+        }
+
+        pitch = LerpInt(player->oldpitch, player->pitch);
     }
     else
     {
@@ -1062,7 +1110,9 @@ void R_SetupFrame (player_t* player)
     {
 	fixedcolormap =
 	    colormaps
-	    + player->fixedcolormap*256*sizeof(lighttable_t);
+	    // [crispy] sizeof(lighttable_t) not needed in paletted render
+	    // and breaks Sigil weapon effects in true color render
+	    + player->fixedcolormap*(NUMCOLORMAPS / 32)*256/**sizeof(lighttable_t)*/;  // [crispy] smooth diminishing lighting
 	
 	walllights = scalelightfixed;
 

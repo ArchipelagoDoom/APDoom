@@ -171,8 +171,8 @@ void F_Ticker(void)
 
 void F_TextWrite(void)
 {
-    byte *src, *dest;
-    int x, y;
+    byte *src;
+    pixel_t *dest;
     int count;
     const char *ch;
     int c;
@@ -184,19 +184,8 @@ void F_TextWrite(void)
 //
     src = W_CacheLumpName(finaleflat, PU_CACHE);
     dest = I_VideoBuffer;
-    for (y = 0; y < SCREENHEIGHT; y++)
-    {
-        for (x = 0; x < SCREENWIDTH / 64; x++)
-        {
-            memcpy(dest, src + ((y & 63) << 6), 64);
-            dest += 64;
-        }
-        if (SCREENWIDTH & 63)
-        {
-            memcpy(dest, src + ((y & 63) << 6), SCREENWIDTH & 63);
-            dest += (SCREENWIDTH & 63);
-        }
-    }
+    // [crispy] use unified flat filling function
+    V_FillFlat(0, SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
 
 //      V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
 
@@ -242,7 +231,8 @@ void F_TextWrite(void)
 void F_DrawPatchCol(int x, patch_t * patch, int col)
 {
     column_t *column;
-    byte *source, *dest, *desttop;
+    byte *source;
+    pixel_t *dest, *desttop;
     int count;
 
     column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
@@ -277,7 +267,6 @@ void F_DemonScroll(void)
 {
     byte *p1, *p2;
     static int yval = 0;
-    static int yval_dest = 0; // [crispy]
     static int nextscroll = 0;
     lumpindex_t i1, i2; // [crispy]
     int x; // [crispy]
@@ -300,14 +289,7 @@ void F_DemonScroll(void)
     }
     if (yval < 64000)
     {
-        if ((W_LumpLength(i1) == 64000) && (W_LumpLength(i2) == 64000))
-        {
-            V_CopyScaledBuffer(I_VideoBuffer, p2 + ORIGHEIGHT * ORIGWIDTH - yval, yval);
-            V_CopyScaledBuffer(I_VideoBuffer + yval_dest, p1, ORIGHEIGHT * ORIGWIDTH - yval);
-
-            yval_dest += SCREENWIDTH << crispy->hires;
-        }
-        else // [crispy] assume that FINAL1 and FINAL2 are in patch format
+        if (V_IsPatchLump(i1) && V_IsPatchLump(i2))
         {
             patch1 = (patch_t *)p1;
             patch2 = (patch_t *)p2;
@@ -325,6 +307,26 @@ void F_DemonScroll(void)
 
             V_DrawPatch(x, y - 200, patch2);
             V_DrawPatch(x, 0 + y, patch1);
+            y++;
+        }
+        else // [crispy] assume RAW format
+        {
+            int width = W_LumpLength(i1) / ORIGHEIGHT;
+            int x = ((SCREENWIDTH >> crispy->hires) - width) / 2
+                    - WIDESCREENDELTA;
+
+            // [crispy] pillar boxing
+            if (SCREENWIDTH != NONWIDEWIDTH)
+            {
+                V_DrawFilledBox(0, 0, WIDESCREENDELTA << crispy->hires,
+                                SCREENHEIGHT, 0);
+                V_DrawFilledBox(
+                    SCREENWIDTH - (WIDESCREENDELTA << crispy->hires), 0,
+                    WIDESCREENDELTA << crispy->hires, SCREENHEIGHT, 0);
+            }
+
+            V_DrawScaledBlock(x, y - 200, width, ORIGHEIGHT, p2);
+            V_DrawScaledBlock(x, 0 + y, width, ORIGHEIGHT, p1);
             y++;
         }
         yval += ORIGWIDTH;
@@ -364,7 +366,11 @@ void F_DrawUnderwater(void)
                 V_DrawFilledBox(0, 0, SCREENWIDTH, SCREENHEIGHT, 0);
                 lumpname = DEH_String("E2PAL");
                 palette = W_CacheLumpName(lumpname, PU_STATIC);
+#ifndef CRISPY_TRUECOLOR
                 I_SetPalette(palette);
+#else
+                R_SetUnderwaterPalette(palette);
+#endif
                 W_ReleaseLumpName(lumpname);
                 V_DrawFullscreenRawOrPatch(W_GetNumForName(DEH_String("E2END")));
             }
@@ -376,10 +382,14 @@ void F_DrawUnderwater(void)
         case 2:
             if (underwawa)
             {
+#ifndef CRISPY_TRUECOLOR
                 lumpname = DEH_String("PLAYPAL");
                 palette = W_CacheLumpName(lumpname, PU_STATIC);
                 I_SetPalette(palette);
                 W_ReleaseLumpName(lumpname);
+#else
+                R_InitColormaps();
+#endif
                 underwawa = false;
             }
             V_DrawFullscreenRawOrPatch(W_GetNumForName(DEH_String("TITLE")));

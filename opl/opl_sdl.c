@@ -24,7 +24,9 @@
 #include <assert.h>
 
 #include "SDL.h"
+#ifndef DISABLE_SDL2MIXER
 #include "SDL_mixer.h"
+#endif  // DISABLE_SDL2MIXER
 
 #include "opl3.h"
 
@@ -430,7 +432,7 @@ static void WriteRegister(unsigned int reg_num, unsigned int value)
 
                 if ((value & 0x20) == 0)
                 {
-                    timer1.enabled = (value & 0x02) != 0;
+                    timer2.enabled = (value & 0x02) != 0;
                     OPLTimer_CalculateEndTime(&timer2);
                 }
             }

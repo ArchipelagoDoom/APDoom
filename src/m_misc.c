@@ -28,23 +28,15 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <io.h>
-#ifdef _MSC_VER
 #include <direct.h>
-#endif
 #else
 #include <sys/types.h>
 #endif
 
 #include "doomtype.h"
 
-#include "deh_str.h"
-
-#include "i_swap.h"
 #include "i_system.h"
-#include "i_video.h"
 #include "m_misc.h"
-#include "v_video.h"
-#include "w_wad.h"
 #include "z_zone.h"
 
 #ifdef _WIN32
@@ -114,19 +106,12 @@ static char *ConvertWideToMultiByte(const wchar_t *wstr, UINT code_page)
     return str;
 }
 
-static char *ConvertWideToUtf8(const wchar_t *wstr)
+// Convert wide string to a UTF8 string. The result is newly allocated and must
+// be freed by the caller after use.
+
+char *M_ConvertWideToUtf8(const wchar_t *wstr)
 {
     return ConvertWideToMultiByte(wstr, CP_UTF8);
-}
-
-static wchar_t *ConvertSysNativeMBToWide(const char *str)
-{
-    return ConvertMultiByteToWide(str, CP_ACP);
-}
-
-static char *ConvertWideToSysNativeMB(const wchar_t *wstr)
-{
-    return ConvertWideToMultiByte(wstr, CP_ACP);
 }
 
 // Convert UTF8 string to a wide string. The result is newly allocated and must
@@ -137,58 +122,6 @@ wchar_t *M_ConvertUtf8ToWide(const char *str)
     return ConvertMultiByteToWide(str, CP_UTF8);
 }
 #endif
-
-// Convert multibyte string in system encoding to UTF8. The result is newly
-// allocated and must be freed by the caller after use.
-
-char *M_ConvertSysNativeMBToUtf8(const char *str)
-{
-#ifdef _WIN32
-    char *ret = NULL;
-    wchar_t *wstr = NULL;
-
-    wstr = ConvertSysNativeMBToWide(str);
-
-    if (!wstr)
-    {
-        return NULL;
-    }
-
-    ret = ConvertWideToUtf8(wstr);
-
-    free(wstr);
-
-    return ret;
-#else
-    return M_StringDuplicate(str);
-#endif
-}
-
-// Convert UTF8 string to multibyte string in system encoding. The result is
-// newly allocated and must be freed by the caller after use.
-
-char *M_ConvertUtf8ToSysNativeMB(const char *str)
-{
-#ifdef _WIN32
-    char *ret = NULL;
-    wchar_t *wstr = NULL;
-
-    wstr = M_ConvertUtf8ToWide(str);
-
-    if (!wstr)
-    {
-        return NULL;
-    }
-
-    ret = ConvertWideToSysNativeMB(wstr);
-
-    free(wstr);
-
-    return ret;
-#else
-    return M_StringDuplicate(str);
-#endif
-}
 
 FILE *M_fopen(const char *filename, const char *mode)
 {
@@ -299,6 +232,7 @@ int M_stat(const char *path, struct stat *buf)
     // incompatible with struct stat*. We copy only the required compatible
     // field.
     buf->st_mode = wbuf.st_mode;
+    buf->st_mtime = wbuf.st_mtime; // [crispy]
 
     free(wpath);
 
@@ -346,7 +280,7 @@ char *M_getenv(const char *name)
 
     if (wenv)
     {
-        env = ConvertWideToUtf8(wenv);
+        env = M_ConvertWideToUtf8(wenv);
     }
     else
     {
@@ -576,9 +510,14 @@ char *M_TempFile(const char *s)
         tempdir = ".";
     }
 #else
-    // In Unix, just use /tmp.
+    // Check the $TMPDIR environment variable to find the location.
 
-    tempdir = "/tmp";
+    tempdir = getenv("TMPDIR");
+
+    if (tempdir == NULL)
+    {
+        tempdir = "/tmp";
+    }
 #endif
 
     return M_StringJoin(tempdir, DIR_SEPARATOR_S, s, NULL);

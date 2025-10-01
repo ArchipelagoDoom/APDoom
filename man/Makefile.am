@@ -8,7 +8,9 @@ MANPAGE_GEN_FILES = environ.man           \
                     strife.template       \
                     docgen                \
                     default.cfg.template  \
-                    extra.cfg.template
+                    extra.cfg.template    \
+                    server.template       \
+                    setup.template
 
 doomdocsdir = ${docdir}/../${PROGRAM_PREFIX}doom
 hereticdocsdir = ${docdir}/../${PROGRAM_PREFIX}heretic
@@ -19,16 +21,12 @@ if HAVE_DOC
 
 GENERATED_MAN_PAGES =               \
            @PROGRAM_PREFIX@doom.6         \
-           default.cfg.5            \
            @PROGRAM_PREFIX@doom.cfg.5     \
            @PROGRAM_PREFIX@heretic.6      \
-           heretic.cfg.5            \
            @PROGRAM_PREFIX@heretic.cfg.5  \
            @PROGRAM_PREFIX@hexen.6        \
-           hexen.cfg.5              \
            @PROGRAM_PREFIX@hexen.cfg.5    \
            @PROGRAM_PREFIX@strife.6       \
-           strife.cfg.5             \
            @PROGRAM_PREFIX@strife.cfg.5   \
            @PROGRAM_PREFIX@server.6
 
@@ -61,7 +59,10 @@ CLEANFILES = $(GENERATED_MAN_PAGES) $(SETUP_MAN_PAGES) \
              $(doomdocs_DATA) $(hereticdocs_DATA) \
              $(hexendocs_DATA) $(strifedocs_DATA)
 DOCGEN = $(srcdir)/docgen
-DOCGEN_COMMON_ARGS = -n "@PROGRAM_SPREFIX@" -s "@PACKAGE_NAME@" -z "@PACKAGE_SHORTNAME@"
+DOCGEN_COMMON_ARGS = -n "@PROGRAM_SPREFIX@" \
+		     -s "@PACKAGE_NAME@" \
+		     -z "@PACKAGE_SHORTNAME@" \
+		     -v "@VERSION@"
 
 @PROGRAM_PREFIX@doom.6: $(top_srcdir)/src $(MANPAGE_GEN_FILES)
 	$(DOCGEN) $(DOCGEN_COMMON_ARGS) \

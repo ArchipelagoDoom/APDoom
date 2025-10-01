@@ -24,13 +24,17 @@
 static crispy_t crispy_s = {
 	0,
 	.extautomap = 1,
+	.gamma = 9,  // default level is "OFF" for intermediate gamma levels
 	.hires = 1,
-	.smoothscaling = 1,
 	.soundfix = 1,
 #ifdef CRISPY_TRUECOLOR
+	.smoothlight = 1,
 	.truecolor = 1,
 #endif
 	.vsync = 1,
+	.widescreen = 1, // match screen by default
+
+	// [AP] Additional configuration variables
 	.ap_automapicons = 1,
 	.ap_levelselectmusic = 1
 };

@@ -31,6 +31,9 @@
 #define ST_WIDTH	ORIGWIDTH
 #define ST_Y		(ORIGHEIGHT - ST_HEIGHT)
 
+// [crispy] in non-widescreen mode WIDESCREENDELTA is 0 anyway
+#define ST_WIDESCREENDELTA ((screenblocks >= CRISPY_HUD + 3 && (!automapactive || crispy->automapoverlay)) ? WIDESCREENDELTA : 0)
+
 #define CRISPY_HUD 12
 
 // [crispy] Demo Timer widget
@@ -58,26 +61,6 @@ void ST_Init (void);
 
 // [crispy] forcefully initialize the status bar backing screen
 extern void ST_refreshBackground(boolean force);
-
-
-// States for status bar code.
-typedef enum
-{
-    AutomapState,
-    FirstPersonState
-    
-} st_stateenum_t;
-
-
-// States for the chat code.
-typedef enum
-{
-    StartChatState,
-    WaitDestState,
-    GetChatState
-    
-} st_chatstateenum_t;
-
 
 
 extern pixel_t *st_backing_screen;

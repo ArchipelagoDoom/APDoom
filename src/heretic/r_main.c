@@ -22,6 +22,7 @@
 #include "r_local.h"
 #include "tables.h"
 #include "v_video.h" // [crispy] V_DrawFilledBox for HOM detector
+#include "a11y.h" // [crispy] A11Y
 
 int viewangleoffset;
 
@@ -41,6 +42,7 @@ int sscount, linecount, loopcount;
 
 fixed_t viewx, viewy, viewz;
 angle_t viewangle;
+localview_t localview; // [crispy]
 fixed_t viewcos, viewsin;
 player_t *viewplayer;
 
@@ -60,15 +62,22 @@ int viewangletox[FINEANGLES / 2];
 // that maps back to x ranges from clipangle to -clipangle
 angle_t xtoviewangle[MAXWIDTH + 1];
 
-lighttable_t *scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
-lighttable_t *scalelightfixed[MAXLIGHTSCALE];
-lighttable_t *zlight[LIGHTLEVELS][MAXLIGHTZ];
-
-// [AM] Fractional part of the current tic, in the half-open
-//      range of [0.0, 1.0).  Used for interpolation.
-extern fixed_t          fractionaltic;
+// [crispy] parameterized for smooth diminishing lighting
+lighttable_t ***scalelight = NULL;
+lighttable_t  **scalelightfixed = NULL;
+lighttable_t ***zlight = NULL;
 
 int extralight;                 // bumped light from gun blasts
+
+// [crispy] parameterized for smooth diminishing lighting
+int NUMCOLORMAPS;
+int LIGHTLEVELS;
+int LIGHTSEGSHIFT;
+int LIGHTBRIGHT;
+int MAXLIGHTSCALE;
+int LIGHTSCALESHIFT;
+int MAXLIGHTZ;
+int LIGHTZSHIFT;
 
 void (*colfunc) (void);
 void (*basecolfunc) (void);
@@ -555,12 +564,80 @@ void R_InitLightTables(void)
     int i, j, level, startmap;
     int scale;
 
+    if (scalelight)
+    {
+        for (i = 0; i < LIGHTLEVELS; i++)
+        {
+            free(scalelight[i]);
+        }
+        free(scalelight);
+    }
+
+    if (scalelightfixed)
+    {
+        free(scalelightfixed);
+    }
+
+    if (zlight)
+    {
+        for (i = 0; i < LIGHTLEVELS; i++)
+        {
+            free(zlight[i]);
+        }
+        free(zlight);
+    }
+
+    // [crispy] smooth diminishing lighting
+    if (crispy->smoothlight)
+    {
+#ifdef CRISPY_TRUECOLOR
+        if (crispy->truecolor)
+        {
+            // [crispy] if in TrueColor mode, use smoothest diminished lighting
+            LIGHTLEVELS =      16 << 4;
+            LIGHTSEGSHIFT =     4 -  4;
+            LIGHTBRIGHT =       1 << 4;
+            MAXLIGHTSCALE =    48 << 3;
+            LIGHTSCALESHIFT =  12 -  3;
+            MAXLIGHTZ =       128 << 6;
+            LIGHTZSHIFT =      20 -  6;
+        }
+        else
+#endif
+        {
+            // [crispy] else, use paletted approach
+            LIGHTLEVELS =      16 << 1;
+            LIGHTSEGSHIFT =     4 -  1;
+            LIGHTBRIGHT =       1 << 1;
+            MAXLIGHTSCALE =    48 << 0;
+            LIGHTSCALESHIFT =  12 -  0;
+            MAXLIGHTZ =       128 << 3;
+            LIGHTZSHIFT =      20 -  3;
+        }
+    }
+    else
+    {
+        LIGHTLEVELS =      16;
+        LIGHTSEGSHIFT =     4;
+        LIGHTBRIGHT =       1;
+        MAXLIGHTSCALE =    48;
+        LIGHTSCALESHIFT =  12;
+        MAXLIGHTZ =       128;
+        LIGHTZSHIFT =      20;
+    }
+
+    scalelight = malloc(LIGHTLEVELS * sizeof(*scalelight));
+    scalelightfixed = malloc(MAXLIGHTSCALE * sizeof(*scalelightfixed));
+    zlight = malloc(LIGHTLEVELS * sizeof(*zlight));
+
 //
 // Calculate the light levels to use for each level / distance combination
 //
     for (i = 0; i < LIGHTLEVELS; i++)
     {
-        startmap = ((LIGHTLEVELS - 1 - i) * 2) * NUMCOLORMAPS / LIGHTLEVELS;
+        startmap = ((LIGHTLEVELS - LIGHTBRIGHT - i) * 2) * NUMCOLORMAPS / LIGHTLEVELS;
+        scalelight[i] = malloc(MAXLIGHTSCALE * sizeof(**scalelight));
+        zlight[i] = malloc(MAXLIGHTZ * sizeof(**zlight));
         for (j = 0; j < MAXLIGHTZ; j++)
         {
             scale =
@@ -715,7 +792,7 @@ void R_ExecuteSetViewSize(void)
 //
     for (i = 0; i < LIGHTLEVELS; i++)
     {
-        startmap = ((LIGHTLEVELS - 1 - i) * 2) * NUMCOLORMAPS / LIGHTLEVELS;
+        startmap = ((LIGHTLEVELS - LIGHTBRIGHT - i) * 2) * NUMCOLORMAPS / LIGHTLEVELS;
         for (j = 0; j < MAXLIGHTSCALE; j++)
         {
             level =
@@ -764,7 +841,7 @@ void R_Init(void)
     R_InitTables();
     // viewwidth / viewheight / detailLevel are set by the defaults
     printf (".");
-    R_SetViewSize(screenblocks, detailLevel);
+    R_SetViewSize(BETWEEN(3, 11, screenblocks), detailLevel);
     //tprintf("R_InitPlanes\n", 0);
     R_InitPlanes();
     printf (".");
@@ -808,6 +885,23 @@ subsector_t *R_PointInSubsector(fixed_t x, fixed_t y)
 
 }
 
+// [crispy]
+static inline boolean CheckLocalView(const player_t *player)
+{
+  return (
+    // Don't use localview if the player is spying.
+    player == &players[consoleplayer] &&
+    // Don't use localview if the player is dead.
+    player->playerstate != PST_DEAD &&
+    // Don't use localview if the player just teleported.
+    !player->mo->reactiontime &&
+    // Don't use localview if a demo is playing.
+    !demoplayback &&
+    // Don't use localview during a netgame (single-player only).
+    !netgame
+  );
+}
+
 //----------------------------------------------------------------------------
 //
 // PROC R_SetupFrame
@@ -820,6 +914,7 @@ void R_SetupFrame(player_t * player)
     int tableAngle;
     int tempCentery;
     int pitch; // [crispy]
+    int tmpColormap; // [crispy] to overwrite colormap
 
     //drawbsp = 1;
     viewplayer = player;
@@ -837,12 +932,23 @@ void R_SetupFrame(player_t * player)
         // Don't interpolate during a paused state
         leveltime > oldleveltime)
     {
-        viewx = player->mo->oldx + FixedMul(player->mo->x - player->mo->oldx, fractionaltic);
-        viewy = player->mo->oldy + FixedMul(player->mo->y - player->mo->oldy, fractionaltic);
-        viewz = player->oldviewz + FixedMul(player->viewz - player->oldviewz, fractionaltic);
-        viewangle = R_InterpolateAngle(player->mo->oldangle, player->mo->angle, fractionaltic) + viewangleoffset;
-        pitch = player->oldlookdir + (player->lookdir - player->oldlookdir) *
-                FIXED2DOUBLE(fractionaltic);
+        const boolean use_localview = CheckLocalView(player);
+
+        viewx = LerpFixed(player->mo->oldx, player->mo->x);
+        viewy = LerpFixed(player->mo->oldy, player->mo->y);
+        viewz = LerpFixed(player->oldviewz, player->viewz);
+        if (use_localview)
+        {
+            viewangle = (player->mo->angle + localview.angle -
+                        localview.ticangle + LerpAngle(localview.oldticangle,
+                                                       localview.ticangle)) + viewangleoffset;
+        }
+        else
+        {
+            viewangle = LerpAngle(player->mo->oldangle, player->mo->angle) + viewangleoffset;
+        }
+
+        pitch = LerpInt(player->oldlookdir, player->lookdir);
     }
     else
     {
@@ -862,7 +968,16 @@ void R_SetupFrame(player_t * player)
         viewy += player->chickenPeck * finesine[tableAngle];
     }
 
+    // [crispy] A11Y
+    if (a11y_weapon_flash)
+    {
     extralight = player->extralight;
+    }
+    else
+        extralight = 0;
+    // [crispy] A11Y
+    extralight += a11y_extra_lighting;
+
     // [crispy] apply new yslope[] whenever "lookdir", "detailshift" or
     // "screenblocks" change
     tempCentery = viewheight / 2 + (pitch * (1 << crispy->hires)) *
@@ -878,8 +993,17 @@ void R_SetupFrame(player_t * player)
     sscount = 0;
     if (player->fixedcolormap)
     {
-        fixedcolormap = colormaps + player->fixedcolormap
-            * 256 * sizeof(lighttable_t);
+        tmpColormap = player->fixedcolormap;
+        // [crispy] A11Y - overwrite to disable invul-colormap or torch flickering
+        if ((!a11y_invul_colormap && player->powers[pw_invulnerability]) ||
+            (!a11y_weapon_flash && player->powers[pw_infrared] && !player->powers[pw_invulnerability]))
+        {
+            tmpColormap = 1; // [crispy] A11Y - static infrared map
+        }
+
+        fixedcolormap = colormaps + tmpColormap
+            * (NUMCOLORMAPS / 32) // [crispy] smooth diminishing lighting
+            * 256 /* * sizeof(lighttable_t)*/;
         walllights = scalelightfixed;
         for (i = 0; i < MAXLIGHTSCALE; i++)
         {

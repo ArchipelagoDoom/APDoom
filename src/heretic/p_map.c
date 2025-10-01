@@ -1226,14 +1226,21 @@ boolean PTR_AimTraverse(intercept_t * in)
 
         dist = FixedMul(attackrange, in->frac);
 
-        if (li->frontsector->floorheight != li->backsector->floorheight)
+        // Added checks if there is no backsector to prevent crashing.
+        // Crashes didn't happen in the DOS version of Heretic
+        // because reading NULL pointer produces unpredictable but
+        // deterministic values instead of crashing.
+        // See https://github.com/chocolate-doom/chocolate-doom/issues/1665
+        if (li->backsector == NULL
+            || li->frontsector->floorheight != li->backsector->floorheight)
         {
             slope = FixedDiv(openbottom - shootz, dist);
             if (slope > bottomslope)
                 bottomslope = slope;
         }
 
-        if (li->frontsector->ceilingheight != li->backsector->ceilingheight)
+        if (li->backsector == NULL
+            || li->frontsector->ceilingheight != li->backsector->ceilingheight)
         {
             slope = FixedDiv(opentop - shootz, dist);
             if (slope < topslope)
@@ -1305,6 +1312,7 @@ boolean PTR_ShootTraverse(intercept_t * in)
 
     if (in->isaline)
     {
+        boolean safe = false;
         li = in->d.line;
         if (li->special)
             P_ShootSpecialLine(shootthing, li);
@@ -1348,10 +1356,39 @@ boolean PTR_ShootTraverse(intercept_t * in)
             if (z > li->frontsector->ceilingheight)
                 return false;   // don't shoot the sky!
             if (li->backsector && li->backsector->ceilingpic == skyflatnum)
+            {
+                // [crispy] fix hitscan puffs not appearing in outdoor areas
+                if (li->backsector->ceilingheight < z)
                 return false;   // it's a sky hack wall
+                else
+                safe = true;
+            }
         }
 
-        P_SpawnPuff(x, y, z);
+        // [crispy] check if the hitscan puff's z-coordinate is below or above
+        // its spawning sector's floor or ceiling, respectively, and move its
+        // coordinates to the point where the trajectory hits the plane
+        if (aimslope)
+        {
+            const int lineside = P_PointOnLineSide(x, y, li);
+            int side;
+
+            if ((side = li->sidenum[lineside]) != NO_INDEX)
+            {
+                const sector_t *const sector = sides[side].sector;
+
+                if (z < sector->floorheight ||
+                    (z > sector->ceilingheight && sector->ceilingpic != skyflatnum))
+                {
+                    z = BETWEEN(sector->floorheight, sector->ceilingheight, z);
+                    frac = FixedDiv(z - shootz, FixedMul(aimslope, attackrange));
+                    x = trace.x + FixedMul (trace.dx, frac);
+                    y = trace.y + FixedMul (trace.dy, frac);
+                }
+            }
+        }
+
+        P_SpawnPuffSafe(x, y, z, safe);
         return false;           // don't go any farther
     }
 

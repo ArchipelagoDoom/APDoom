@@ -201,6 +201,13 @@ void P_MovePlayer(player_t * player)
     onground = (player->mo->z <= player->mo->floorz
                 || (player->mo->flags2 & MF2_ONMOBJ));
 
+    // [crispy] fast polling
+    if (player == &players[consoleplayer])
+    {
+        localview.ticangle += localview.ticangleturn << 16;
+        localview.ticangleturn = 0;
+    }
+
     if (player->chickenTics)
     {                           // Chicken speed
         if (cmd->forwardmove && (onground || player->mo->flags2 & MF2_FLY))
@@ -404,7 +411,11 @@ void P_DeathThink(player_t * player)
     {
         if (player == &players[consoleplayer])
         {
+#ifndef CRISPY_TRUECOLOR
             I_SetPalette(W_CacheLumpName(DEH_String("PLAYPAL"), PU_CACHE));
+#else
+            I_SetPalette(0);
+#endif
             inv_ptr = 0;
             curpos = 0;
             newtorch = 0;
@@ -565,6 +576,12 @@ void P_PlayerThink(player_t * player)
     player->oldviewz = player->viewz;
     player->oldlookdir = player->lookdir;
     // player->oldrecoilpitch = player->recoilpitch;
+
+    // [crispy] fast polling
+    if (player == &players[consoleplayer])
+    {
+        localview.oldticangle = localview.ticangle;
+    }
 
     // No-clip cheat
     if (player->cheats & CF_NOCLIP)
@@ -849,7 +866,7 @@ void P_PlayerNextArtifact(player_t * player)
     if (player == &players[consoleplayer])
     {
         inv_ptr--;
-        if (inv_ptr < 6)
+        if (inv_ptr < CURPOS_MAX)
         {
             curpos--;
             if (curpos < 0)
@@ -860,13 +877,13 @@ void P_PlayerNextArtifact(player_t * player)
         if (inv_ptr < 0)
         {
             inv_ptr = player->inventorySlotNum - 1;
-            if (inv_ptr < 6)
+            if (inv_ptr < CURPOS_MAX)
             {
                 curpos = inv_ptr;
             }
             else
             {
-                curpos = 6;
+                curpos = CURPOS_MAX;
             }
         }
         player->readyArtifact = player->inventory[inv_ptr].type;
@@ -894,22 +911,25 @@ void P_PlayerRemoveArtifact(player_t * player, int slot)
         player->inventorySlotNum--;
         if (player == &players[consoleplayer])
         {                       // Set position markers and get next readyArtifact
-            inv_ptr--;
-            if (inv_ptr < 6)
+            if (inv_ptr >= slot) // [crispy] preserve active artifact
             {
-                curpos--;
-                if (curpos < 0)
+                inv_ptr--;
+                if (inv_ptr < CURPOS_MAX)
                 {
-                    curpos = 0;
+                    curpos--;
+                    if (curpos < 0)
+                    {
+                        curpos = 0;
+                    }
                 }
-            }
-            if (inv_ptr >= player->inventorySlotNum)
-            {
-                inv_ptr = player->inventorySlotNum - 1;
-            }
-            if (inv_ptr < 0)
-            {
-                inv_ptr = 0;
+                if (inv_ptr >= player->inventorySlotNum)
+                {
+                    inv_ptr = player->inventorySlotNum - 1;
+                }
+                if (inv_ptr < 0)
+                {
+                    inv_ptr = 0;
+                }
             }
             player->readyArtifact = player->inventory[inv_ptr].type;
         }

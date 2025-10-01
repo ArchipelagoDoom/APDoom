@@ -23,7 +23,6 @@
 #include <ctype.h>
 
 #include "SDL.h"
-#include "SDL_mixer.h"
 
 #include "i_glob.h"
 
@@ -50,6 +49,7 @@ char *music_pack_path = "";
 
 #ifndef DISABLE_SDL2MIXER
 
+#include "SDL_mixer.h"
 
 #define MID_HEADER_MAGIC "MThd"
 #define MUS_HEADER_MAGIC "MUS\x1a"
@@ -1143,10 +1143,10 @@ static boolean I_MP_InitMusic(void)
 
     //!
     // @category obscure
-    // @arg <filename>
+    // @arg <file>
     //
-    // Read all MIDI files from loaded WAD files, dump an example substitution
-    // music config file to the specified filename and quit.
+    // Read all MIDI files from loaded WAD files, dump an example
+    // substitution music config file to the specified file, and quit.
     //
     i = M_CheckParmWithArgs("-dumpsubstconfig", 1);
 

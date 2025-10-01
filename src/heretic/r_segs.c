@@ -187,11 +187,16 @@ void R_RenderMaskedSegRange(drawseg_t * ds, int x1, int x2)
     backsector = curline->backsector;
     texnum = texturetranslation[curline->sidedef->midtexture];
 
-    lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT) + extralight;
+    lightnum = (frontsector->rlightlevel >> LIGHTSEGSHIFT) + (extralight * LIGHTBRIGHT); // [crispy] smooth diminishing lighting, A11Y
+
+    // [crispy] smoother fake contrast
+    lightnum += curline->fakecontrast;
+/*
     if (curline->v1->y == curline->v2->y)
         lightnum--;
     else if (curline->v1->x == curline->v2->x)
         lightnum++;
+*/
     if (lightnum < 0)
         walllights = scalelight[0];
     else if (lightnum >= LIGHTLEVELS)
@@ -671,14 +676,15 @@ void R_StoreWallRange(int start, int stop)
 
         if (worldlow != worldbottom
             || backsector->floorpic != frontsector->floorpic
-            || backsector->lightlevel != frontsector->lightlevel)
+            || backsector->rlightlevel != frontsector->rlightlevel
+            || backsector->special != frontsector->special) // [crispy] check for special as well
             markfloor = true;
         else
             markfloor = false;  // same plane on both sides
 
         if (worldhigh != worldtop
             || backsector->ceilingpic != frontsector->ceilingpic
-            || backsector->lightlevel != frontsector->lightlevel)
+            || backsector->rlightlevel != frontsector->rlightlevel)
             markceiling = true;
         else
             markceiling = false;        // same plane on both sides
@@ -743,11 +749,16 @@ void R_StoreWallRange(int start, int stop)
         if (!fixedcolormap)
         {
             lightnum =
-                (frontsector->lightlevel >> LIGHTSEGSHIFT) + extralight;
+                (frontsector->rlightlevel >> LIGHTSEGSHIFT) + (extralight * LIGHTBRIGHT); // [crispy] smooth diminishing lighting, A11Y
+
+            // [crispy] smoother fake contrast
+            lightnum += curline->fakecontrast;
+            /*
             if (curline->v1->y == curline->v2->y)
                 lightnum--;
             else if (curline->v1->x == curline->v2->x)
                 lightnum++;
+            */
             if (lightnum < 0)
                 walllights = scalelight[0];
             else if (lightnum >= LIGHTLEVELS)

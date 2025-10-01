@@ -8,6 +8,9 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - "**.md"
+      - "**.yml"
 
 jobs:
   cpp-linter:
@@ -16,9 +19,9 @@ jobs:
         compiler: [clang]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install libfluidsynth-dev libpng-dev libsamplerate0-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-net-dev ninja-build
+        run: sudo apt-get update && sudo apt-get install libfluidsynth-dev libpng-dev libsamplerate0-dev libsdl2-dev libsdl2-mixer-dev libsdl2-net-dev ninja-build
       - name: Run cmake to generate compilation database
         run: cmake -S . -B . -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=1
       - uses: cpp-linter/cpp-linter-action@v2
@@ -28,7 +31,7 @@ jobs:
         with:
           style: file
           lines-changed-only: true
-          version: 14
+          version: 16
           tidy-checks: >-
             boost-*
             ,bugprone-*
@@ -39,12 +42,15 @@ jobs:
             ,clang-analyzer-*
             ,cppcoreguidelines-*
             ,-cppcoreguidelines-avoid-magic-numbers
+            ,-cppcoreguidelines-init-variables
+            ,-readability-identifier-length
+            ,-readability-isolate-declaration
             ,-readability-magic-numbers
 
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
         run: |
-          echo "Some files failed the linting checks! Fail fast disabled until false posivite issue is fixed"
+          echo "Some files failed the linting checks! Fail fast disabled until false positive issue is fixed"
 
       - name: Check no extern used in .c files
         run: |

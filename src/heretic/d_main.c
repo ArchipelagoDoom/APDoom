@@ -37,6 +37,7 @@
 #include "i_system.h"
 #include "i_timer.h"
 #include "i_video.h"
+#include "a11y.h" // [crispy] A11Y
 #include "m_argv.h"
 #include "m_config.h"
 #include "m_controls.h"
@@ -71,6 +72,7 @@ boolean nomonsters;             // checkparm of -nomonsters
 boolean respawnparm;            // checkparm of -respawn
 boolean debugmode;              // checkparm of -debug
 boolean ravpic;                 // checkparm of -ravpic
+boolean coop_spawns = false;    // [crispy] checkparm of -coop_spawns
 boolean cdrom;                  // true if cd-rom mode active
 boolean noartiskip;             // whether shift-enter skips an artifact
 
@@ -478,6 +480,18 @@ static void CrispyDrawStats (void)
 
 void D_Display(void)
 {
+    if (crispy->uncapped)
+    {
+        I_UpdateFracTic();
+
+        if (!automapactive || crispy->automapoverlay)
+        {
+            I_StartDisplay();
+            G_FastResponder();
+            G_PrepTiccmd();
+        }
+    }
+
     // Change the view size if needed
     if (setsizeneeded)
     {
@@ -505,10 +519,13 @@ void D_Display(void)
                 AM_Drawer();
                 BorderNeedRefresh = true;
             }
+            // [crispy] check for translucent HUD
+            SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
             CT_Drawer();
             UpdateState |= I_FULLVIEW;
             SB_Drawer();
             CrispyDrawStats();
+            SB_Translucent(false);
             break;
         case GS_INTERMISSION:
             IN_Drawer();
@@ -544,12 +561,17 @@ void D_Display(void)
     }
 #endif
 
+    // [crispy] check for translucent HUD
+    SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
+
     // Handle player messages
     if (gamestate != GS_LEVEL_SELECT)
         DrawMessage();
 
     // [crispy] Handle centered player messages
     DrawCenterMessage();
+
+    SB_Translucent(false);
 
     // Menu drawing
     if (MenuActive || askforquit)
@@ -732,6 +754,7 @@ void D_DoAdvanceDemo(void)
     advancedemo = false;
     usergame = false;           // can't save / end game here
     paused = false;
+    demoextend = false; // [crispy] at this point demos should no longer be extended (demo-reel)
     gameaction = ga_nothing;
     demosequence = (demosequence + 1) % 7;
     switch (demosequence)
@@ -804,7 +827,7 @@ void D_StartTitle(void)
 =
 = D_CheckRecordFrom
 =
-= -recordfrom <savegame num> <demoname>
+= -recordfrom <save-num> <demo-name>
 ==============
 */
 
@@ -816,10 +839,10 @@ void D_CheckRecordFrom(void)
     //!
     // @vanilla
     // @category demo
-    // @arg <savenum> <demofile>
+    // @arg <save-num> <demo-name>
     //
-    // Record a demo, loading from the given filename. Equivalent
-    // to -loadgame <savenum> -record <demofile>.
+    // Load a game from the given savegame slot and record a demo from
+    // it.  Equivalent to -loadgame <save-num> -record <demo-name>.
 
     p = M_CheckParmWithArgs("-recordfrom", 2);
     if (!p)
@@ -1087,6 +1110,12 @@ void D_BindVariables(void)
     M_BindIntVariable("music_volume",           &snd_MusicVolume);
     M_BindIntVariable("screenblocks",           &screenblocks);
     M_BindIntVariable("snd_channels",           &snd_Channels);
+    M_BindIntVariable("a11y_sector_lighting",   &a11y_sector_lighting);
+    M_BindIntVariable("a11y_extra_lighting",    &a11y_extra_lighting);
+    M_BindIntVariable("a11y_weapon_flash",      &a11y_weapon_flash);
+    M_BindIntVariable("a11y_weapon_pspr",       &a11y_weapon_pspr);
+    M_BindIntVariable("a11y_palette_changes",   &a11y_palette_changes);
+    M_BindIntVariable("a11y_invul_colormap",    &a11y_invul_colormap);
     M_BindIntVariable("vanilla_savegame_limit", &vanilla_savegame_limit);
     M_BindIntVariable("vanilla_demo_limit",     &vanilla_demo_limit);
     M_BindIntVariable("show_endoom",            &show_endoom);
@@ -1103,21 +1132,31 @@ void D_BindVariables(void)
     // [crispy] bind "crispness" config variables
     crispy->coloredhud = COLOREDHUD_TEXT; // [AP] Default - Not used in Heretic?
     M_BindIntVariable("crispy_hires",           &crispy->hires);
-    M_BindIntVariable("crispy_smoothscaling",   &crispy->smoothscaling);
+    M_BindIntVariable("crispy_smoothscaling",   &smooth_pixel_scaling);
     M_BindIntVariable("crispy_automapoverlay",  &crispy->automapoverlay);
     M_BindIntVariable("crispy_automaprotate",   &crispy->automaprotate);
     M_BindIntVariable("crispy_automapstats",    &crispy->automapstats);
     M_BindIntVariable("crispy_brightmaps",      &crispy->brightmaps);
     M_BindIntVariable("crispy_bobfactor",       &crispy->bobfactor);
     M_BindIntVariable("crispy_centerweapon",    &crispy->centerweapon);
+    M_BindIntVariable("crispy_crosshair",       &crispy->crosshair);
+    M_BindIntVariable("crispy_crosshairtype",   &crispy->crosshairtype);
+    M_BindIntVariable("crispy_crosshaircolor",  &crispy->crosshaircolor);
     M_BindIntVariable("crispy_defaultskill",    &crispy->defaultskill);
     M_BindIntVariable("crispy_fpslimit",        &crispy->fpslimit);
     M_BindIntVariable("crispy_freelook",        &crispy->freelook_hh);
+    M_BindIntVariable("crispy_gamma",           &crispy->gamma);
     M_BindIntVariable("crispy_leveltime",       &crispy->leveltime);
     M_BindIntVariable("crispy_mouselook",       &crispy->mouselook);
     M_BindIntVariable("crispy_playercoords",    &crispy->playercoords);
     M_BindIntVariable("crispy_secretmessage",   &crispy->secretmessage);
+    M_BindIntVariable("crispy_smoothlight",     &crispy->smoothlight);
     M_BindIntVariable("crispy_soundmono",       &crispy->soundmono);
+    M_BindIntVariable("crispy_lvlwpnsnd",       &crispy->lvlwpnsnd);
+    M_BindIntVariable("crispy_translucency",    &crispy->translucency);
+#ifdef CRISPY_TRUECOLOR
+    M_BindIntVariable("crispy_truecolor",       &crispy->truecolor);
+#endif
     M_BindIntVariable("crispy_uncapped",        &crispy->uncapped);
     M_BindIntVariable("crispy_vsync",           &crispy->vsync);
     M_BindIntVariable("crispy_widescreen",      &crispy->widescreen);
@@ -1235,7 +1274,7 @@ void D_DoomMain(void)
     // @arg <n>
     // @vanilla
     //
-    // Start playing on episode n (1-4)
+    // Start playing episode n (1-4).
     //
 
 #if 0 // [AP] Warping disabled
@@ -1364,7 +1403,6 @@ void D_DoomMain(void)
 
     //!
     // @category game
-    // @category mod
     //
     // Automatic wand start when advancing from one level to the next. At the
     // beginning of each level, the player's health is reset to 100, their
@@ -1377,7 +1415,6 @@ void D_DoomMain(void)
 
     //!
     // @category game
-    // @category mod
     //
     // Ammo pickups give 50% more ammo. This option is not allowed when recording a
     // demo, playing back a demo or when starting a network game.
@@ -1387,7 +1424,6 @@ void D_DoomMain(void)
 
     //!
     // @category game
-    // @category mod
     //
     // Fast monsters. This option is not allowed when recording a demo,
     // playing back a demo or when starting a network game.
@@ -1397,7 +1433,6 @@ void D_DoomMain(void)
 
     //!
     // @category game
-    // @category mod
     //
     // Automatic use of Quartz flasks and Mystic urns.
     //
@@ -1406,7 +1441,6 @@ void D_DoomMain(void)
 
     //!
     // @category game
-    // @category mod
     //
     // Show the location of keys on the automap.
     //
@@ -1601,7 +1635,7 @@ void D_DoomMain(void)
     }
 
     I_InitTimer();
-    I_InitSound(false);
+    I_InitSound(heretic);
     I_InitMusic();
 
     tprintf("NET_Init: Init network subsystem.\n", 1);
@@ -1671,6 +1705,18 @@ void D_DoomMain(void)
 //
 // start the appropriate game based on params
 //
+
+    //!
+    // @category game
+    //
+    // Start single player game with items spawns as in cooperative netgame.
+    //
+
+    p = M_ParmExists("-coop_spawns");
+    if (p)
+    {
+        coop_spawns = true;
+    }
 
     D_CheckRecordFrom();
 

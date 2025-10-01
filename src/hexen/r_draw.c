@@ -20,6 +20,7 @@
 #include "i_video.h"
 #include "r_local.h"
 #include "v_video.h"
+#include "v_trans.h" // [crispy] blending functions
 
 /*
 
@@ -30,7 +31,7 @@ files only know about ccordinates, not the architecture of the frame buffer.
 
 byte *viewimage;
 int viewwidth, scaledviewwidth, viewheight, viewwindowx, viewwindowy;
-byte *ylookup[MAXHEIGHT];
+pixel_t *ylookup[MAXHEIGHT];
 int columnofs[MAXWIDTH];
 //byte translations[3][256]; // color tables for different players
 
@@ -61,7 +62,7 @@ int dccount;                    // just for profiling
 void R_DrawColumn(void)
 {
     int count;
-    byte *dest;
+    pixel_t *dest;
     fixed_t frac, fracstep;
     int heightmask = dc_texheight - 1; // [crispy]
 
@@ -116,7 +117,7 @@ void R_DrawColumn(void)
 void R_DrawColumnLow(void)
 {
     int count;
-    byte *dest;
+    pixel_t *dest;
     fixed_t frac, fracstep;
     int heightmask = dc_texheight - 1; // [crispy]
 
@@ -172,14 +173,17 @@ void R_DrawColumnLow(void)
 void R_DrawTLColumn(void)
 {
     int count;
-    byte *dest;
+    pixel_t *dest;
     fixed_t frac, fracstep;
     int heightmask = dc_texheight - 1; // [crispy]
 
+    // [crispy] Show transparent lines at top and bottom of screen.
+    /*
     if (!dc_yl)
         dc_yl = 1;
     if (dc_yh == viewheight - 1)
         dc_yh = viewheight - 2;
+    */
 
     count = dc_yh - dc_yl;
     if (count < 0)
@@ -208,9 +212,16 @@ void R_DrawTLColumn(void)
 
         do
         {
+            // [crispy] brightmaps
+            const byte source = dc_source[frac >> FRACBITS];
+#ifndef CRISPY_TRUECOLOR
             *dest = tinttable[*dest +
-                              (dc_colormap[0][dc_source[frac >> FRACBITS]] <<
+                              (dc_colormap[dc_brightmap[source]][source] <<
                                8)];
+#else
+            const pixel_t destrgb = dc_colormap[dc_brightmap[source]][source];
+            *dest = blendfunc(*dest, destrgb);
+#endif
             dest += SCREENWIDTH;
             if ((frac += fracstep) >= heightmask)
                 frac -= heightmask;
@@ -220,9 +231,16 @@ void R_DrawTLColumn(void)
     {
         do
         {
+            // [crispy] brightmaps
+            const byte source = dc_source[(frac >> FRACBITS) & heightmask];
+#ifndef CRISPY_TRUECOLOR
             *dest = tinttable[*dest +
-                              (dc_colormap[0][dc_source[(frac >> FRACBITS) & heightmask]] <<
+                              (dc_colormap[dc_brightmap[source]][source] <<
                                8)];
+#else
+            const pixel_t destrgb = dc_colormap[dc_brightmap[source]][source];
+            *dest = blendfunc(*dest, destrgb);
+#endif
             dest += SCREENWIDTH;
             frac += fracstep;
         } while (count--);
@@ -238,14 +256,17 @@ void R_DrawTLColumn(void)
 void R_DrawAltTLColumn(void)
 {
     int count;
-    byte *dest;
+    pixel_t *dest;
     fixed_t frac, fracstep;
     int heightmask = dc_texheight - 1; // [crispy]
 
+    // [crispy] Show transparent lines at top and bottom of screen.
+    /*
     if (!dc_yl)
         dc_yl = 1;
     if (dc_yh == viewheight - 1)
         dc_yh = viewheight - 2;
+    */
 
     count = dc_yh - dc_yl;
     if (count < 0)
@@ -274,8 +295,15 @@ void R_DrawAltTLColumn(void)
 
         do
         {
+            // [crispy] brightmaps
+            const byte source = dc_source[frac >> FRACBITS];
+#ifndef CRISPY_TRUECOLOR
             *dest = tinttable[((*dest) << 8)
-                              + dc_colormap[0][dc_source[frac >> FRACBITS]]];
+                              + dc_colormap[dc_brightmap[source]][source]];
+#else
+            const pixel_t destrgb = dc_colormap[dc_brightmap[source]][source];
+            *dest = blendfunc(*dest, destrgb);
+#endif
             dest += SCREENWIDTH;
             if ((frac += fracstep) >= heightmask)
                 frac -= heightmask;
@@ -285,8 +313,15 @@ void R_DrawAltTLColumn(void)
     {
         do
         {
+            // [crispy] brightmaps
+            const byte source = dc_source[(frac >> FRACBITS) & heightmask];
+#ifndef CRISPY_TRUECOLOR
             *dest = tinttable[((*dest) << 8)
-                              + dc_colormap[0][dc_source[(frac >> FRACBITS) & heightmask]]];
+                              + dc_colormap[dc_brightmap[source]][source]];
+#else
+            const pixel_t destrgb = dc_colormap[dc_brightmap[source]][source];
+            *dest = blendfunc(*dest, destrgb);
+#endif
             dest += SCREENWIDTH;
             frac += fracstep;
         } while (count--);
@@ -307,7 +342,7 @@ byte *translationtables;
 void R_DrawTranslatedColumn(void)
 {
     int count;
-    byte *dest;
+    pixel_t *dest;
     fixed_t frac, fracstep;
 
     count = dc_yh - dc_yl;
@@ -326,7 +361,9 @@ void R_DrawTranslatedColumn(void)
 
     do
     {
-        *dest = dc_colormap[0][dc_translation[dc_source[frac >> FRACBITS]]];
+        // [crispy] brightmaps
+        const byte source = dc_source[frac >> FRACBITS];
+        *dest = dc_colormap[dc_brightmap[source]][dc_translation[source]];
         dest += SCREENWIDTH;
         frac += fracstep;
     }
@@ -342,7 +379,7 @@ void R_DrawTranslatedColumn(void)
 void R_DrawTranslatedTLColumn(void)
 {
     int count;
-    byte *dest;
+    pixel_t *dest;
     fixed_t frac, fracstep;
 
     count = dc_yh - dc_yl;
@@ -361,10 +398,16 @@ void R_DrawTranslatedTLColumn(void)
 
     do
     {
+        // [crispy] brightmaps
+        byte src = dc_translation[dc_source[frac >> FRACBITS]];
+#ifndef CRISPY_TRUECOLOR
         *dest = tinttable[((*dest) << 8)
                           +
-                          dc_colormap[0][dc_translation
-                                      [dc_source[frac >> FRACBITS]]]];
+                          dc_colormap[dc_brightmap[src]][src]];
+#else
+        const pixel_t destrgb = dc_colormap[dc_brightmap[src]][src];
+        *dest = blendfunc(*dest, destrgb);
+#endif
         dest += SCREENWIDTH;
         frac += fracstep;
     }
@@ -420,7 +463,11 @@ void R_InitTranslationTables(void)
     byte *transLump;
     int lumpnum;
 
+#ifndef CRISPY_TRUECOLOR
     V_LoadTintTable();
+#else
+    I_InitTinttab((GameMission_t) hexen);
+#endif
 
     // Allocate translation tables
     translationtables = Z_Malloc(256 * 3 * (maxplayers - 1), PU_STATIC, 0);
@@ -457,7 +504,7 @@ int dscount;                    // just for profiling
 void R_DrawSpan(void)
 {
     fixed_t xfrac, yfrac;
-    byte *dest;
+    pixel_t *dest;
     int count, spot;
 
 #ifdef RANGECHECK
@@ -485,7 +532,7 @@ void R_DrawSpan(void)
 void R_DrawSpanLow(void)
 {
     fixed_t xfrac, yfrac;
-    byte *dest;
+    pixel_t *dest;
     int count, spot;
 
 #ifdef RANGECHECK
@@ -551,7 +598,8 @@ boolean BorderNeedRefresh;
 
 void R_DrawViewBorder(void)
 {
-    byte *src, *dest;
+    byte *src;
+    pixel_t *dest;
     int x, y;
 
     if (scaledviewwidth == SCREENWIDTH)
@@ -560,19 +608,9 @@ void R_DrawViewBorder(void)
     src = W_CacheLumpName("F_022", PU_CACHE);
     dest = I_VideoBuffer;
 
-    for (y = 0; y < SCREENHEIGHT - SBARHEIGHT; y++)
-    {
-        for (x = 0; x < SCREENWIDTH / 64; x++)
-        {
-            memcpy(dest, src + ((y & 63) << 6), 64);
-            dest += 64;
-        }
-        if (SCREENWIDTH & 63)
-        {
-            memcpy(dest, src + ((y & 63) << 6), SCREENWIDTH & 63);
-            dest += (SCREENWIDTH & 63);
-        }
-    }
+    // [crispy] use unified flat filling function
+    V_FillFlat(0, SCREENHEIGHT - SBARHEIGHT, 0, SCREENWIDTH, src, dest);
+
     for (x = (viewwindowx >> crispy->hires); x < (viewwindowx + viewwidth) >> crispy->hires; x += 16)
     {
         V_DrawPatch(x - WIDESCREENDELTA, (viewwindowy >> crispy->hires) - 4,
@@ -614,8 +652,8 @@ boolean BorderTopRefresh;
 
 void R_DrawTopBorder(void)
 {
-    byte *src, *dest;
-    int x, y;
+    byte *src;
+    pixel_t *dest;
 
     if (scaledviewwidth == SCREENWIDTH)
         return;
@@ -632,21 +670,13 @@ void R_DrawTopBorder(void)
     src = W_CacheLumpName("F_022", PU_CACHE);
     dest = I_VideoBuffer;
 
-    for (y = 0; y < (34 << crispy->hires); y++)
-    {
-        for (x = 0; x < SCREENWIDTH / 64; x++)
-        {
-            memcpy(dest, src + ((y & 63) << 6), 64);
-            dest += 64;
-        }
-        if (SCREENWIDTH & 63)
-        {
-            memcpy(dest, src + ((y & 63) << 6), SCREENWIDTH & 63);
-            dest += (SCREENWIDTH & 63);
-        }
-    }
+    // [crispy] use unified flat filling function
+    V_FillFlat(0, 34 << crispy->hires, 0, SCREENWIDTH, src, dest);
+
     if ((viewwindowy >> crispy->hires) < 35)
     {
+        int x;
+
         for (x = (viewwindowx >> crispy->hires); x < (viewwindowx + viewwidth) >> crispy->hires; x += 16)
         {
             V_DrawPatch(x - WIDESCREENDELTA, (viewwindowy >> crispy->hires) - 4,

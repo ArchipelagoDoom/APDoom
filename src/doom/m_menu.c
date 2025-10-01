@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h> // [crispy] strftime, localtime
 
 
 #include "doomdef.h"
@@ -65,6 +66,8 @@
 
 #include "v_trans.h" // [crispy] colored "invert mouse" message
 
+#include "d_pwad.h" // [crispy] kex secret level
+
 #include "level_select.h" // [ap]
 #include "apdoom.h"
 
@@ -106,8 +109,17 @@ boolean			messageNeedsInput;
 void    (*messageRoutine)(int response);
 
 // [crispy] intermediate gamma levels
-char gammamsg[5+4][26+2] =
+char gammamsg[5+13][26+2] =
 {
+    GAMMALVL050,
+    GAMMALVL055,
+    GAMMALVL060,
+    GAMMALVL065,
+    GAMMALVL070,
+    GAMMALVL075,
+    GAMMALVL080,
+    GAMMALVL085,
+    GAMMALVL090,
     GAMMALVL0,
     GAMMALVL05,
     GAMMALVL1,
@@ -166,9 +178,9 @@ typedef struct
     char	name[10];
     
     // choice = menu item #.
-    // if status = 2,
+    // if status = 2 or 3,
     //   choice=0:leftarrow,1:rightarrow
-    // [crispy] if status = 3,
+    // [crispy] if status = 4,
     //   choice=0:leftarrow,1:rightarrow,2:enter
     void	(*routine)(int choice);
     
@@ -345,6 +357,7 @@ enum
     ep3,
     ep4,
     ep5, // [crispy] Sigil
+    ep6, // [crispy] Sigil II
     ep_end
 } episodes_e;
 
@@ -355,6 +368,17 @@ menuitem_t EpisodeMenu[]=
     {1,"M_EPI3", M_Episode,'i'},
     {1,"M_EPI4", M_Episode,'t'}
    ,{1,"M_EPI5", M_Episode,'s'} // [crispy] Sigil
+   ,{1,"M_EPI6", M_Episode,'s'} // [crispy] Sigil II
+};
+
+// [crispy] have Sigil II but not Sigil
+menuitem_t EpisodeMenuSII[]=
+{
+    {1,"M_EPI1", M_Episode,'k'},
+    {1,"M_EPI2", M_Episode,'t'},
+    {1,"M_EPI3", M_Episode,'i'},
+    {1,"M_EPI4", M_Episode,'t'}
+   ,{1,"M_EPI6", M_Episode,'s'} // [crispy] Sigil II
 };
 
 menu_t  EpiDef =
@@ -876,15 +900,10 @@ void M_ReadSaveStrings(void)
 }
 
 // [FG] support up to 8 pages of savegames
-void M_DrawSaveLoadBottomLine(void)
+static void M_DrawSaveLoadBottomLine(void)
 {
   char pagestr[16];
-  const int y = LoadDef.y+LINEHEIGHT*load_end;
-
-  // [crispy] force status bar refresh
-  inhelpscreens = true;
-
-  M_DrawSaveLoadBorder(LoadDef.x,y);
+  const int y = 152;
 
   dp_translation = cr[CR_GOLD];
 
@@ -895,6 +914,27 @@ void M_DrawSaveLoadBottomLine(void)
 
   M_snprintf(pagestr, sizeof(pagestr), "page %d/%d", savepage + 1, savepage_max + 1);
   M_WriteText(ORIGWIDTH/2-M_StringWidth(pagestr)/2, y, pagestr);
+
+  // [crispy] print "modified" (or created initially) time of savegame file
+  if (LoadMenu[itemOn].status)
+  {
+    struct stat st;
+    char filedate[32];
+
+    if (M_stat(P_SaveGameFile(itemOn), &st) == 0)
+    {
+// [FG] suppress the most useless compiler warning ever
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-y2k"
+#endif
+    strftime(filedate, sizeof(filedate), "%x %X", localtime(&st.st_mtime));
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+    M_WriteText(ORIGWIDTH/2-M_StringWidth(filedate)/2, y + 8, filedate);
+    }
+  }
 
   dp_translation = NULL;
 }
@@ -1432,7 +1472,8 @@ void M_DrawEpisode(void)
 
 void M_VerifyNightmare(int key)
 {
-    if (key != key_menu_confirm)
+    // [crispy] allow to confirm by pressing Enter key
+    if (key != key_menu_confirm && key != key_menu_forward)
 	return;
 		
     G_DeferedInitNew(nightmare,epi+1,1);
@@ -1462,6 +1503,9 @@ void M_Episode(int choice)
     }
 
     epi = choice;
+    // [crispy] have Sigil II loaded but not Sigil
+    if (epi == 4 && crispy->haved1e6 && !crispy->haved1e5)
+        epi = 5;
     M_SetupNextMenu(&NewDef);
 }
 
@@ -1557,27 +1601,16 @@ static void M_DrawCrispnessBackground(void)
 {
 	const byte *src = crispness_background;
 	pixel_t *dest;
-	int x, y;
 
 	// [NS] Try to load the background from a lump.
 	int lump = W_CheckNumForName("CRISPYBG");
 	if (lump != -1 && W_LumpLength(lump) >= 64*64)
 	{
-		src = W_CacheLumpNum(lump, PU_STATIC);
+		src = W_CacheLumpNum(lump, PU_CACHE);
 	}
 	dest = I_VideoBuffer;
 
-	for (y = 0; y < SCREENHEIGHT; y++)
-	{
-		for (x = 0; x < SCREENWIDTH; x++)
-		{
-#ifndef CRISPY_TRUECOLOR
-			*dest++ = src[(y & 63) * 64 + (x & 63)];
-#else
-			*dest++ = colormaps[src[(y & 63) * 64 + (x & 63)]];
-#endif
-		}
-	}
+	V_FillFlat(0, SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
 
 	inhelpscreens = true;
 }
@@ -1652,11 +1685,11 @@ static void M_DrawCrispness1(void)
 
     M_DrawCrispnessSeparator(crispness_sep_rendering, "Rendering");
     M_DrawCrispnessItem(crispness_hires, "High Resolution Rendering", crispy->hires, true);
-    M_DrawCrispnessMultiItem(crispness_widescreen, "Widescreen Aspect Ratio", multiitem_widescreen, crispy->widescreen, aspect_ratio_correct == 1);
+    M_DrawCrispnessMultiItem(crispness_widescreen, "Aspect Ratio", multiitem_widescreen, crispy->widescreen, aspect_ratio_correct == 1);
     M_DrawCrispnessItem(crispness_uncapped, "Uncapped Framerate", crispy->uncapped, true);
     M_DrawCrispnessNumericItem(crispness_fpslimit, "Framerate Limit", crispy->fpslimit, "None", crispy->uncapped, "35");
     M_DrawCrispnessItem(crispness_vsync, "Enable VSync", crispy->vsync, !force_software_renderer);
-    M_DrawCrispnessItem(crispness_smoothscaling, "Smooth Pixel Scaling", crispy->smoothscaling, !force_software_renderer);
+    M_DrawCrispnessItem(crispness_smoothscaling, "Smooth Pixel Scaling", smooth_pixel_scaling, !force_software_renderer);
 
     M_DrawCrispnessSeparator(crispness_sep_visual, "Visual");
     M_DrawCrispnessMultiItem(crispness_coloredhud, "Colorize HUD Elements", multiitem_coloredhud, crispy->coloredhud, true);
@@ -1851,7 +1884,8 @@ void M_EndGame(int choice)
 #else
 void M_EndGameResponse(int key)
 {
-    if (key != key_menu_confirm)
+    // [crispy] allow to confirm by pressing Enter key
+    if (key != key_menu_confirm && key != key_menu_forward)
 	return;
 		
     // [crispy] killough 5/26/98: make endgame quit if recording or playing back demo
@@ -1948,7 +1982,8 @@ void M_QuitResponse(int key)
 {
     extern int show_endoom;
 
-    if (key != key_menu_confirm)
+    // [crispy] allow to confirm by pressing Enter key
+    if (key != key_menu_confirm && key != key_menu_forward)
 	return;
 
     // [AP] Save state if we are currently in a level
@@ -2316,12 +2351,13 @@ static int G_ReloadLevel(void)
 
 static int G_GotoNextLevel(void)
 {
-  byte doom_next[5][9] = {
+  byte doom_next[6][9] = {
     {12, 13, 19, 15, 16, 17, 18, 21, 14},
     {22, 23, 24, 25, 29, 27, 28, 31, 26},
     {32, 33, 34, 35, 36, 39, 38, 41, 37},
     {42, 49, 44, 45, 46, 47, 48, 51, 43},
-    {52, 53, 54, 55, 56, 59, 58, 11, 57},
+    {52, 53, 54, 55, 56, 59, 58, 61, 57},
+    {62, 63, 69, 65, 66, 67, 68, 11, 64},
   };
   byte doom2_next[33] = {
      2,  3,  4,  5,  6,  7,  8,  9, 10, 11,
@@ -2354,6 +2390,14 @@ static int G_GotoNextLevel(void)
         doom2_next[1] = 3;
         doom2_next[14] = 16;
         doom2_next[20] = 1;
+        if (D_CheckMasterlevelKex())
+        {
+            // [crispy] kex secret detour
+            doom2_next[17] = 21;
+            doom2_next[20] = 19;
+            doom2_next[18] = 20;
+            doom2_next[19] = 1;
+        }
       }
     }
     else
@@ -2364,8 +2408,13 @@ static int G_GotoNextLevel(void)
       if (gamemode == registered)
         doom_next[2][7] = 11;
 
-      if (!crispy->haved1e5)
+      // [crispy] Sigil and Sigil II
+      if (!crispy->haved1e5 && !crispy->haved1e6)
         doom_next[3][7] = 11;
+      else if (!crispy->haved1e5 && crispy->haved1e6)
+        doom_next[3][7] = 61;
+      else if (crispy->haved1e5 && !crispy->haved1e6)
+        doom_next[4][7] = 11;
 
       if (gameversion == exe_chex)
       {
@@ -2607,13 +2656,13 @@ boolean M_Responder (event_t* ev)
 	    if (ev->data1&1)
 	    {
 		key = key_menu_forward;
-		mousewait = I_GetTime() + 15;
+		mousewait = I_GetTime() + 5;
 	    }
 			
 	    if (ev->data1&2)
 	    {
 		key = key_menu_back;
-		mousewait = I_GetTime() + 15;
+		mousewait = I_GetTime() + 5;
 	    }
 
 	    // [crispy] scroll menus with mouse wheel
@@ -2775,7 +2824,9 @@ boolean M_Responder (event_t* ev)
 	if (messageNeedsInput)
         {
             if (key != ' ' && key != KEY_ESCAPE
-             && key != key_menu_confirm && key != key_menu_abort)
+             && key != key_menu_confirm && key != key_menu_abort
+             // [crispy] allow to confirm nightmare, end game and quit by pressing Enter key
+             && key != key_menu_forward)
             {
                 return false;
             }
@@ -2862,7 +2913,7 @@ boolean M_Responder (event_t* ev)
         {
 	    M_StartControlPanel ();
 	    currentMenu = &SoundDef;
-	    itemOn = sfx_vol;
+	    itemOn = currentMenu->lastOn; // [crispy] remember cursor position
 	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
 	    return true;
 	}
@@ -2912,15 +2963,14 @@ boolean M_Responder (event_t* ev)
         }
         else if (key == key_menu_gamma)    // gamma toggle
         {
-	    usegamma++;
-	    if (usegamma > 4+4) // [crispy] intermediate gamma levels
-		usegamma = 0;
-	    players[consoleplayer].message = DEH_String(gammamsg[usegamma]);
+	    crispy->gamma++;
+	    if (crispy->gamma > 4+13) // [crispy] intermediate gamma levels
+		crispy->gamma = 0;
+	    players[consoleplayer].message = DEH_String(gammamsg[crispy->gamma]);
 #ifndef CRISPY_TRUECOLOR
             I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
 #else
             {
-		extern void R_InitColormaps (void);
 		I_SetPalette (0);
 		R_InitColormaps();
 		inhelpscreens = true;
@@ -2932,15 +2982,37 @@ boolean M_Responder (event_t* ev)
 	}
         // [crispy] those two can be considered as shortcuts for the IDCLEV cheat
         // and should be treated as such, i.e. add "if (!netgame)"
+        // hovewer, allow while multiplayer demos
         // [AP] external map changes not allowed
 #if 0
-        else if (!netgame && key != 0 && key == key_menu_reloadlevel)
+        else if ((!netgame || netdemo) && key != 0 && key == key_menu_reloadlevel)
         {
+	    if (demoplayback)         
+	    {
+		if (crispy->demowarp)
+		{
+		// [crispy] enable screen render back before replaying
+		nodrawers = false;
+		singletics = false;
+		}
+		// [crispy] replay demo lump or file
+		G_DoPlayDemo();
+		return true;
+	    }
+	    else
 	    if (G_ReloadLevel())
 		return true;
         }
-        else if (!netgame && key != 0 && key == key_menu_nextlevel)
+        else if ((!netgame || netdemo) && key != 0 && key == key_menu_nextlevel)
         {
+	    if (demoplayback)
+	    {
+		// [crispy] go to next level
+		demo_gotonextlvl = true;
+		G_DemoGotoNextLevel(true);
+		return true;
+	    }
+	    else
 	    if (G_GotoNextLevel())
 		return true;
         }
@@ -3056,6 +3128,11 @@ boolean M_Responder (event_t* ev)
 		currentMenu->menuitems[itemOn].routine(1);      // right arrow
 		S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
 	    }
+            else if (currentMenu->menuitems[itemOn].status == 3)
+            {
+                currentMenu->menuitems[itemOn].routine(1); // right arrow
+                S_StartSoundOptional(NULL, sfx_mnuact, sfx_pistol); // [NS] Optional menu sounds.
+            }
             else if (currentMenu->menuitems[itemOn].status == 4) // [crispy]
             {
                 currentMenu->menuitems[itemOn].routine(2); // enter key
@@ -3465,9 +3542,17 @@ void M_Init (void)
     }
 
     // [crispy] Sigil
-    if (!crispy->haved1e5)
+    if (!crispy->haved1e5 && !crispy->haved1e6)
     {
         EpiDef.numitems = 4;
+    }
+    else if (crispy->haved1e5 != crispy->haved1e6)
+    {
+        EpiDef.numitems = 5;
+        if (crispy->haved1e6)
+        {
+            EpiDef.menuitems = EpisodeMenuSII;
+        }
     }
 
     // Versions of doom.exe before the Ultimate Doom release only had
@@ -3579,7 +3664,7 @@ void M_Init (void)
 	{
 		LoadDef_y = vstep + captionheight - SHORT(patchl->height) + SHORT(patchl->topoffset);
 		SaveDef_y = vstep + captionheight - SHORT(patchs->height) + SHORT(patchs->topoffset);
-		LoadDef.y = SaveDef.y = vstep + captionheight + vstep + SHORT(patchm->topoffset) - 7; // [crispy] see M_DrawSaveLoadBorder()
+		LoadDef.y = SaveDef.y = vstep + captionheight + vstep + SHORT(patchm->topoffset) - 15; // [crispy] moved up, so savegame date/time may appear above status bar
 		MouseDef.y = LoadDef.y;
 	}
     }

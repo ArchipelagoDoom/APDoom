@@ -261,11 +261,13 @@ void R_CheckInterpolateSector(sector_t* sector)
     {
         // Interpolate between current and last floor/ceiling position.
         if (sector->floorheight != sector->oldfloorheight)
-            sector->interpfloorheight = sector->oldfloorheight + FixedMul(sector->floorheight - sector->oldfloorheight, fractionaltic);
+            sector->interpfloorheight =
+                LerpFixed(sector->oldfloorheight, sector->floorheight);
         else
             sector->interpfloorheight = sector->floorheight;
         if (sector->ceilingheight != sector->oldceilingheight)
-            sector->interpceilingheight = sector->oldceilingheight + FixedMul(sector->ceilingheight - sector->oldceilingheight, fractionaltic);
+            sector->interpceilingheight =
+                LerpFixed(sector->oldceilingheight, sector->ceilingheight);
         else
             sector->interpceilingheight = sector->ceilingheight;
     }
@@ -371,7 +373,7 @@ void R_AddLine (seg_t*	line)
     // and no middle texture.
     if (backsector->ceilingpic == frontsector->ceilingpic
 	&& backsector->floorpic == frontsector->floorpic
-	&& backsector->lightlevel == frontsector->lightlevel
+	&& backsector->rlightlevel == frontsector->rlightlevel
 	&& curline->sidedef->midtexture == 0)
     {
 	return;
@@ -552,7 +554,7 @@ void R_Subsector (int num)
     {
 	floorplane = R_FindPlane (frontsector->interpfloorheight,
 				  frontsector->floorpic,
-				  frontsector->lightlevel);
+				  frontsector->rlightlevel); // [crispy] A11Y
     }
     else
 	floorplane = NULL;
@@ -562,7 +564,7 @@ void R_Subsector (int num)
     {
 	ceilingplane = R_FindPlane (frontsector->interpceilingheight,
 				    frontsector->ceilingpic,
-				    frontsector->lightlevel);
+				    frontsector->rlightlevel); // [crispy] A11Y
     }
     else
 	ceilingplane = NULL;

@@ -33,6 +33,7 @@
 #include "s_musinfo.h" // [crispy] S_ParseMusInfo()
 #include "i_swap.h" // [crispy] SHORT()
 #include "w_wad.h" // [crispy] W_CacheLumpNum()
+#include "g_game.h" // [crispy] demo_gotonextlvl
 
 #include "doomstat.h"
 
@@ -257,8 +258,12 @@ void P_XYMovement (mobj_t* mo)
     if (mo->flags & (MF_MISSILE | MF_SKULLFLY) )
 	return; 	// no friction for missiles ever
 		
+  // [crispy] fix mid-air speed boost when using noclip cheat
+  if (!player || !(player->mo->flags & MF_NOCLIP))
+  {
     if (mo->z > mo->floorz)
 	return;		// no friction when airborne
+  }
 
     if (mo->flags & MF_CORPSE)
     {
@@ -885,6 +890,13 @@ void P_SpawnPlayer (mapthing_t* mthing)
 
     int			i;
 
+    // [crispy] stop fast forward after entering new level while demo playback
+    if (demo_gotonextlvl)
+    {
+        demo_gotonextlvl = false;
+        G_DemoGotoNextLevel(false);
+    }
+
     if (mthing->type == 0)
     {
         return;
@@ -1000,7 +1012,7 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     }
 
     // check for appropriate skill level
-    if (!is_ap_special && !netgame && (mthing->options & 16) )
+    if (!is_ap_special && !coop_spawns && !netgame && (mthing->options & 16) )
 	return;
 		
     if (gameskill == sk_baby)
@@ -1008,7 +1020,11 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     else if (gameskill == sk_nightmare)
 	bit = 4;
     else
-	bit = 1<<(gameskill-1);
+        // avoid undefined behavior (left shift by negative value and rhs too big)
+        // by accurately emulating what doom.exe did: reduce mod 32.
+        // For more details check:
+        // https://github.com/chocolate-doom/chocolate-doom/issues/1677
+        bit = (int) (1U << ((gameskill - 1) & 0x1F));
 
     if (!is_ap_special)
 	{
@@ -1065,8 +1081,6 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     else
 	z = ONFLOORZ;
     
-        
-
     mobj = P_SpawnMobj (x,y,z, i);
     mobj->index = index;
     mobj->spawnpoint = *mthing;

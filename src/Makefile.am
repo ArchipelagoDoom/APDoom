@@ -21,6 +21,7 @@ execgames_SCRIPTS = $(SETUP_BINARIES)
 AM_CFLAGS = -I$(top_srcdir)/textscreen            \
             -I$(top_srcdir)/opl                   \
             -I$(top_srcdir)/pcsound               \
+            -I$(top_srcdir)/win32                 \
             @SDLMIXER_CFLAGS@ @SDLNET_CFLAGS@
 
 # Common source files used by absolutely everything:
@@ -82,6 +83,7 @@ i_sdlmusic.c                               \
 i_sdlsound.c                               \
 i_sound.c            i_sound.h             \
 i_timer.c            i_timer.h             \
+i_truecolor.c        i_truecolor.h         \
 i_video.c            i_video.h             \
 i_videohr.c          i_videohr.h           \
 i_winmusic.c                               \
@@ -106,6 +108,7 @@ net_query.c          net_query.h           \
 net_sdl.c            net_sdl.h             \
 net_server.c         net_server.h          \
 net_structrw.c       net_structrw.h        \
+p_rejectpad.c        p_rejectpad.h         \
 sha1.c               sha1.h                \
 memio.c              memio.h               \
 tables.c             tables.h              \
@@ -120,7 +123,9 @@ w_file.c             w_file.h              \
 w_file_stdc.c                              \
 w_file_posix.c                             \
 w_file_win32.c                             \
-w_merge.c            w_merge.h
+w_merge.c            w_merge.h             \
+$(top_builddir)/win32/win_opendir.c        \
+$(top_builddir)/win32/win_opendir.h
 
 
 MEMORY_NATIVE_SOURCE_FILES=\
@@ -152,6 +157,7 @@ EXTRA_LIBS =                                               \
                $(top_builddir)/pcsound/libpcsound.a        \
                $(top_builddir)/opl/libopl.a                \
                @LDFLAGS@                                   \
+               @EM_LDFLAGS@                                \
                @SDL_LIBS@                                  \
                @SDLMIXER_LIBS@                             \
                @SDLNET_LIBS@
@@ -280,7 +286,7 @@ screensaver_DATA = @PACKAGE_RDNS@.Doom_Screensaver.desktop
 @PACKAGE_RDNS@.Doom_Screensaver.desktop: Doom_Screensaver.desktop
 	cp Doom_Screensaver.desktop $@
 
-CLEANFILES = $(execgames_SCRIPTS) $(app_DATA) $(screensaver_DATA)
+CLEANFILES = $(execgames_SCRIPTS) $(metainfo_DATA) $(app_DATA) $(screensaver_DATA)
 
 .rc.o:
 	$(WINDRES) $< -o $@

@@ -37,6 +37,7 @@
 
 #include "doomdef.h"
 #include "p_local.h"
+#include "p_rejectpad.h"
 
 #include "s_sound.h"
 #include "s_musinfo.h" // [crispy] S_ParseMusInfo()
@@ -431,13 +432,13 @@ void P_SegLengths (boolean contrast_only)
 	    li->fakecontrast = -LIGHTBRIGHT;
 	else
 	if (abs(finesine[li->r_angle >> ANGLETOFINESHIFT]) < rightangle)
-	    li->fakecontrast = -(LIGHTBRIGHT >> 1);
+	    li->fakecontrast = -LIGHTBRIGHT / 2;
 	else
 	if (!dx)
 	    li->fakecontrast = LIGHTBRIGHT;
 	else
 	if (abs(finecosine[li->r_angle >> ANGLETOFINESHIFT]) < rightangle)
-	    li->fakecontrast = LIGHTBRIGHT >> 1;
+	    li->fakecontrast = LIGHTBRIGHT / 2;
 	else
 	    li->fakecontrast = 0;
     }
@@ -1669,8 +1670,17 @@ void P_GroupLines (void)
 	}
 
 	// set the degenmobj_t to the middle of the bounding box
+	if (!crispy->soundfix)
+	{
 	sector->soundorg.x = (bbox[BOXRIGHT]+bbox[BOXLEFT])/2;
 	sector->soundorg.y = (bbox[BOXTOP]+bbox[BOXBOTTOM])/2;
+	}
+	else
+	{
+	// [crispy] Andrey Budko: fix sound origin for large levels
+	sector->soundorg.x = bbox[BOXRIGHT]/2+bbox[BOXLEFT]/2;
+	sector->soundorg.y = bbox[BOXTOP]/2+bbox[BOXBOTTOM]/2;
+	}
 		
 	// adjust bounding box to map blocks
 	block = (bbox[BOXTOP]-bmaporgy+MAXRADIUS)>>MAPBLOCKSHIFT;
@@ -1745,62 +1755,6 @@ static void P_RemoveSlimeTrails(void)
     }
 }
 
-// Pad the REJECT lump with extra data when the lump is too small,
-// to simulate a REJECT buffer overflow in Vanilla Doom.
-
-static void PadRejectArray(byte *array, unsigned int len)
-{
-    unsigned int i;
-    unsigned int byte_num;
-    byte *dest;
-    unsigned int padvalue;
-
-    // Values to pad the REJECT array with:
-
-    unsigned int rejectpad[4] =
-    {
-        0,                                    // Size
-        0,                                    // Part of z_zone block header
-        50,                                   // PU_LEVEL
-        0x1d4a11                              // DOOM_CONST_ZONEID
-    };
-
-    rejectpad[0] = ((totallines * 4 + 3) & ~3) + 24;
-
-    // Copy values from rejectpad into the destination array.
-
-    dest = array;
-
-    for (i=0; i<len && i<sizeof(rejectpad); ++i)
-    {
-        byte_num = i % 4;
-        *dest = (rejectpad[i / 4] >> (byte_num * 8)) & 0xff;
-        ++dest;
-    }
-
-    // We only have a limited pad size.  Print a warning if the
-    // REJECT lump is too small.
-
-    if (len > sizeof(rejectpad))
-    {
-        fprintf(stderr, "PadRejectArray: REJECT lump too short to pad! (%u > %i)\n",
-                        len, (int) sizeof(rejectpad));
-
-        // Pad remaining space with 0 (or 0xff, if specified on command line).
-
-        if (M_CheckParm("-reject_pad_with_ff"))
-        {
-            padvalue = 0xff;
-        }
-        else
-        {
-            padvalue = 0x00;
-        }
-
-        memset(array + sizeof(rejectpad), padvalue, len - sizeof(rejectpad));
-    }
-}
-
 static void P_LoadReject(int lumpnum)
 {
     int minlength;
@@ -1825,7 +1779,7 @@ static void P_LoadReject(int lumpnum)
         rejectmatrix = Z_Malloc(minlength, PU_LEVEL, &rejectmatrix);
         W_ReadLump(lumpnum, rejectmatrix);
 
-        PadRejectArray(rejectmatrix + lumplen, minlength - lumplen);
+        PadRejectArray(rejectmatrix + lumplen, minlength - lumplen, totallines);
     }
 }
 
@@ -1919,36 +1873,6 @@ P_SetupLevel
     {
 	players[i].killcount = players[i].secretcount 
 	    = players[i].itemcount = 0;
-    }
-
-    // [crispy] NRFTL / The Master Levels
-    if (crispy->havenerve || crispy->havemaster)
-    {
-        if (crispy->havemaster && episode == 3)
-        {
-            gamemission = pack_master;
-        }
-        else
-        if (crispy->havenerve && episode == 2)
-        {
-            gamemission = pack_nerve;
-        }
-        else
-        {
-            gamemission = doom2;
-        }
-    }
-    else
-    {
-        if (gamemission == pack_master)
-        {
-            episode = gameepisode = 3;
-        }
-        else
-        if (gamemission == pack_nerve)
-        {
-            episode = gameepisode = 2;
-        }
     }
 
     // Initial height of PointOfView

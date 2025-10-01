@@ -48,6 +48,7 @@
 #include "f_finale.h"
 #include "f_wipe.h"
 
+#include "a11y.h" // [crispy] A11Y
 #include "m_argv.h"
 #include "m_config.h"
 #include "m_controls.h"
@@ -137,10 +138,7 @@ boolean         isdemoversion;
 //boolean         storedemo;
 
 
-char		wadfile[1024];          // primary wad file
-char		mapdir[1024];           // directory of development maps
-
-int             show_endoom = 0;
+int             show_endoom = 1;
 int             show_diskicon = 1;
 int             graphical_startup = 0;
 static boolean  using_text_startup;
@@ -225,6 +223,18 @@ void D_Display (void)
 
     redrawsbar = false;
     
+    if (crispy->uncapped)
+    {
+        I_UpdateFracTic();
+
+        if (!automapactive || crispy->automapoverlay)
+        {
+            I_StartDisplay();
+            G_FastResponder();
+            G_PrepTiccmd();
+        }
+    }
+
     // change the view size if needed
     if (setsizeneeded)
     {
@@ -295,7 +305,11 @@ void D_Display (void)
 
     // clean up border stuff
     if (gamestate != oldgamestate && gamestate != GS_LEVEL)
+#ifndef CRISPY_TRUECOLOR
         I_SetPalette (W_CacheLumpName (DEH_String("PLAYPAL"),PU_CACHE));
+#else
+        I_SetPalette (0);
+#endif
 
     // see if the border needs to be initially drawn
     if (gamestate == GS_LEVEL && oldgamestate != GS_LEVEL)
@@ -497,6 +511,7 @@ void D_BindVariables(void)
     M_BindIntVariable("show_talk",              &dialogshowtext);
     M_BindIntVariable("screensize",             &screenblocks);
     M_BindIntVariable("snd_channels",           &snd_channels);
+    M_BindIntVariable("a11y_sector_lighting",   &a11y_sector_lighting); // [crispy]
     M_BindIntVariable("vanilla_savegame_limit", &vanilla_savegame_limit);
     M_BindIntVariable("vanilla_demo_limit",     &vanilla_demo_limit);
     M_BindIntVariable("show_endoom",            &show_endoom);
@@ -529,16 +544,20 @@ void D_BindVariables(void)
     M_BindIntVariable("crispy_defaultskill",    &crispy->defaultskill);
     M_BindIntVariable("crispy_fpslimit",        &crispy->fpslimit);
     M_BindIntVariable("crispy_freelook",        &crispy->freelook_hh);
+    M_BindIntVariable("crispy_gamma",           &crispy->gamma);
     M_BindIntVariable("crispy_hires",           &crispy->hires);
     M_BindIntVariable("crispy_leveltime",       &crispy->leveltime);
     M_BindIntVariable("crispy_mouselook",       &crispy->mouselook);
     M_BindIntVariable("crispy_playercoords",    &crispy->playercoords);
     M_BindIntVariable("crispy_smoothlight",     &crispy->smoothlight);
     M_BindIntVariable("crispy_smoothmap",       &crispy->smoothmap);
-    M_BindIntVariable("crispy_smoothscaling",   &crispy->smoothscaling);
+    M_BindIntVariable("crispy_smoothscaling",   &smooth_pixel_scaling);
     M_BindIntVariable("crispy_soundfix",        &crispy->soundfix);
     M_BindIntVariable("crispy_soundfull",       &crispy->soundfull);
     M_BindIntVariable("crispy_soundmono",       &crispy->soundmono);
+#ifdef CRISPY_TRUECOLOR
+    M_BindIntVariable("crispy_truecolor",       &crispy->truecolor);
+#endif
     M_BindIntVariable("crispy_uncapped",        &crispy->uncapped);
     M_BindIntVariable("crispy_vsync",           &crispy->vsync);
     M_BindIntVariable("crispy_widescreen",      &crispy->widescreen);
@@ -1097,7 +1116,7 @@ void PrintDehackedBanners(void)
     }
 }
 
-static struct 
+static const struct
 {
     const char *description;
     const char *cmdline;
@@ -1113,9 +1132,8 @@ static struct
 static void InitGameVersion(void)
 {
     int p;
-    int i;
 
-    // haleyjd: we support emulating either the 1.2 or the 1.31 versions of 
+    // haleyjd: we support emulating either the 1.2 or the 1.31 versions of
     // Strife, which are the most significant. 1.2 is the most mature version
     // that still has the single saveslot restriction, whereas 1.31 is the
     // final revision. The differences between the two are barely worth
@@ -1132,6 +1150,7 @@ static void InitGameVersion(void)
 
     if (p)
     {
+        int i;
         for (i=0; gameversions[i].description != NULL; ++i)
         {
             if (!strcmp(myargv[p+1], gameversions[i].cmdline))
@@ -1141,7 +1160,7 @@ static void InitGameVersion(void)
             }
         }
 
-        if (gameversions[i].description == NULL) 
+        if (gameversions[i].description == NULL)
         {
             printf("Supported game versions:\n");
 
@@ -1685,7 +1704,8 @@ void D_DoomMain (void)
     // @category obscure
     // @vanilla
     //
-    // Set Rogue playtesting mode (godmode, noclip toggled by backspace)
+    // Set Rogue playtesting mode
+    // (god mode; no cliping mode toggled by backspace).
     //
 
     workparm = M_CheckParm ("-work");
@@ -1694,10 +1714,10 @@ void D_DoomMain (void)
     // @category obscure
     // @vanilla
     //
-    // Flip player gun sprites (broken).
+    // Flip player gun sprites.
     //
 
-    flipparm = M_CheckParm ("-flip");
+    flipparm = M_CheckParm("-flip") || M_CheckParm("-flipweapons"); // [crispy]
 
     //!
     // @category game
@@ -1728,7 +1748,6 @@ void D_DoomMain (void)
 
     //!
     // @category game
-    // @category mod
     //
     // Double ammo pickup rate. This option is not allowed when recording a
     // demo, playing back a demo or when starting a network game.
@@ -2014,7 +2033,7 @@ void D_DoomMain (void)
     // fraggle 20130405: I_InitTimer is needed here for the netgame
     // startup. Start low-level sound init here too.
     I_InitTimer();
-    I_InitSound(true);
+    I_InitSound(strife);
     I_InitMusic();
 
     if(devparm) // [STRIFE]
@@ -2026,6 +2045,11 @@ void D_DoomMain (void)
     M_CreateSaveDirs(savegamedir);
 
     I_GraphicsCheckCommandLine();
+
+    // [crispy] Initialize and generate gamma-correction levels and
+    // colormaps/pal_color arrays before introduction sequence.
+    I_SetGammaTable();
+    R_InitColormaps();
 
     // haleyjd 20110206 [STRIFE] Startup the introduction sequence
     D_InitIntroSequence();
@@ -2097,7 +2121,7 @@ void D_DoomMain (void)
     // // @arg <n>
     // // @vanilla
     // //
-    // // Start playing on episode n (1-4)
+    // // Start playing episode n (1-4).
     // //
 
     // p = M_CheckParmWithArgs("-episode", 1);

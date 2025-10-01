@@ -535,13 +535,17 @@ void M_CrispyToggleSecretmessage(int choice)
 void M_CrispyToggleSmoothScaling(int choice)
 {
     choice = 0;
-    crispy->smoothscaling = !crispy->smoothscaling;
+    smooth_pixel_scaling = !smooth_pixel_scaling;
 }
 
 static void M_CrispyToggleSmoothLightingHook (void)
 {
     crispy->smoothlight = !crispy->smoothlight;
 
+#ifdef CRISPY_TRUECOLOR
+    // [crispy] re-calculate amount of colormaps and light tables
+    R_InitColormaps();
+#endif
     // [crispy] re-calculate the zlight[][] array
     R_InitLightTables();
     // [crispy] re-calculate the scalelight[][] array
@@ -606,7 +610,7 @@ void M_CrispyToggleVsyncHook (void)
 {
     crispy->vsync = !crispy->vsync;
 
-    I_ReInitGraphics(REINIT_RENDERER | REINIT_TEXTURES | REINIT_ASPECTRATIO);
+    I_ToggleVsync();
 }
 
 void M_CrispyToggleVsync(int choice)

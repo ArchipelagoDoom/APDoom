@@ -38,18 +38,22 @@
 //
 // lighting constants
 //
-#define LIGHTLEVELS                     16
-#define LIGHTSEGSHIFT           4
-#define MAXLIGHTSCALE           48
-#define LIGHTSCALESHIFT         12
-#define MAXLIGHTZ                       128
-#define LIGHTZSHIFT                     20
-#define NUMCOLORMAPS            32      // number of diminishing
+// [crispy] parameterized for smooth diminishing lighting
+extern int LIGHTLEVELS;
+extern int LIGHTSEGSHIFT;
+extern int LIGHTBRIGHT;
+extern int MAXLIGHTSCALE;
+extern int LIGHTSCALESHIFT;
+extern int MAXLIGHTZ;
+extern int LIGHTZSHIFT;
+// [crispy] parameterized for smooth diminishing lighting
+extern int NUMCOLORMAPS;      // number of diminishing
 #define INVERSECOLORMAP         32
 
 #define LOOKDIRMIN 110 // [crispy] -110, actually
 #define LOOKDIRMAX 90
 #define LOOKDIRS (LOOKDIRMIN + 1 + LOOKDIRMAX) // [crispy] lookdir range: -110..0..90
+#define TRANSLUCENT_HUD (screenblocks == 14 || screenblocks == 16) // [crispy] determine if translucent hud is selected
 /*
 ==============================================================================
 
@@ -63,6 +67,7 @@
 typedef struct
 {
     fixed_t x, y;
+    fixed_t r_x, r_y; // [crispy] for rendering only
 } vertex_t;
 
 struct line_s;
@@ -107,6 +112,9 @@ typedef struct
     //      the renderer.
     fixed_t	interpfloorheight;
     fixed_t	interpceilingheight;
+
+    // [crispy] A11Y light level used for rendering
+    short	rlightlevel;
 } sector_t;
 
 typedef struct
@@ -170,6 +178,7 @@ typedef struct
     vertex_t *v1, *v2;
     fixed_t offset;
     angle_t angle;
+    angle_t r_angle; // [crispy] for rendering only
     side_t *sidedef;
     line_t *linedef;
     sector_t *frontsector;
@@ -231,7 +240,7 @@ typedef struct
 ==============================================================================
 */
 
-typedef byte lighttable_t;      // this could be wider for >8 bit display
+typedef pixel_t lighttable_t;      // this could be wider for >8 bit display
 
 #define MAXVISPLANES    160*8
 #define MAXOPENINGS             MAXWIDTH*64*4
@@ -293,10 +302,18 @@ typedef struct vissprite_s
     boolean psprite;            // true if psprite
     int class;                  // player class (used in translation)
     fixed_t floorclip;
+#ifdef CRISPY_TRUECOLOR
+    const pixel_t (*blendfunc)(const pixel_t fg, const pixel_t bg);
+#endif
 } vissprite_t;
 
 
 extern visplane_t *floorplane, *ceilingplane;
+
+typedef struct
+{
+    int l, w, h, loffset, toffset;
+} crosshairpatch_t;
 
 // Sprites are patches with a special naming convention so they can be
 // recognized by R_InitSprites.  The sprite and frame specified by a
@@ -345,10 +362,20 @@ extern line_t *lines;
 extern int numsides;
 extern side_t *sides;
 
+// [crispy]
+typedef struct localview_s
+{
+    angle_t oldticangle;
+    angle_t ticangle;
+    short ticangleturn;
+    double rawangle;
+    angle_t angle;
+} localview_t;
 
 
 extern fixed_t viewx, viewy, viewz;
 extern angle_t viewangle;
+extern localview_t localview; // [crispy]
 extern player_t *viewplayer;
 
 
@@ -375,9 +402,9 @@ extern fixed_t projection;
 extern int validcount;
 
 extern int sscount, linecount, loopcount;
-extern lighttable_t *scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
-extern lighttable_t *scalelightfixed[MAXLIGHTSCALE];
-extern lighttable_t *zlight[LIGHTLEVELS][MAXLIGHTZ];
+extern lighttable_t ***scalelight;
+extern lighttable_t  **scalelightfixed;
+extern lighttable_t ***zlight;
 
 extern int extralight;
 extern lighttable_t *fixedcolormap;
@@ -397,9 +424,42 @@ extern void R_InterpolateTextureOffsets (void);
 int R_PointOnSide(fixed_t x, fixed_t y, node_t * node);
 int R_PointOnSegSide(fixed_t x, fixed_t y, seg_t * line);
 angle_t R_PointToAngle(fixed_t x, fixed_t y);
+angle_t R_PointToAngleCrispy(fixed_t x, fixed_t y);
 angle_t R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2);
 fixed_t R_PointToDist(fixed_t x, fixed_t y);
 fixed_t R_ScaleFromGlobalAngle(angle_t visangle);
+
+inline static fixed_t LerpFixed(fixed_t oldvalue, fixed_t newvalue)
+{
+    return (oldvalue + FixedMul(newvalue - oldvalue, fractionaltic));
+}
+
+inline static int LerpInt(int oldvalue, int newvalue)
+{
+    return (oldvalue + (int)((newvalue - oldvalue) * FIXED2DOUBLE(fractionaltic)));
+}
+
+// [AM] Interpolate between two angles.
+inline static angle_t LerpAngle(angle_t oangle, angle_t nangle)
+{
+    if (nangle == oangle)
+        return nangle;
+    else if (nangle > oangle)
+    {
+        if (nangle - oangle < ANG270)
+            return oangle + (angle_t)((nangle - oangle) * FIXED2DOUBLE(fractionaltic));
+        else // Wrapped around
+            return oangle - (angle_t)((oangle - nangle) * FIXED2DOUBLE(fractionaltic));
+    }
+    else // nangle < oangle
+    {
+        if (oangle - nangle < ANG270)
+            return oangle - (angle_t)((oangle - nangle) * FIXED2DOUBLE(fractionaltic));
+        else // Wrapped around
+            return oangle + (angle_t)((nangle - oangle) * FIXED2DOUBLE(fractionaltic));
+    }
+}
+
 angle_t R_InterpolateAngle(angle_t oangle, angle_t nangle, fixed_t scale);
 subsector_t *R_PointInSubsector(fixed_t x, fixed_t y);
 //void R_AddPointToBox (int x, int y, fixed_t *box);
@@ -499,7 +559,7 @@ extern fixed_t *textureheight;  // needed for texture pegging
 extern fixed_t *spritewidth;    // needed for pre rendering (fracs)
 extern fixed_t *spriteoffset;
 extern fixed_t *spritetopoffset;
-extern lighttable_t *colormaps;
+extern lighttable_t *colormaps, *pal_color;
 extern int firstflat;
 extern int numflats;
 
@@ -513,6 +573,10 @@ byte *R_GetColumn(int tex, int col);
 void R_InitData(void);
 void R_PrecacheLevel(void);
 
+#ifdef CRISPY_TRUECOLOR
+extern void R_InitTrueColormaps(char *current_colormap);
+#endif
+extern int R_GetPatchHeight(int texture_num, int patch_index);
 
 //
 // R_things.c
@@ -563,7 +627,7 @@ extern int dc_yh;
 extern fixed_t dc_iscale;
 extern fixed_t dc_texturemid;
 extern byte *dc_source;         // first pixel in a column
-extern byte *ylookup[MAXHEIGHT];
+extern pixel_t *ylookup[MAXHEIGHT];
 extern int columnofs[MAXWIDTH];
 extern int dc_texheight; // [crispy]
 extern const byte *dc_brightmap;
@@ -597,5 +661,8 @@ void R_DrawSpanLow(void);
 
 void R_InitBuffer(int width, int height);
 void R_InitTranslationTables(void);
+
+extern void (*V_DrawSBPatch)(int x, int y, patch_t *patch); // [crispy] for conditional drawing of status bar elements
+void SB_Translucent(boolean translucent); // [crispy] on/off status bar translucency
 
 #endif // __R_LOCAL__
