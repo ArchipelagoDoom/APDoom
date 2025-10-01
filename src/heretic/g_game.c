@@ -2101,6 +2101,12 @@ void set_ap_player_states()
     if (p->mo)
     {
         p->mo->health = p->health;
+
+        // properly restore shadowsphere
+        if (p->powers[pw_invisibility])
+            p->mo->flags |= MF_SHADOW;
+        else
+            p->mo->flags &= ~MF_SHADOW;
     }
 }
 
