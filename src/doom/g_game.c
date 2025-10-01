@@ -1825,7 +1825,9 @@ void G_PlayerFinishLevel (int player)
 	 
     p = &players[player]; 
 	 
+#if 0 // [AP] Don't take powers (invuln, etc) away on level completion
     memset (p->powers, 0, sizeof (p->powers)); 
+#endif
     memset (p->cards, 0, sizeof (p->cards)); 
     memset (p->tryopen, 0, sizeof (p->tryopen)); // [crispy] blinking key or skull in the status bar
     p->mo->flags &= ~MF_SHADOW;		// cancel invisibility 

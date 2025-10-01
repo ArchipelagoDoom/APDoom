@@ -1641,7 +1641,7 @@ static void CheatIDKFAFunc(player_t * player, Cheat_t * cheat)
         return;
     }
 #if 1 // [AP] Don't actually take weapons. Just all ammo, and force a staff switch.
-    for (int i = 0; i < NUMAMMO; ++i)
+    for (i = 0; i < NUMAMMO; ++i)
         player->ammo[i] = 0;
 #else
     for (i = 1; i < 8; i++)

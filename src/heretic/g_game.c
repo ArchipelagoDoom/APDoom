@@ -1769,7 +1769,10 @@ void G_PlayerFinishLevel(int player)
         }
     }
 #endif
+
+#if 0 // [AP] Don't take powers (invuln, etc) away on level completion
     memset(p->powers, 0, sizeof(p->powers));
+#endif
     memset(p->keys, 0, sizeof(p->keys));
     playerkeys = 0;
 //      memset(p->inventory, 0, sizeof(p->inventory));

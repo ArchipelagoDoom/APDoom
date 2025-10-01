@@ -1544,7 +1544,6 @@ static void P_RemoveSlimeTrails(void)
 	}
     }
 }
-lumpinfo_t *maplumpinfo;
 
 lumpinfo_t *maplumpinfo;
 
