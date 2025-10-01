@@ -1001,6 +1001,8 @@ const char *QuitEndMsg[] = {
     "DO YOU WANT TO QUICKSAVE THE GAME NAMED",
     "DO YOU WANT TO QUICKLOAD THE GAME NAMED",
     "DO YOU WANT TO DELETE THE GAME NAMED",
+    // [AP]
+    "ARE YOU SURE YOU WANT TO DIE AND"
 };
 
 void MN_Drawer(void)
@@ -1039,6 +1041,11 @@ void MN_Drawer(void)
                            MN_TextAWidth(SlotText[CurrentItPos]) / 2, 90);
                 MN_DrTextA(DEH_String("?"), 160 +
                            MN_TextAWidth(SlotText[CurrentItPos]) / 2, 90);
+            }
+            if (typeofask == 6)
+            {
+                MN_DrTextA("RESET THE LEVEL?", 160 -
+                           MN_TextAWidth("RESET THE LEVEL?") / 2, 90);
             }
             UpdateState |= I_FULLSCRN;
         }
@@ -1373,19 +1380,38 @@ static void DrawOptions2Menu(void)
 void P_KillMobj_Real(mobj_t* source, mobj_t* target, boolean send_death_link);
 extern boolean killed_from_menu;
 
-static boolean SCKill(int option)
+static void SCDoKill(void)
 {
     if (players[consoleplayer].mo)
     {
         if (players[consoleplayer].mo->health > 0)
         {
-            MN_DeactivateMenu();
             killed_from_menu = true;
             P_KillMobj_Real(0, players[consoleplayer].mo, false);
-            return true;
         }
     }
+    MN_DeactivateMenu();
+}
 
+static boolean SCKill(int option)
+{
+    if (ap_state.ep == 0 && ap_state.map == 0)
+        P_SetMessage(&players[consoleplayer], "YOU AREN'T IN A LEVEL!", true);
+    else if (!players[consoleplayer].mo || players[consoleplayer].health <= 0)
+    {
+        MN_DeactivateMenu();
+        P_SetMessage(&players[consoleplayer], "YOU CAN'T RESET THE LEVEL RIGHT NOW.", true);
+    }
+    else
+    {
+        MenuActive = false;
+        askforquit = true;
+        typeofask = 6; // [AP] kill request
+        if (!netgame && !demoplayback)
+        {
+            paused = true;
+        }
+    }
     return true;
 }
 
@@ -2488,7 +2514,8 @@ boolean MN_Responder(event_t * event)
     {
         if (key == key_menu_confirm
         // [crispy] allow to confirm quit (1) and end game (2) by pressing Enter key
-        || (key == key_menu_forward && (typeofask == 1 || typeofask == 2)))
+        // [AP] allowed for kill request too
+        || (key == key_menu_forward && (typeofask == 1 || typeofask == 2 || typeofask == 6)))
         {
             switch (typeofask)
             {
@@ -2532,6 +2559,11 @@ boolean MN_Responder(event_t * event)
                     SCDeleteGame(CurrentItPos);
                     BorderNeedRefresh = true;
                     CrispyReturnToMenu();
+                    break;
+
+                case 6: // [AP] Kill / Reset Level request
+                    SCDoKill();
+                    paused = false;
                     break;
 
                 default:

@@ -1796,19 +1796,31 @@ void M_Options(int choice)
 void P_KillMobj_Real(mobj_t* source, mobj_t* target, boolean send_death_link);
 extern boolean killed_from_menu;
 
-void M_Kill(int choice)
+void M_KillResponse(int key)
 {
+    // [crispy] allow to confirm by pressing Enter key
+    if (key != key_menu_confirm && key != key_menu_forward)
+    return;
+
     if (players[consoleplayer].mo)
     {
         if (players[consoleplayer].mo->health > 0)
         {
-            M_ClearMenus ();
             killed_from_menu = true;
             P_KillMobj_Real(0, players[consoleplayer].mo, false);
-            return;
         }
     }
-    S_StartSoundOptional(NULL, sfx_mnusli, sfx_noway);
+    M_ClearMenus ();
+}
+
+void M_Kill(int choice)
+{
+    if (ap_state.ep == 0 && ap_state.map == 0)
+        M_StartMessage("you aren't in a level!\n\n" PRESSKEY, NULL, false);
+    else if (!ap_is_in_game || !players[consoleplayer].mo)
+        M_StartMessage("you can't reset the level right now.\n\n" PRESSKEY, NULL, false);
+    else
+        M_StartMessage("are you sure you want to die and\nreset the level?\n\n" PRESSYN, M_KillResponse, true);
 }
 
 // [crispy] correctly handle inverted y-axis
