@@ -1237,11 +1237,13 @@ void HU_AddAPMessage(const char* message)
 
 void HU_DrawAPMessages()
 {
+    hu_forced_color = true;
     for (int i = 0; i < 4; ++i)
     {
         if (i == 0 && ap_message_anim > 0 && HU_GetActiveAPMessageCount() == 4) continue;
         HUlib_drawSText(&w_ap_messages[i]);
     }
+    hu_forced_color = false;
 }
 
 boolean HU_HasAPMessageRoom()

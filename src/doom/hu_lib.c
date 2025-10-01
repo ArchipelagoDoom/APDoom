@@ -34,6 +34,8 @@
 // boolean : whether the screen is always erased
 #define noterased viewwindowx
 
+// [AP] AP messages are always colored
+boolean hu_forced_color = false;
 
 void HUlib_init(void)
 {
@@ -138,6 +140,9 @@ HUlib_drawTextLine
     int			y;
     unsigned char	c;
 
+	// [AP] AP messages are always colored
+    const int can_color = hu_forced_color || (crispy->coloredhud & COLOREDHUD_TEXT);
+
     // draw the new stuff
     x = l->x;
     y = l->y; // [crispy] support line breaks
@@ -150,7 +155,7 @@ HUlib_drawTextLine
 		if (l->l[i+1] >= '0' && l->l[i+1] <= '0' + CRMAX - 1)
 		{
 		    i++;
-		    dp_translation = (crispy->coloredhud & COLOREDHUD_TEXT) ? cr[(int) (l->l[i] - '0')] : NULL;
+		    dp_translation = (can_color) ? cr[(int) (l->l[i] - '0')] : NULL;
 		}
 	}
 	else

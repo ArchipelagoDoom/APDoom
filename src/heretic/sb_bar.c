@@ -1075,7 +1075,7 @@ void DrawMainBar(void)
                                         PU_CACHE));
 
             // [AP] draw maximum ammo, for quality of life with non-default max ammos
-            V_DrawPatch(120, 182, W_CacheLumpName("STYSLASH", PU_CACHE));
+            V_DrawSBPatch(120, 182, W_CacheLumpName("STYSLASH", PU_CACHE));
             DrSmallNumber(CPlayer->maxammo[wpnlev1info[CPlayer->readyweapon].ammo], 130, 182);
         }
         oldammo = temp;
@@ -1257,6 +1257,10 @@ void DrawFullScreenStuff(void)
                         W_CacheLumpName(DEH_String(ammopic[CPlayer->readyweapon - 1]),
                                         PU_CACHE));
             DrINumber(temp, 53 - sboffset, 172);
+
+            // [AP] draw maximum ammo, for quality of life with non-default max ammos
+            V_DrawSBPatch(64 - sboffset, 192, W_CacheLumpName("STYSLASH", PU_CACHE));
+            DrSmallNumber(CPlayer->maxammo[wpnlev1info[CPlayer->readyweapon].ammo], 74 - sboffset, 192);
         }
         // Keys
         if (CPlayer->keys[key_yellow])
@@ -1636,10 +1640,15 @@ static void CheatIDKFAFunc(player_t * player, Cheat_t * cheat)
     {
         return;
     }
+#if 1 // [AP] Don't actually take weapons. Just all ammo, and force a staff switch.
+    for (int i = 0; i < NUMAMMO; ++i)
+        player->ammo[i] = 0;
+#else
     for (i = 1; i < 8; i++)
     {
         player->weaponowned[i] = false;
     }
+#endif
     player->pendingweapon = wp_staff;
     P_SetMessage(player, DEH_String(TXT_CHEATIDKFA), true);
 }
