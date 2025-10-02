@@ -339,11 +339,6 @@ int ap_validate_doom_location(ap_level_index_t idx, int doom_type, int index);
 int ap_get_map_count(int ep);
 int ap_total_check_count(const ap_level_info_t *level_info);
 
-// Deathlink stuff
-void apdoom_on_death();
-void apdoom_clear_death();
-int apdoom_should_die();
-
 ap_level_index_t ap_try_make_level_index(int ep /* 1-based */, int map /* 1-based */);
 ap_level_index_t ap_make_level_index(int ep /* 1-based */, int map /* 1-based */);
 int ap_index_to_ep(ap_level_index_t idx);
@@ -404,6 +399,10 @@ const ap_worldinfo_t *ap_loaded_world_info(void);
 
 void ap_init_remap(const char *filename);
 int ap_do_remap(char *lump_name);
+
+const char* APDOOM_ReceiveDeath(); // NULL, or death reason
+void APDOOM_SendDeath();
+void APDOOM_ClearDeath();
 
 #ifdef __cplusplus
 }

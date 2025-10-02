@@ -1012,8 +1012,8 @@ void P_KillMobj_Real(mobj_t * source, mobj_t * target, boolean send_death_link)
 
         cache_ap_player_state(); // [Ap] Make sure we cache it's inventory
 
-	    if (send_death_link)
-		    apdoom_on_death();
+        if (send_death_link)
+            APDOOM_SendDeath();
         P_DropWeapon(target->player);
         if (target->flags2 & MF2_FIREDAMAGE)
         {                       // Player flame death

@@ -822,7 +822,7 @@ P_KillMobj_Real // So we can specify death by death link
 	cache_ap_player_state();
 
 	if (send_death_link)
-		apdoom_on_death();
+		APDOOM_SendDeath();
 	P_DropWeapon (target->player);
 	// [crispy] center view when dying
 	target->player->centering = true;

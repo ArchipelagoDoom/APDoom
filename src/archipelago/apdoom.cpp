@@ -295,9 +295,10 @@ void f_ammo_add(std::string json_blob)
 }
 
 void f_itemclr();
-void f_itemrecv(int64_t item_id, int player_id, bool notify_player);
+void f_itemrecv(int64_t item_id, bool notify_player);
 void f_locrecv(int64_t loc_id);
 void f_locinfo(std::vector<AP_NetworkItem> loc_infos);
+void f_deathlink(std::string source, std::string cause);
 void load_state();
 void save_state();
 void APSend(std::string msg);
@@ -692,6 +693,7 @@ int apdoom_init(ap_settings_t* settings)
 
 		}
 
+		ap_settings.player_name = "Player";
 		recalc_max_ammo();
 
 		ap_seed_string = "practmp_" + std::to_string(rand());
@@ -708,6 +710,7 @@ int apdoom_init(ap_settings_t* settings)
 	AP_SetClientVersion(&version);
     AP_Init(ap_settings.ip, ap_settings.game, ap_settings.player_name, ap_settings.passwd);
 	AP_SetDeathLinkSupported(ap_settings.force_deathlink_off ? false : true);
+	AP_SetDeathLinkRecvCallback(f_deathlink);
 	AP_SetItemClearCallback(f_itemclr);
 	AP_SetItemRecvCallback(f_itemrecv);
 	AP_SetLocationCheckedCallback(f_locrecv);
@@ -910,7 +913,7 @@ int apdoom_init(ap_settings_t* settings)
 	// Scout locations to see which are progressive
 	if (ap_progressive_locations.empty())
 	{
-		std::vector<int64_t> location_scouts;
+		std::set<int64_t> location_scouts;
 
 		const auto& loc_table = get_location_table();
 		for (const auto& kv1 : loc_table)
@@ -925,7 +928,7 @@ int apdoom_init(ap_settings_t* settings)
 
 					if (validate_doom_location({kv1.first - 1, kv2.first - 1}, kv3.first))
 					{
-						location_scouts.push_back(kv3.second);
+						location_scouts.insert(kv3.second);
 					}
 				}
 			}
@@ -1397,7 +1400,7 @@ static void process_received_item(int64_t item_id)
 	}
 }
 
-void f_itemrecv(int64_t item_id, int player_id, bool notify_player)
+void f_itemrecv(int64_t item_id, bool notify_player)
 {
 	const auto& item_type_table = get_item_type_table();
 	auto it = item_type_table.find(item_id);
@@ -1577,7 +1580,7 @@ void apdoom_check_location(ap_level_index_t idx, int index)
 		// Send the item to ourselves as if we were playing.
 		if (item_type_table.count(item_id))
 		{
-			f_itemrecv(item_id, 1, true);
+			f_itemrecv(item_id, true);
 		}
 		return;
 	}
@@ -1732,24 +1735,6 @@ void apdoom_send_message(const char* msg)
 	say_packet[0]["text"] = msg;
 	Json::FastWriter writer;
 	APSend(writer.write(say_packet));
-}
-
-
-void apdoom_on_death()
-{
-	AP_DeathLinkSend();
-}
-
-
-void apdoom_clear_death()
-{
-	AP_DeathLinkClear();
-}
-
-
-int apdoom_should_die()
-{
-	return AP_DeathLinkPending() ? 1 : 0;
 }
 
 
@@ -2001,4 +1986,33 @@ int ap_do_remap(char *lump_name)
 			return true;
 	}
 	return false;
+}
+// ----------------------------------------------------------------------------
+// DeathLink
+
+static std::string deathlink_message; // From the multiworld to us
+
+void f_deathlink(std::string source, std::string cause)
+{
+	if (!cause.empty())
+		deathlink_message = "~5" + cause;
+	else
+		deathlink_message = "~5" + source + " killed you";
+}
+
+void APDOOM_SendDeath()
+{
+	AP_DeathLinkSend();
+}
+
+void APDOOM_ClearDeath()
+{
+	AP_DeathLinkClear();
+}
+
+const char *APDOOM_ReceiveDeath()
+{
+	if (AP_DeathLinkPending())
+		return deathlink_message.c_str();
+	return NULL;
 }

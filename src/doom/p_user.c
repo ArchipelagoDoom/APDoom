@@ -273,7 +273,7 @@ void P_DeathThink (player_t* player)
     if (player->cmd.buttons & BT_USE)
     {
 	player->playerstate = PST_REBORN;
-        apdoom_clear_death();
+        APDOOM_ClearDeath();
     }
 }
 

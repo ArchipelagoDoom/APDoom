@@ -1770,9 +1770,10 @@ void G_Ticker (void)
 
         if (ap_is_in_game)
         {
-            if (apdoom_should_die() && players[consoleplayer].mo)
+            const char* reason = APDOOM_ReceiveDeath();
+            if (reason && players[consoleplayer].mo)
             {
-                HU_AddAPMessage("Death by Deathlink");
+                HU_AddAPMessage(reason);
                 P_KillMobj_Real(NULL, players[consoleplayer].mo, false);
             }
         }

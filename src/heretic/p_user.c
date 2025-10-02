@@ -425,7 +425,7 @@ void P_DeathThink(player_t * player)
         // Let the mobj know the player has entered the reborn state.  Some
         // mobjs need to know when it's ok to remove themselves.
         player->mo->special2.i = 666;
-        apdoom_clear_death();
+        APDOOM_ClearDeath();
     }
 }
 
