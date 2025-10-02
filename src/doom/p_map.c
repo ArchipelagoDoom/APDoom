@@ -1486,9 +1486,13 @@ P_RadiusAttack
     bombsource = source;
     bombdamage = damage;
 	
-    for (y=yl ; y<=yh ; y++)
-	for (x=xl ; x<=xh ; x++)
-	    P_BlockThingsIterator (x, y, PIT_RadiusAttack );
+	for (y=yl ; y<=yh ; y++)
+		for (x=xl ; x<=xh ; x++)
+			P_BlockThingsIterator (x, y, PIT_RadiusAttack );
+
+	// [AP] clear out after we're done
+	bombsource = NULL;
+	bombspot = NULL;
 }
 
 

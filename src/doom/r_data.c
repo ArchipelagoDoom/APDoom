@@ -1336,6 +1336,22 @@ int R_FlatNumForName(const char *name)
     return i - firstflat;
 }
 
+//
+// [AP]
+// R_FlatNumToName
+// Reverse of above.
+//
+const char *R_FlatNumToName(int num)
+{
+	static char safe_lumpname_buf[9];
+
+	if (num < 0 || num + firstflat > lastflat)
+		return NULL;
+
+	memcpy(safe_lumpname_buf, lumpinfo[num + firstflat]->name, 8);
+	safe_lumpname_buf[8] = 0;
+	return safe_lumpname_buf;
+}
 
 
 

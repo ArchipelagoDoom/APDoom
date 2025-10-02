@@ -34,6 +34,7 @@
 #include <json/json.h>
 #include <filesystem>
 #include <memory.h>
+#include <stdarg.h>
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -318,6 +319,7 @@ static location_table_storage_t preloaded_location_table; // <int episode, <int 
 static item_table_storage_t preloaded_item_table; // <int64_t ap_id, ap_item_t>
 static type_sprites_storage_t preloaded_type_sprites; // <int doomednum, std::string sprite_lump_name>
 static rename_lumps_storage_t lump_remap_list; // <std::string file, std::vector<remap_entry_t>>
+static obituary_storage_t obituary_list; // std::vector<obituary_t>
 
 // ----------------------------------------------------------------------------
 
@@ -376,8 +378,9 @@ int ap_preload_defs_for_game(const char *game_name)
 		|| !json_parse_level_info(defs_json["level_info"], preloaded_level_info)
 		|| !json_parse_map_tweaks(defs_json["map_tweaks"], map_tweak_list)
 		|| !json_parse_level_select(defs_json["level_select"], level_select_screens)
-		|| !json_parse_game_info(defs_json["game_info"], ap_game_info)
 		|| !json_parse_rename_lumps(defs_json["rename_lumps"], lump_remap_list)
+		|| !json_parse_game_info(defs_json["game_info"], ap_game_info)
+		|| !json_parse_obituaries(defs_json["game_info"]["obituaries"], obituary_list)
 	)
 	{
 		printf("APDOOM: Errors occurred while loading \"%s\".\n", game_name);
@@ -1987,10 +1990,13 @@ int ap_do_remap(char *lump_name)
 	}
 	return false;
 }
+
 // ----------------------------------------------------------------------------
-// DeathLink
+// DeathLink & Obituary tagging system
 
 static std::string deathlink_message; // From the multiworld to us
+static std::string deathlink_sent_msg; // From us to the multiworld
+static std::set<std::string> upcoming_obit_tags; // List of obit tags and weights for upcoming death
 
 void f_deathlink(std::string source, std::string cause)
 {
@@ -2000,9 +2006,69 @@ void f_deathlink(std::string source, std::string cause)
 		deathlink_message = "~5" + source + " killed you";
 }
 
-void APDOOM_SendDeath()
+void APDOOM_ObitTags_Clear(void)
 {
-	AP_DeathLinkSend();
+	upcoming_obit_tags.clear();
+}
+
+void APDOOM_ObitTags_Add(const char *fmt, ...)
+{
+	static char buf[32];
+	va_list args;
+
+	va_start(args, fmt);
+	vsnprintf(buf, 31, fmt, args);
+	buf[31] = 0;
+	va_end(args);
+
+	upcoming_obit_tags.insert(buf);
+}
+
+const char *APDOOM_SendDeath()
+{
+	if (!ap_settings.always_show_obituaries)
+	{
+		if (ap_practice_mode || !AP_DeathLinkEnabled())
+			return NULL;
+	}
+
+	int best_score = 0;
+	int cur_score = 0;
+	deathlink_sent_msg = "%YOU% died.";
+
+	for (obituary_t& obit : obituary_list)
+	{
+		if ((cur_score = obit.score(upcoming_obit_tags)) > best_score)
+		{
+			best_score = cur_score;
+			deathlink_sent_msg = obit.get_text();
+		}
+	}
+
+	// Show debug info if we're showing the default obituary when forced
+	if (ap_settings.always_show_obituaries && best_score == 0)
+	{
+		bool first = true;
+		printf("No obituaries matched the following tags: ");
+		for (const std::string &tag : upcoming_obit_tags)
+		{
+			printf("%s%s", (first ? "" : ", "), tag.c_str());
+			first = false;
+		}
+		printf("\n");
+	}
+
+	// We've gotten the best obituary, now put the player's name in there
+    size_t pname_marker = deathlink_sent_msg.find("%YOU%");
+    if (pname_marker != std::string::npos)
+        deathlink_sent_msg.replace(pname_marker, 5, ap_settings.player_name);
+
+    if (!ap_practice_mode)
+		AP_DeathLinkSend(deathlink_sent_msg);
+
+	// Colorize before sending C-side.
+	deathlink_sent_msg = "~5" + deathlink_sent_msg;
+	return deathlink_sent_msg.c_str();
 }
 
 void APDOOM_ClearDeath()

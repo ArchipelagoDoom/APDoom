@@ -611,3 +611,23 @@ int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &out
 	}
 	return 1;
 }
+
+
+// ============================================================================
+// Obituaries: Death messages for DeathLink
+// (json: "game_info" -> "obituaries")
+// ============================================================================
+
+int json_parse_obituaries(const Json::Value& json, obituary_storage_t &output)
+{
+	if (json.isNull())
+		return 1; // Optional
+
+	for (const std::string &tag_list : json.getMemberNames())
+	{
+		std::string obituary_text = json[tag_list].asString();
+		output.push_back({tag_list, obituary_text});
+	}
+	return 1;
+}
+

@@ -157,6 +157,8 @@ typedef struct
     int override_flip_levels; int flip_levels;
     int force_deathlink_off;
     int override_reset_level_on_death; int reset_level_on_death;
+
+    int always_show_obituaries;
 } ap_settings_t;
 
 
@@ -400,9 +402,14 @@ const ap_worldinfo_t *ap_loaded_world_info(void);
 void ap_init_remap(const char *filename);
 int ap_do_remap(char *lump_name);
 
+// ===== DEATHLINK & OBITUARIES ===============================================
+
 const char* APDOOM_ReceiveDeath(); // NULL, or death reason
-void APDOOM_SendDeath();
+const char* APDOOM_SendDeath(); // Returns your obituary
 void APDOOM_ClearDeath();
+
+void APDOOM_ObitTags_Clear(void);
+void APDOOM_ObitTags_Add(const char *fmt, ...);
 
 #ifdef __cplusplus
 }

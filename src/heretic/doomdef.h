@@ -830,6 +830,7 @@ void R_SetViewSize(int blocks, int detail);
 // called by M_Responder
 
 int R_FlatNumForName(const char *name);
+const char *R_FlatNumToName(int num);
 
 int R_TextureNumForName(const char *name);
 int R_CheckTextureNumForName(const char *name);

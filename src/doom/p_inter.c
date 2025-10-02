@@ -40,6 +40,8 @@
 #include "p_inter.h"
 
 #include "apdoom.h"
+#include "r_data.h" // [AP] R_FlatNumToName
+#include "hu_stuff.h" // [AP] HU_AddAPMessage
 
 #include "g_game.h"
 
@@ -822,7 +824,12 @@ P_KillMobj_Real // So we can specify death by death link
 	cache_ap_player_state();
 
 	if (send_death_link)
-		APDOOM_SendDeath();
+	{
+		const char *obituary = APDOOM_SendDeath();
+		if (obituary)
+			HU_AddAPMessage(obituary);
+	}
+
 	P_DropWeapon (target->player);
 	// [crispy] center view when dying
 	target->player->centering = true;
@@ -920,6 +927,96 @@ P_KillMobj
 
 
 
+//
+// [AP]
+// P_MakeObituaryTags
+// Sets up tags for an impending death, to show an appropriate obituary.
+//
+
+void
+P_MakeObituaryTags
+( mobj_t*	target,
+  mobj_t*	inflictor,
+  mobj_t*	source,
+  int     damage )
+{
+	APDOOM_ObitTags_Clear();
+	if (!target || !target->player)
+		return;
+
+	if (!source && !inflictor)
+	{
+		sector_t *sec = target->subsector->sector;
+		if (!sec)
+			return;
+
+		APDOOM_ObitTags_Add("FLOOR_%s", R_FlatNumToName(sec->floorpic));
+		APDOOM_ObitTags_Add("CEILING_%s", R_FlatNumToName(sec->ceilingpic));
+
+		if (sec->specialdata)
+		{
+			union
+			{
+				floormove_t *floor;
+				ceiling_t *ceil;
+			}	specdata;
+
+			specdata.ceil = sec->specialdata;
+			if (
+				(specdata.ceil->thinker.function.acp1 == (actionf_p1)T_MoveCeiling && specdata.ceil->crush)
+				|| (specdata.floor->thinker.function.acp1 == (actionf_p1)T_MoveFloor && specdata.floor->crush)
+			)
+			{
+				APDOOM_ObitTags_Add("CRUSHER");
+			}
+		}
+		return;
+	}
+
+	if (source)
+	{
+		if (target == source)
+		{
+			APDOOM_ObitTags_Add("SUICIDE");
+		}
+		else
+		{
+			if (source->health <= 0)
+				APDOOM_ObitTags_Add("POSTHUMOUS");
+
+			APDOOM_ObitTags_Add("SOURCE_MOBJTYPE_%d", source->type);
+			if (source->info->doomednum > 0)
+				APDOOM_ObitTags_Add("SOURCE_DOOMEDNUM_%d", source->info->doomednum);
+		}
+	}
+
+	if (inflictor && inflictor == source)
+	{
+		if (damage == 10000)
+			APDOOM_ObitTags_Add("TELEFRAG");
+		else
+			APDOOM_ObitTags_Add("MELEE");
+	}
+	else if (inflictor)
+	{
+		if (!source)
+			APDOOM_ObitTags_Add("NO_SOURCE");
+		else
+			APDOOM_ObitTags_Add("MISSILE");
+
+		APDOOM_ObitTags_Add("INFLICTOR_MOBJTYPE_%d", inflictor->type);
+		if (inflictor->info->doomednum > 0)
+			APDOOM_ObitTags_Add("INFLICTOR_DOOMEDNUM_%d", inflictor->info->doomednum);
+	}
+
+	// Account for splash damage
+	// If damage is 100 or more we assume you just took a direct hit
+	extern mobj_t *bombspot;
+	if (damage < 100 && inflictor && bombspot && bombspot == inflictor)
+		APDOOM_ObitTags_Add("SPLASH");
+}
+
+
 
 //
 // P_DamageMobj
@@ -944,6 +1041,7 @@ P_DamageMobj
     player_t*	player;
     fixed_t	thrust;
     int		temp;
+    int orig_damage = damage; // [AP] For obits
 	
     if ( !(target->flags & MF_SHOOTABLE) )
 	return;	// shouldn't happen...
@@ -1052,8 +1150,10 @@ P_DamageMobj
     target->health -= damage;	
     if (target->health <= 0)
     {
-	P_KillMobj (source, target);
-	return;
+      if (player)
+        P_MakeObituaryTags(target, inflictor, source, orig_damage);
+      P_KillMobj (source, target);
+      return;
     }
 
     if ( (P_Random () < target->info->painchance)

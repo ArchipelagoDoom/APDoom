@@ -143,6 +143,15 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     //!
     // @category archipelago
     //
+    // Always shows obituary messages in the message log,
+    // even when they would otherwise be disabled. (DeathLink off, or practice)
+    //
+    if (M_CheckParm("-obituaries"))
+        ap_settings->always_show_obituaries = 1;
+
+    //!
+    // @category archipelago
+    //
     // Runs the game without connecting to Archipelago, for practicing.
     //
     if (M_CheckParm("-practice"))
@@ -228,6 +237,8 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     else
         ap_settings->passwd = "";
 }
+
+// ----------------------------------------------------------------------------
 
 // Initializes BaseAssets.zip (APDoom assets),
 // whether it's embedded in the executable or shipped alongside it.

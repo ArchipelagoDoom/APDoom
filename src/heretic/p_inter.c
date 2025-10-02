@@ -25,6 +25,7 @@
 #include "s_sound.h"
 #include "am_map.h"
 #include "apdoom.h"
+#include "ap_msg.h"
 
 
 #define BONUSADD 6
@@ -1013,7 +1014,12 @@ void P_KillMobj_Real(mobj_t * source, mobj_t * target, boolean send_death_link)
         cache_ap_player_state(); // [Ap] Make sure we cache it's inventory
 
         if (send_death_link)
-            APDOOM_SendDeath();
+        {
+            const char *obituary = APDOOM_SendDeath();
+            if (obituary)
+                HU_AddAPMessage(obituary);
+        }
+
         P_DropWeapon(target->player);
         if (target->flags2 & MF2_FIREDAMAGE)
         {                       // Player flame death
@@ -1044,6 +1050,103 @@ void P_KillMobj(mobj_t*	source, mobj_t*	target)
 {
 	P_KillMobj_Real(source, target, true);
 }
+
+
+
+//---------------------------------------------------------------------------
+//
+// [AP] PROC P_MakeObituaryTags
+//
+// Sets up tags for an impending death, to show an appropriate obituary.
+//
+//---------------------------------------------------------------------------
+
+void P_MakeObituaryTags
+    (mobj_t* target, mobj_t* inflictor, mobj_t* source, int damage)
+{
+    APDOOM_ObitTags_Clear();
+    if (!target || !target->player)
+        return;
+
+    extern mobj_t LavaInflictor;
+    if (inflictor == &LavaInflictor)
+        inflictor = NULL; // For our purposes, treat as no inflictor
+
+    if (!source && !inflictor)
+    {
+        sector_t *sec = target->subsector->sector;
+        if (!sec)
+            return;
+
+        APDOOM_ObitTags_Add("FLOOR_%s", R_FlatNumToName(sec->floorpic));
+        APDOOM_ObitTags_Add("CEILING_%s", R_FlatNumToName(sec->ceilingpic));
+
+        if (sec->specialdata)
+        {
+            union
+            {
+                floormove_t *floor;
+                ceiling_t *ceil;
+            }   specdata;
+
+            specdata.ceil = sec->specialdata;
+            if (
+                (specdata.ceil->thinker.function == T_MoveCeiling && specdata.ceil->crush)
+             || (specdata.floor->thinker.function == T_MoveFloor && specdata.floor->crush)
+            )
+            {
+                APDOOM_ObitTags_Add("CRUSHER");
+            }
+        }
+        return;
+    }
+
+    if (source)
+    {
+        if (target == source)
+        {
+            APDOOM_ObitTags_Add("SUICIDE");
+            if (!inflictor && damage == 10000)
+                APDOOM_ObitTags_Add("CHEAT");
+        }
+        else
+        {
+            if (source->health <= 0)
+                APDOOM_ObitTags_Add("POSTHUMOUS");
+
+            APDOOM_ObitTags_Add("SOURCE_MOBJTYPE_%d", source->type);
+            if (source->info->doomednum > 0)
+                APDOOM_ObitTags_Add("SOURCE_DOOMEDNUM_%d", source->info->doomednum);
+        }
+    }
+
+    if (inflictor && inflictor == source)
+    {
+        if (damage == 10000)
+            APDOOM_ObitTags_Add("TELEFRAG");
+        else
+            APDOOM_ObitTags_Add("MELEE");
+    }
+    else if (inflictor)
+    {
+        if (!source)
+            APDOOM_ObitTags_Add("NO_SOURCE");
+        else
+            APDOOM_ObitTags_Add("MISSILE");
+
+        APDOOM_ObitTags_Add("INFLICTOR_MOBJTYPE_%d", inflictor->type);
+        if (inflictor->info->doomednum > 0)
+            APDOOM_ObitTags_Add("INFLICTOR_DOOMEDNUM_%d", inflictor->info->doomednum);
+    }
+
+    // Account for splash damage
+    // If damage is 100 or more we assume you just took a direct hit
+    extern mobj_t *bombspot;
+    if (damage < 100 && inflictor && bombspot && bombspot == inflictor)
+        APDOOM_ObitTags_Add("SPLASH");
+}
+
+
 
 //---------------------------------------------------------------------------
 //
@@ -1328,6 +1431,7 @@ void P_DamageMobj
     player_t *player;
     fixed_t thrust;
     int temp;
+    int orig_damage = damage; // [AP] For obits
 
     if (!(target->flags & MF_SHOOTABLE))
     {
@@ -1554,6 +1658,8 @@ void P_DamageMobj
                 target->flags2 |= MF2_FIREDAMAGE;
             }
         }
+        if (player)
+            P_MakeObituaryTags(target, inflictor, source, orig_damage);
         P_KillMobj(source, target);
         return;
     }
