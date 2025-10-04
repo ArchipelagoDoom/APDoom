@@ -15,24 +15,26 @@
 // *Level select feature for archipelago*
 //
 
-#include "level_select.h"
-#include "doomdef.h"
-#include "doomstat.h"
-#include "d_main.h"
-#include "s_sound.h"
-#include "z_zone.h"
-#include "v_video.h"
-#include "d_player.h"
-#include "doomkeys.h"
 #include "apdoom.h"
+#include "ap_lsel.h"
+#include "level_select.h"
+
+#include "doomdef.h"
+#include "doomkeys.h"
+#include "doomstat.h"
 #include "i_system.h"
 #include "i_video.h"
+#include "d_main.h"
+#include "d_player.h"
 #include "g_game.h"
 #include "m_misc.h"
-#include "hu_lib.h"
-#include "hu_stuff.h"
-#include <math.h>
 #include "m_controls.h"
+#include "hu_stuff.h"
+#include "s_sound.h"
+#include "v_video.h"
+#include "v_trans.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
 
 void WI_initAnimatedBack(void);
@@ -52,12 +54,10 @@ static wbstartstruct_t wiinfo;
 
 extern int bcnt;
 
-int selected_level[6] = {0};
-int selected_ep = 0;
-int prev_ep = 0;
 int ep_anim = 0;
 int initial_delay = 0;
 int urh_anim = 0;
+
 
 void restart_wi_anims()
 {
@@ -67,16 +67,6 @@ void restart_wi_anims()
     WI_initAnimatedBack();
 }
 
-static int get_episode_count()
-{
-    int ep_count = 0;
-    for (int i = 0; i < ap_episode_count; ++i)
-        if (ap_state.episodes[i])
-            ep_count++;
-    return ep_count;
-}
-
-void HU_ClearAPMessages();
 
 void play_level(int ep, int lvl)
 {
@@ -111,7 +101,7 @@ void play_level(int ep, int lvl)
 
 void select_map_dir(int dir)
 {
-    const ap_levelselect_t* screen_defs = ap_get_level_select_info(selected_ep);
+    const ap_levelselect_t* screen_defs = LS_CurrentEpisodeInfo();
 
     int from = selected_level[selected_ep];
     float fromx = (float)screen_defs->map_info[from].x;
@@ -217,43 +207,29 @@ static void level_select_nav_down()
 
 static void level_select_prev_episode()
 {
-    if (gamemode != shareware && get_episode_count() > 1)
-    {
-        prev_ep = selected_ep;
-        ep_anim = -10;
-        selected_ep--;
-        if (selected_ep < 0) selected_ep = ap_episode_count - 1;
-        while (!ap_state.episodes[selected_ep])
-        {
-            selected_ep--;
-            if (selected_ep < 0) selected_ep = ap_episode_count - 1;
-            if (selected_ep == prev_ep) // oops;
-                break;
-        }
-        restart_wi_anims();
-        urh_anim = 0;
-        S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx);
-    }
+    int new_ep = LS_PrevEpisode();
+    if (new_ep == selected_ep)
+        return;
+
+    selected_ep = new_ep;
+    ep_anim = -10;
+    urh_anim = 0;
+    restart_wi_anims();
+    S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx);
 }
 
 
 static void level_select_next_episode()
 {
-    if (gamemode != shareware && get_episode_count() > 1)
-    {
-        prev_ep = selected_ep;
-        ep_anim = 10;
-        selected_ep = (selected_ep + 1) % ap_episode_count;
-        while (!ap_state.episodes[selected_ep])
-        {
-            selected_ep = (selected_ep + 1) % ap_episode_count;
-            if (selected_ep == prev_ep) // oops;
-                break;
-        }
-        restart_wi_anims();
-        urh_anim = 0;
-        S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx);
-    }
+    int new_ep = LS_NextEpisode();
+    if (new_ep == selected_ep)
+        return;
+
+    selected_ep = new_ep;
+    ep_anim = 10;
+    urh_anim = 0;
+    restart_wi_anims();
+    S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx);
 }
 
 
@@ -267,7 +243,7 @@ static void level_select_nav_enter()
     }
     else
     {
-        S_StartSoundOptional(NULL, sfx_mnusli, sfx_noway);
+        S_StartSound(NULL, sfx_noway);
     }
 }
 
@@ -275,8 +251,6 @@ static void level_select_nav_enter()
 boolean LevelSelectResponder(event_t* ev)
 {
     if (ep_anim || initial_delay) return true;
-
-    //int ep_count = get_episode_count();
 
     switch (ev->type)
     {
@@ -332,9 +306,7 @@ boolean LevelSelectResponder(event_t* ev)
 
 void ShowLevelSelect()
 {
-    if (testcontrols)
-        I_Quit();
-
+    LS_Start();
     HU_ClearAPMessages();
 
     // If in a level, save current level
@@ -356,29 +328,15 @@ void ShowLevelSelect()
     viewactive = false;
     automapactive = false;
 
-    ap_state.ep = 0;
-    ap_state.map = 0;
-
-    while (!ap_state.episodes[selected_ep])
-    {
-        selected_ep = (selected_ep + 1) % ap_episode_count;
-        if (selected_ep == 0) // oops;
-            break;
-    }
-
+    memset(&wiinfo, 0, sizeof(wbstartstruct_t));
     wiinfo.epsd = selected_ep;
     wiinfo.didsecret = false;
     wiinfo.last = -1;
     wiinfo.next = -1;
-    wiinfo.maxkills = 0;
-    wiinfo.maxitems = 0;
-    wiinfo.maxsecret = 0;
-    wiinfo.maxfrags = 0;
-    wiinfo.partime = 0;
-    wiinfo.pnum = 0;
     
     restart_wi_anims();
     bcnt = 0;
+    ep_anim = 0;
     initial_delay = 2; // Just a couple frames of no input to prevent accidental movement
 }
 
@@ -396,7 +354,7 @@ void TickLevelSelect()
 
 void DrawEpisodicLevelSelectStats()
 {
-    const ap_levelselect_t* screen_defs = ap_get_level_select_info(selected_ep);
+    const ap_levelselect_t* screen_defs = LS_CurrentEpisodeInfo();
     const int map_count = ap_get_map_count(selected_ep + 1);
 
     for (int i = 0; i < map_count; ++i)
@@ -554,31 +512,37 @@ void DrawLevelSelectStats()
 
 void DrawLevelSelect()
 {
-    int x_offset = ep_anim * 32;
+    patch_t *primary_image = W_CacheLumpName(LS_CurrentEpisodeInfo()->background_image, PU_CACHE);
 
-    char lump_name[9];
-    snprintf(lump_name, 9, "%s", ap_get_level_select_info(selected_ep)->background_image);
-    
-    // [crispy] fill pillarboxes in widescreen mode
-    if (SCREENWIDTH != NONWIDEWIDTH)
-    {
-        V_DrawFilledBox(0, 0, SCREENWIDTH, SCREENHEIGHT, 0);
-    }
+    // Just in case, always fill with black, then draw the current selected episode background
+    V_DrawFilledBox(0, 0, SCREENWIDTH, SCREENHEIGHT, 0);
+    V_DrawPatch(ep_anim * 32, 0, primary_image);
 
-    V_DrawPatch(x_offset, 0, W_CacheLumpName(lump_name, PU_CACHE));
     if (ep_anim == 0)
     {
-        WI_drawAnimatedBack();
+        // We may have room to draw the images for previous and next episodes...
+        if (SCREENWIDTH != NONWIDEWIDTH)
+        {
+            patch_t *left_image = W_CacheLumpName(LS_PrevEpisodeInfo()->background_image, PU_CACHE);
+            patch_t *right_image = W_CacheLumpName(LS_NextEpisodeInfo()->background_image, PU_CACHE);
 
+            dp_translation = cr[CR_DARK];
+            V_DrawPatch(-320, 0, left_image);
+            V_DrawPatch(320, 0, right_image);
+            dp_translation = NULL;
+        }
+
+        WI_drawAnimatedBack();
         DrawLevelSelectStats();
     }
-    else
+    else if (ep_anim > 0)
     {
-        snprintf(lump_name, 9, "%s", ap_get_level_select_info(prev_ep)->background_image);
-        if (ep_anim > 0)
-            x_offset = -(10 - ep_anim) * 32;
-        else
-            x_offset = (10 + ep_anim) * 32;
-        V_DrawPatch(x_offset, 0, W_CacheLumpName(lump_name, PU_CACHE));
+        patch_t *secondary_image = W_CacheLumpName(LS_PrevEpisodeInfo()->background_image, PU_CACHE);
+        V_DrawPatch(-(10 - ep_anim) * 32, 0, secondary_image);
+    }
+    else // ep_anim < 0
+    {
+        patch_t *secondary_image = W_CacheLumpName(LS_NextEpisodeInfo()->background_image, PU_CACHE);
+        V_DrawPatch((10 + ep_anim) * 32, 0, secondary_image);
     }
 }

@@ -2085,7 +2085,10 @@ void G_DoReborn (int playernum)
 	 
     if (!netgame && (ap_state.reset_level_on_death || killed_from_menu))
     {
+#if 1
         killed_from_menu = false;
+        gameaction = ga_loadlevel;
+#else // [AP] Never reload save
 	// [crispy] if the player dies and the game has been loaded or saved
 	// in the mean time, reload that savegame instead of restarting the level
 	// when "Run" is pressed upon resurrection
@@ -2097,6 +2100,7 @@ void G_DoReborn (int playernum)
 	gameaction = ga_loadlevel;
 	G_ClearSavename();
 	}
+#endif
     }
     else 
     {

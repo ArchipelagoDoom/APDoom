@@ -3403,7 +3403,10 @@ void M_Drawer (void)
 
     
     if (ap_game_info.pausepic)
+    {
+        inhelpscreens = true;
         V_DrawPatchFullScreen(W_CacheLumpName(ap_game_info.pausepic, PU_CACHE), false);
+    }
     if (currentMenu->routine)
 	currentMenu->routine();         // call Draw routine
     

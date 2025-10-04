@@ -70,6 +70,7 @@ set(GAME_SOURCE_FILES
     a11y.c              a11y.h
     aes_prng.c          aes_prng.h
     ap_basic.c          ap_basic.h
+    ap_lsel.c           ap_lsel.h
     d_event.c           d_event.h
                         doomkeys.h
                         doomtype.h

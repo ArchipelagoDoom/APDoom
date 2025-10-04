@@ -56,9 +56,10 @@ void HU_Drawer(void);
 char HU_dequeueChatChar(void);
 void HU_Erase(void);
 
+void HU_ClearAPMessages(void);
 void HU_AddAPMessage(const char* message);
-void HU_DrawAPMessages();
-void HU_TickAPMessages();
+void HU_DrawAPMessages(void);
+void HU_TickAPMessages(void);
 
 extern const char *player_names[4];
 extern char *chat_macros[10];
