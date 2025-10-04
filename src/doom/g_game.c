@@ -1896,6 +1896,26 @@ void G_PlayerReborn (int player)
 }
 
 //
+// [AP]
+// G_CreateRespawnFog
+// Creates a teleport fog thing after spawning the player.
+// Moved to after player spawn, so the sound always plays.
+// Breaks from vanilla; always spawns the fog properly.
+//
+void G_CreateRespawnFog(mapthing_t *mthing)
+{
+    const angle_t an = (ANG45 * ((unsigned int)mthing->angle / 45));
+    const fixed_t x = (mthing->x << FRACBITS) + (20 * finecosine[an >> ANGLETOFINESHIFT]); 
+    const fixed_t y = (mthing->y << FRACBITS) + (20 * finesine[an >> ANGLETOFINESHIFT]); 
+
+    subsector_t *ss = R_PointInSubsector(mthing->x << FRACBITS, mthing->y << FRACBITS);
+    mobj_t *mo = P_SpawnMobj(x, y, ss->sector->floorheight, MT_TFOG);
+
+    if (players[consoleplayer].viewz != 1)
+        S_StartSound(mo, sfx_telept); // don't start sound on first frame
+}
+
+//
 // G_CheckSpot  
 // Returns false if the player cannot be respawned
 // at the given mapthing_t spot  
@@ -1910,8 +1930,8 @@ G_CheckSpot
 { 
     fixed_t		x;
     fixed_t		y; 
-    subsector_t*	ss; 
-    mobj_t*		mo; 
+//    subsector_t*	ss; 
+//    mobj_t*		mo; 
     int			i;
 	
     if (!players[playernum].mo)
@@ -1936,6 +1956,7 @@ G_CheckSpot
     bodyque[bodyqueslot%BODYQUESIZE] = players[playernum].mo; 
     bodyqueslot++; 
 
+#if 0 // [AP] Respawn fog moved to its own function
     // spawn a teleport fog
     ss = R_PointInSubsector (x,y);
 
@@ -2001,6 +2022,7 @@ G_CheckSpot
 
     if (players[consoleplayer].viewz != 1) 
 	S_StartSound (mo, sfx_telept);	// don't start sound on first frame 
+#endif
  
     return true; 
 } 
@@ -2027,12 +2049,14 @@ void G_DeathMatchSpawnPlayer (int playernum)
 	{ 
 	    deathmatchstarts[i].type = playernum+1; 
 	    P_SpawnPlayer (&deathmatchstarts[i]); 
+        G_CreateRespawnFog(&deathmatchstarts[i]); // [AP] just in case
 	    return; 
 	} 
     } 
  
     // no good spot, so the player will probably get stuck 
     P_SpawnPlayer (&playerstarts[playernum]); 
+    G_CreateRespawnFog(&playerstarts[playernum]); // [AP] just in case
 } 
 
 // [crispy] clear the "savename" variable,
@@ -2091,6 +2115,7 @@ void G_DoReborn (int playernum)
 	if (G_CheckSpot (playernum, &playerstarts[playernum]) )
 	{ 
 	    P_SpawnPlayer (&playerstarts[playernum]);
+        G_CreateRespawnFog(&playerstarts[playernum]);
         on_spawn_ap_states();
 	    return; 
 	}
@@ -2102,6 +2127,7 @@ void G_DoReborn (int playernum)
 	    { 
 		playerstarts[i].type = playernum+1;	// fake as other player 
 		P_SpawnPlayer (&playerstarts[i]); 
+        G_CreateRespawnFog(&playerstarts[i]);
 		playerstarts[i].type = i+1;		// restore 
         on_spawn_ap_states();
 		return; 
@@ -2111,6 +2137,7 @@ void G_DoReborn (int playernum)
 
     // Force spawn here then?
 	P_SpawnPlayer (&playerstarts[playernum]); 
+    G_CreateRespawnFog(&playerstarts[playernum]);
     on_spawn_ap_states();
     } 
 } 
