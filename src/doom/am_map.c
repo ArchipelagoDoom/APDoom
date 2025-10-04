@@ -2197,40 +2197,29 @@ void AM_drawMarks(void)
 void AM_drawLocations(void)
 {
     int		i, fx, fy;
-    int w = 6;
-    int h = 6;
-    mobj_t*	t;
+    int fx_flip; // [crispy] support for marks drawing in flipped levels
+    const int w = 6;
+    const int h = 6;
     mpoint_t	pt;
 
     for (i=0;i<numsectors;i++)
     {
-	    t = sectors[i].thinglist;
-        while (t)
+        for (mobj_t *t = sectors[i].thinglist; t; t = t->snext)
 	    {
+            if (!(t->type == MT_APJI || t->type == MT_APPI))
+                continue;
 
-            // [crispy] skull keys and key cards
-            switch (t->info->doomednum)
-            {
-                case 20000:
-                case 20001:
-                {
-	                pt.x = t->x >> FRACTOMAPBITS;
-	                pt.y = t->y >> FRACTOMAPBITS;
+            // [crispy] center marks around player
+            pt.x = t->x >> FRACTOMAPBITS;
+            pt.y = t->y >> FRACTOMAPBITS;
+            if (crispy->automaprotate)
+                AM_rotatePoint(&pt);
 
-	                if (crispy->automaprotate)
-	                {
-		                AM_rotatePoint(&pt);
-	                }
-
-	                fx = (flipscreenwidth[CXMTOF(pt.x)] >> crispy->hires) - 1 - WIDESCREENDELTA;
-	                fy = (CYMTOF(pt.y) >> crispy->hires) - 2;
-	                if (fx >= f_x && fx <= (f_w >> crispy->hires) - w && fy >= f_y && fy <= (f_h >> crispy->hires) - h)
-                        V_DrawPatch(fx, fy, amap);
-
-	                break;
-                }
-            }
-	        t = t->snext;
+            fx = (CXMTOF(pt.x) >> crispy->hires) - 1;
+            fy = (CYMTOF(pt.y) >> crispy->hires) - 2;
+            fx_flip = (flipscreenwidth[CXMTOF(pt.x)] >> crispy->hires) - 1;
+            if (fx >= f_x && fx <= (f_w >> crispy->hires) - w && fy >= f_y && fy <= (f_h >> crispy->hires) - h)
+                V_DrawPatch(fx_flip - WIDESCREENDELTA, fy, amap);
         }
     }
 }
