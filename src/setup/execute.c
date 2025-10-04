@@ -403,6 +403,8 @@ static void TestCallback(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(data))
 
     exec = NewExecuteContext();
     AddCmdLineParameter(exec, "-testcontrols");
+    if (gamemission == doom)
+        AddCmdLineParameter(exec, "-game doom");
     AddCmdLineParameter(exec, "-config \"%s\"", main_cfg);
     AddCmdLineParameter(exec, "-extraconfig \"%s\"", extra_cfg);
     ExecuteDoom(exec);

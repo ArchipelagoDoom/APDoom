@@ -790,7 +790,10 @@ static void AddSteamDirs(void)
 // [AP] Adds a few extra paths for convenience for APDoom.
 static void AddAPPaths(void)
 {
+#ifndef SETUP_PRG
     const ap_worldinfo_t *wi = ap_loaded_world_info();
+#endif
+
     char *execdir = M_DirName(myargv[0]);
 
     // Always check "iwad" from the cwd and executable directory.
@@ -801,12 +804,24 @@ static void AddAPPaths(void)
     AddIWADDir(M_StringJoin(".",     DIR_SEPARATOR_S "wads", NULL));
     AddIWADDir(M_StringJoin(execdir, DIR_SEPARATOR_S "wads", NULL));
 
-    // And for extra organization, a folder inside "wads" matching the short game name.s
+#ifndef SETUP_PRG
     if (wi)
     {
+        // For extra organization, a folder inside "wads" matching the short game name.
         AddIWADDir(M_StringJoin(".",     DIR_SEPARATOR_S "wads" DIR_SEPARATOR_S, wi->shortname, NULL));
         AddIWADDir(M_StringJoin(execdir, DIR_SEPARATOR_S "wads" DIR_SEPARATOR_S, wi->shortname, NULL));        
     }
+    else
+    {
+        // As above, but for every game.
+        const ap_worldinfo_t **game_list = ap_list_worlds();
+        for (int i = 0; game_list[i]; ++i)
+        {
+            AddIWADDir(M_StringJoin(".",     DIR_SEPARATOR_S "wads" DIR_SEPARATOR_S, game_list[i]->shortname, NULL));
+            AddIWADDir(M_StringJoin(execdir, DIR_SEPARATOR_S "wads" DIR_SEPARATOR_S, game_list[i]->shortname, NULL));        
+        }
+    }
+#endif
 
     free(execdir);
 }

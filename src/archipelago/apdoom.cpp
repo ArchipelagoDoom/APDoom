@@ -2017,7 +2017,11 @@ void APDOOM_ObitTags_Add(const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
+#if defined(WIN32) && _MSC_VER < 1400
+	_vsnprintf(buf, 31, fmt, args);
+#else
 	vsnprintf(buf, 31, fmt, args);
+#endif
 	buf[31] = 0;
 	va_end(args);
 

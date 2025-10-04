@@ -161,6 +161,7 @@ static void QuitConfirm(void *unused1, void *unused2)
     TXT_SetWindowAction(window, TXT_HORIZ_RIGHT, NULL);
 }
 
+#if 0 // [AP] Launch options aren't used because realistically it can't start an AP game
 static void LaunchDoom(void *unused1, void *unused2)
 {
     execute_context_t *exec;
@@ -207,12 +208,15 @@ static txt_button_t *GetLaunchButton(void)
 
     return TXT_NewButton2(label, LaunchDoom, NULL);
 }
+#endif
 
 void MainMenu(void)
 {
     txt_window_t *window;
     txt_window_action_t *quit_action;
+#if 0 // [AP] No warping
     txt_window_action_t *warp_action;
+#endif
 
     window = TXT_NewWindow("Main Menu");
 
@@ -240,6 +244,12 @@ void MainMenu(void)
         TXT_NewButton2("Accessibility",
                         (TxtWidgetSignalFunc) AccessibilitySettings, NULL));
 
+#if 1 // [AP] No netplay or launch
+    TXT_AddWidgets(window,
+        TXT_NewStrut(0, 1),
+        TXT_NewButton2("Save settings and exit", DoQuit, DoQuit),
+        NULL);
+#else
     TXT_AddWidgets(window,
         GetLaunchButton(),
         TXT_NewStrut(0, 1),
@@ -250,14 +260,18 @@ void MainMenu(void)
         TXT_NewButton2("Multiplayer Configuration",
                        (TxtWidgetSignalFunc) MultiplayerConfig, NULL),
         NULL);
+#endif
 
     quit_action = TXT_NewWindowAction(KEY_ESCAPE, "Quit");
-    warp_action = TXT_NewWindowAction(KEY_F2, "Warp");
     TXT_SignalConnect(quit_action, "pressed", QuitConfirm, NULL);
+    TXT_SetWindowAction(window, TXT_HORIZ_LEFT, quit_action);
+
+#if 0 // [AP] No warping
+    warp_action = TXT_NewWindowAction(KEY_F2, "Warp");
     TXT_SignalConnect(warp_action, "pressed",
                       (TxtWidgetSignalFunc) WarpMenu, NULL);
-    TXT_SetWindowAction(window, TXT_HORIZ_LEFT, quit_action);
     TXT_SetWindowAction(window, TXT_HORIZ_CENTER, warp_action);
+#endif
 
     TXT_SetKeyListener(window, MainMenuKeyPress, NULL);
 }
