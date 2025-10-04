@@ -65,7 +65,7 @@ class obituary_t
             return 10000;
         if (new_tag == "SPLASH")
             return 1000;
-        if (new_tag.substr(0, 10) == "INFLICTOR_")
+        if (new_tag.substr(0, 10) == "INFLICTOR_" || new_tag == "SUICIDE")
             return 100;
         if (new_tag.substr(0, 7) == "SOURCE_" || new_tag == "CRUSHER")
             return 10;
