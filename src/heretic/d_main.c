@@ -141,7 +141,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
                 if (!player->keys[key_blue])
                 {
                     player->keys[key_blue] = true;
-                    player->message = DEH_String(TXT_GOTBLUEKEY);
+                    P_SetMessage(player, DEH_String(TXT_GOTBLUEKEY), false);
                     sound = sfx_keyup;
                 }
             }
@@ -152,7 +152,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
                 if (!player->keys[key_yellow])
                 {
                     player->keys[key_yellow] = true;
-	                player->message = DEH_String(TXT_GOTYELLOWKEY);
+                    P_SetMessage(player, DEH_String(TXT_GOTYELLOWKEY), false);
                     sound = sfx_keyup;
                 }
             }
@@ -163,7 +163,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
                 if (!player->keys[key_green])
                 {
                     player->keys[key_green] = true;
-	                player->message = DEH_String(TXT_GOTGREENKEY);
+	                P_SetMessage(player, DEH_String(TXT_GOTGREENKEY), false);
                     sound = sfx_keyup;
                 }
             }
@@ -173,13 +173,13 @@ void on_ap_give_item(int doom_type, int ep, int map)
             {
 	            if (P_GivePower(player, pw_allmap))
                 {
-                    player->message = DEH_String(TXT_ITEMSUPERMAP);
+                    P_SetMessage(player, DEH_String(TXT_ITEMSUPERMAP), false);
                 }
             }
             break;
 
         case 8: // Bag of Holding
-            player->message = DEH_String(TXT_ITEMBAGOFHOLDING);
+            P_SetMessage(player, DEH_String(TXT_ITEMBAGOFHOLDING), false);
             // fall through
         case 65001: // Wand crystal capacity
         case 65002: // Ethereal arrow capacity
@@ -195,117 +195,117 @@ void on_ap_give_item(int doom_type, int ep, int map)
         // Weapons
         case 2005:
             P_GiveWeapon(player, wp_gauntlets);
-	        player->message = DEH_String(TXT_WPNGAUNTLETS);
+	        P_SetMessage(player, DEH_String(TXT_WPNGAUNTLETS), false);
 	        sound = sfx_wpnup;	
             break;
         case 2001:
             P_GiveWeapon(player, wp_crossbow);
-	        player->message = DEH_String(TXT_WPNCROSSBOW);
+	        P_SetMessage(player, DEH_String(TXT_WPNCROSSBOW), false);
 	        sound = sfx_wpnup;	
             break;
         case 53:
             P_GiveWeapon(player, wp_blaster);
-	        player->message = DEH_String(TXT_WPNBLASTER);
+	        P_SetMessage(player, DEH_String(TXT_WPNBLASTER), false);
 	        sound = sfx_wpnup;	
             break;
         case 2003:
             P_GiveWeapon(player, wp_phoenixrod);
-	        player->message = DEH_String(TXT_WPNPHOENIXROD);
+	        P_SetMessage(player, DEH_String(TXT_WPNPHOENIXROD), false);
 	        sound = sfx_wpnup;	
             break;
         case 2002:
             P_GiveWeapon(player, wp_mace);
-	        player->message = DEH_String(TXT_WPNMACE);
+	        P_SetMessage(player, DEH_String(TXT_WPNMACE), false);
 	        sound = sfx_wpnup;	
             break;
         case 2004:
             P_GiveWeapon(player, wp_skullrod);
-	        player->message = DEH_String(TXT_WPNSKULLROD);
+	        P_SetMessage(player, DEH_String(TXT_WPNSKULLROD), false);
 	        sound = sfx_wpnup;	
             break;
 
         // Powerups
         case 85:
 	        P_GiveArmor (player, 1);
-            player->message = DEH_String(TXT_ITEMSHIELD1);
+            P_SetMessage(player, DEH_String(TXT_ITEMSHIELD1), false);
             break;
         case 31:
 	        P_GiveArmor (player, 2);
-            player->message = DEH_String(TXT_ITEMSHIELD2);
+            P_SetMessage(player, DEH_String(TXT_ITEMSHIELD2), false);
             break;
 
         // Artifacts
         case 36: // Chaos Device
             P_GiveArtifact(player, arti_teleport, 0);
-            player->message = DEH_String(TXT_ARTITELEPORT);
+            P_SetMessage(player, DEH_String(TXT_ARTITELEPORT), false);
             break;
         case 30: // Morph Ovum
             P_GiveArtifact(player, arti_egg, 0);
-            player->message = DEH_String(TXT_ARTIEGG);
+            P_SetMessage(player, DEH_String(TXT_ARTIEGG), false);
             break;
         case 32: // Mystic Urn
             P_GiveArtifact(player, arti_superhealth, 0);
-            player->message = DEH_String(TXT_ARTISUPERHEALTH);
+            P_SetMessage(player, DEH_String(TXT_ARTISUPERHEALTH), false);
             break;
         case 82: // Quartz Flask
             P_GiveArtifact(player, arti_health, 0);
-            player->message = DEH_String(TXT_ARTIHEALTH);
+            P_SetMessage(player, DEH_String(TXT_ARTIHEALTH), false);
             break;
         case 84: // Ring of Invincibility
             P_GiveArtifact(player, arti_invulnerability, 0);
-            player->message = DEH_String(TXT_ARTIINVULNERABILITY);
+            P_SetMessage(player, DEH_String(TXT_ARTIINVULNERABILITY), false);
             break;
         case 75: // Shadowsphere
             P_GiveArtifact(player, arti_invisibility, 0);
-            player->message = DEH_String(TXT_ARTIINVISIBILITY);
+            P_SetMessage(player, DEH_String(TXT_ARTIINVISIBILITY), false);
             break;
         case 34: // Timebomb of the Ancients
             P_GiveArtifact(player, arti_firebomb, 0);
-            player->message = DEH_String(TXT_ARTIFIREBOMB);
+            P_SetMessage(player, DEH_String(TXT_ARTIFIREBOMB), false);
             break;
-        case 86: // Timebomb of the Ancients
+        case 86: // Tome of Power
             P_GiveArtifact(player, arti_tomeofpower, 0);
-            player->message = DEH_String(TXT_ARTITOMEOFPOWER);
+            P_SetMessage(player, DEH_String(TXT_ARTITOMEOFPOWER), false);
             break;
         case 83: // Wings of Wrath
             P_GiveArtifact(player, arti_fly, 0);
-            player->message = DEH_String(TXT_ARTIFLY);
+            P_SetMessage(player, DEH_String(TXT_ARTIFLY), false);
             break;
         case 33: // Torch
             P_GiveArtifact(player, arti_torch, 0);
-            player->message = DEH_String(TXT_ARTITORCH);
+            P_SetMessage(player, DEH_String(TXT_ARTITORCH), false);
             break;
 
         // Junk
         case 12: // Crystal Geode
             if (!P_GiveAmmo(player, am_goldwand, AMMO_GWND_HEFTY))
                 return;
-            player->message = DEH_String(TXT_AMMOGOLDWAND2);
+            P_SetMessage(player, DEH_String(TXT_AMMOGOLDWAND2), false);
             break;
         case 55: // Energy Orb
             if (!P_GiveAmmo(player, am_blaster, AMMO_BLSR_HEFTY))
                 return;
-            player->message = DEH_String(TXT_AMMOBLASTER2);
+            P_SetMessage(player, DEH_String(TXT_AMMOBLASTER2), false);
             break;
         case 21: // Greater Runes
             if (!P_GiveAmmo(player, am_skullrod, AMMO_SKRD_HEFTY))
                 return;
-            player->message = DEH_String(TXT_AMMOSKULLROD2);
+            P_SetMessage(player, DEH_String(TXT_AMMOSKULLROD2), false);
             break;
         case 23: // Inferno Orb
             if (!P_GiveAmmo(player, am_phoenixrod, AMMO_PHRD_HEFTY))
                 return;
-            player->message = DEH_String(TXT_AMMOPHOENIXROD2);
+            P_SetMessage(player, DEH_String(TXT_AMMOPHOENIXROD2), false);
             break;
         case 16: // Pile of Mace Spheres
             if (!P_GiveAmmo(player, am_mace, AMMO_MACE_HEFTY))
                 return;
-            player->message = DEH_String(TXT_AMMOMACE2);
+            P_SetMessage(player, DEH_String(TXT_AMMOMACE2), false);
             break;
         case 19: // Quiver of Ethereal Arrows
             if (!P_GiveAmmo(player, am_crossbow, AMMO_CBOW_HEFTY))
                 return;
-            player->message = DEH_String(TXT_AMMOCROSSBOW2);
+            P_SetMessage(player, DEH_String(TXT_AMMOCROSSBOW2), false);
             break;
     }
 
