@@ -2000,10 +2000,11 @@ static std::set<std::string> upcoming_obit_tags; // List of obit tags and weight
 
 void f_deathlink(std::string source, std::string cause)
 {
-	if (!cause.empty())
+	if (!cause.empty() && cause.find_first_not_of(' ') != std::string::npos)
 		deathlink_message = "~5" + cause;
 	else
-		deathlink_message = "~5" + source + " killed you";
+		deathlink_message = "~5" + source + " killed you.";
+	printf("APDOOM: Received death: %s\n", deathlink_message.c_str());
 }
 
 void APDOOM_ObitTags_Clear(void)
@@ -2069,6 +2070,7 @@ const char *APDOOM_SendDeath()
 
     if (!ap_practice_mode)
 		AP_DeathLinkSend(deathlink_sent_msg);
+	printf("APDOOM: Sent death: %s\n", deathlink_sent_msg.c_str());
 
 	// Colorize before sending C-side.
 	deathlink_sent_msg = "~5" + deathlink_sent_msg;
