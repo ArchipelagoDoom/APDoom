@@ -66,6 +66,12 @@ void init_data()
 {
     long start_time = get_runtime_us();
 
+    // Load default game info
+    Json::Value default_game_infos;
+    if (!onut::loadJson(default_game_infos, "./assets/json/default_game_info.json"))
+        OnScreenMessages::AddError("Default game info file couldn't be loaded, expect issues.");
+
+    // Load game files
     auto game_json_files = onut::findAllFiles("./games/", "json", false);
     for (const auto& game_json_file : game_json_files)
     {
@@ -122,12 +128,6 @@ void init_data()
             game.check_sanity = game_json["settings"].get("check_sanity", false).asBool();
             game.extended_names = game_json["settings"].get("extended_names", false).asBool();
         }
-
-        // Sections reserved unchanged
-        game.json_rename_lumps = game_json["rename_lumps"];
-        game.json_game_info = game_json["game_info"];
-        game.json_map_tweaks = game_json["map_tweaks"];
-        game.json_level_select = game_json["level_select"];
 
         game.ep_count = (int)game_json["episodes"].size();
         game.episodes.resize(game.ep_count);
@@ -237,6 +237,19 @@ void init_data()
         }
         if (game.description.empty())
             game.description.push_back(game.ap_name + " is a game playable with APDoom version 2.0.0.");
+
+        // Merge in default game data for iwad with whatever is present in game json
+        game.json_game_info = default_game_infos.get(game.iwad_name, Json::objectValue);
+        if (game_json["game_info"].isObject())
+        {
+            for (const auto &element : game_json["game_info"].getMemberNames())
+                game.json_game_info[element] = game_json["game_info"][element];
+        }
+
+        // Sections reserved unchanged
+        game.json_rename_lumps = game_json["rename_lumps"];
+        game.json_map_tweaks = game_json["map_tweaks"];
+        game.json_level_select = game_json["level_select"];
 
         // Temporarily support old ID remapping
         if (game_json["loc_remap"].isObject())

@@ -119,10 +119,14 @@ int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output)
 	output.start_health = json.get("starting_health", 100).asInt();
 	output.start_armor = json.get("starting_armor", 0).asInt();
 
-	if (!json["pausepic"].isNull())
-		output.pausepic = string_to_const_char_ptr(json["pausepic"].asString());
-	else
-		output.pausepic = NULL;
+	output.pausepic = NULL;
+	if (json["pausepic"].isString())
+	{
+		std::string pausepic = json["pausepic"].asString();
+		if (!pausepic.empty())
+			output.pausepic = string_to_const_char_ptr(pausepic);
+	}
+
 
 	return 1;
 }

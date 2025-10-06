@@ -100,43 +100,6 @@
             "Supercharge": 28
         }
     },
-
-    "game_info":{
-        "ammo": [
-            {"name": "Bullets", "max": 200},
-            {"name": "Shells", "max": 50},
-            {"name": "Energy Cells", "max": 300},
-            {"name": "Rockets", "max": 50}
-        ],
-        "weapons": [
-            {"name": "Fist"},
-            {"name": "Pistol", "ammo_type": "Bullets", "starting_ammo": 50},
-            {"name": "Shotgun", "ammo_type": "Shells", "starting_ammo": 30},
-            {"name": "Chaingun", "ammo_type": "Bullets"},
-            {"name": "Rocket launcher", "ammo_type": "Rockets", "starting_ammo": 10},
-            {"name": "Plasma gun", "ammo_type": "Energy Cells", "starting_ammo": 150},
-            {"name": "BFG9000", "ammo_type": "Energy Cells", "starting_ammo": 150},
-            {"name": "Chainsaw"}
-        ],
-        "monsters": {
-            // Zombieman, Shotgunner, Imp
-            "small": [3004, 9, 3001],
-            // Demon, Spectre, Lost soul, Cacodemon
-            "medium": [3002, 58, 3006, 3005],
-            // Baron of Hell
-            "big": [3003],
-            // Cyberdemon, Spider Mastermind
-            "boss": [16, 7]
-        },
-        "pickups": {
-            // Armor bonus, Health bonus
-            "small": [2015, 2014],
-            // Stimpack, shells, clip, cell, rocket
-            "medium": [2011, 2008, 2007, 2047, 2010],
-            // Bullets, rockets, shell box, cell pack, medikit
-            "big": [2048, 2046, 2049, 17, 2012]
-        }
-    },
     "map_tweaks":{
         "E2M6":{
             "linedefs":{

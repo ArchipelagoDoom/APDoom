@@ -121,27 +121,6 @@
             "Ring of Invincibility": 3
         }
     },
-    "game_info":{
-        "ammo": [
-            {"name": "Wand Crystals", "max": 100},
-            {"name": "Ethereal Arrows", "max": 50},
-            {"name": "Claw Orbs", "max": 200},
-            {"name": "Runes", "max": 200},
-            {"name": "Flame Orbs", "max": 20},
-            {"name": "Mace Spheres", "max": 150}
-        ],
-        "weapons": [
-            {"name": "Staff"},
-            {"name": "Elven Wand", "ammo_type": "Wand Crystals", "starting_ammo": 50},
-            {"name": "Ethereal Crossbow", "ammo_type": "Ethereal Arrows", "starting_ammo": 30},
-            {"name": "Dragon Claw", "ammo_type": "Claw Orbs", "starting_ammo": 50},
-            {"name": "Hellstaff", "ammo_type": "Runes", "starting_ammo": 150},
-            {"name": "Phoenix Rod", "ammo_type": "Flame Orbs", "starting_ammo": 10},
-            {"name": "Firemace", "ammo_type": "Mace Spheres", "starting_ammo": 150},
-            {"name": "Gauntlets of the Necromancer"},
-            {"name": "Chicken's Beak"}
-        ]
-    },
     "map_tweaks":{
         // The Crypts (E1M7)
         "E1M7":{

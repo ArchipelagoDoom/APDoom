@@ -1072,8 +1072,29 @@ void P_MakeObituaryTags
     if (inflictor == &LavaInflictor)
         inflictor = NULL; // For our purposes, treat as no inflictor
 
+    if (target->type == MT_CHICPLAYER)
+    {
+        APDOOM_ObitTags_Add("WAS_CHICKEN");
+        if (!source && !inflictor && damage == 10000)
+        {
+            // This is a suicide via attempting to Tome out of chicken form.
+            APDOOM_ObitTags_Add("SUICIDE");
+            APDOOM_ObitTags_Add("TELEFRAG");
+            return;
+        }
+    }
+
     if (!source && !inflictor)
     {
+        if (damage == 3)
+        {
+            // This is actually an Iron Lich's tornado.
+            APDOOM_ObitTags_Add("SOURCE_MOBJTYPE_%d", MT_HEAD - (MT_HEAD >= MT_PHOENIXFX_REMOVED ? 1 : 0));
+            APDOOM_ObitTags_Add("SOURCE_DOOMEDNUM_%d", mobjinfo[MT_HEAD].doomednum);
+            APDOOM_ObitTags_Add("INFLICTOR_MOBJTYPE_%d", MT_WHIRLWIND - (MT_WHIRLWIND >= MT_PHOENIXFX_REMOVED ? 1 : 0));
+            return;
+        }
+
         sector_t *sec = target->subsector->sector;
         if (!sec)
             return;
@@ -1114,7 +1135,8 @@ void P_MakeObituaryTags
             if (source->health <= 0)
                 APDOOM_ObitTags_Add("POSTHUMOUS");
 
-            APDOOM_ObitTags_Add("SOURCE_MOBJTYPE_%d", source->type);
+            APDOOM_ObitTags_Add("SOURCE_MOBJTYPE_%d",
+                source->type - (source->type >= MT_PHOENIXFX_REMOVED ? 1 : 0));
             if (source->info->doomednum > 0)
                 APDOOM_ObitTags_Add("SOURCE_DOOMEDNUM_%d", source->info->doomednum);
         }
@@ -1134,7 +1156,8 @@ void P_MakeObituaryTags
         else
             APDOOM_ObitTags_Add("MISSILE");
 
-        APDOOM_ObitTags_Add("INFLICTOR_MOBJTYPE_%d", inflictor->type);
+        APDOOM_ObitTags_Add("INFLICTOR_MOBJTYPE_%d",
+            inflictor->type - (inflictor->type >= MT_PHOENIXFX_REMOVED ? 1 : 0));
         if (inflictor->info->doomednum > 0)
             APDOOM_ObitTags_Add("INFLICTOR_DOOMEDNUM_%d", inflictor->info->doomednum);
     }

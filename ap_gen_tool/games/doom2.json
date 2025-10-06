@@ -96,47 +96,6 @@
             "Megasphere": 7
         }
     },
-
-    "game_info":{
-        "ammo": [
-            {"name": "Bullets", "max": 200},
-            {"name": "Shells", "max": 50},
-            {"name": "Cells", "max": 300},
-            {"name": "Rockets", "max": 50}
-        ],
-        "weapons": [
-            {"name": "Fist"},
-            {"name": "Pistol", "ammo_type": "Bullets", "starting_ammo": 50},
-            {"name": "Shotgun", "ammo_type": "Shells", "starting_ammo": 30},
-            {"name": "Chaingun", "ammo_type": "Bullets"},
-            {"name": "Rocket launcher", "ammo_type": "Rockets", "starting_ammo": 10},
-            {"name": "Plasma gun", "ammo_type": "Cells", "starting_ammo": 150},
-            {"name": "BFG9000", "ammo_type": "Cells", "starting_ammo": 150},
-            {"name": "Chainsaw"},
-            {"name": "Super shotgun", "ammo_type": "Shells"}
-        ],
-        "monsters": {
-            // Zombieman, Shotgunner, Imp, Wolfenstein SS, Chaingunner
-            "small": [3004, 9, 3001, 84, 65],
-            // Demon, Spectre, Lost soul, Cacodemon, Pain Elemental, Mancubus, Arachnotron, Revenant
-            "medium": [3002, 58, 3006, 3005, 71, 67, 68, 66],
-            // Baron of Hell, Arch-Vile, Hell Knight
-            "big": [3003, 64, 69],
-            // Cyberdemon, Spider Mastermind
-            "boss": [16, 7]
-        },
-        "pickups": {
-            // Armor bonus, Health bonus
-            "small": [2015, 2014],
-            // Stimpack, shells, clip, cell, rocket
-            "medium": [2011, 2008, 2007, 2047, 2010],
-            // Bullets, rockets, shell box, cell pack, medikit
-            "big": [2048, 2046, 2049, 17, 2012]
-        },
-
-        "pausepic": "INTERPIC"
-    },
-
     "map_tweaks":{
         "MAP02":{
             // Exit the lower hallway without a blue key, if you drop down
