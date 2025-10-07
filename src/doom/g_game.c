@@ -2219,7 +2219,7 @@ void G_SecretExitLevel (void)
     else
 	secretexit = true; 
     G_ClearSavename();
-    gameaction = ga_completed; 
+    gameaction = ga_levelselect; // [AP] over ga_completed 
 } 
 
 // [crispy] format time for level statistics

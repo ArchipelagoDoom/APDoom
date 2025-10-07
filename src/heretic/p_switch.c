@@ -391,7 +391,7 @@ boolean P_UseSpecialLine(mobj_t * thing, line_t * line)
                 P_ChangeSwitchTexture(line, 0);
             break;
         case 51:               // Secret EXIT
-            //G_SecretExitLevel(); // [AP] No secret exit for now
+            G_SecretExitLevel();
             P_ChangeSwitchTexture(line, 0);
             break;
         case 55:               // Raise Floor Crush

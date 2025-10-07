@@ -2164,7 +2164,7 @@ void G_ExitLevel(void)
 void G_SecretExitLevel(void)
 {
     secretexit = true;
-    gameaction = ga_completed;
+    gameaction = ga_levelselect; // [AP] over ga_completed
 }
 
 // [crispy] format time for level statistics
