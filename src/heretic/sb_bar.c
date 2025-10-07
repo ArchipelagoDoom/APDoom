@@ -1613,7 +1613,7 @@ static void CheatChickenFunc(player_t * player, Cheat_t * cheat)
     NIGHTMARE_NETGAME_CHECK;
     if (player->chickenTics)
     {
-        if (P_UndoPlayerChicken(player))
+        if (P_UndoPlayerChicken(player, false))
         {
             P_SetMessage(player, DEH_String(TXT_CHEATCHICKENOFF), false);
         }

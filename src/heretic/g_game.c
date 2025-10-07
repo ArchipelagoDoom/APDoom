@@ -2075,12 +2075,22 @@ void set_ap_player_states()
     p->health = ap_state.player_state.health;
     p->armorpoints = ap_state.player_state.armor_points;
     p->armortype = ap_state.player_state.armor_type;
-    if (!was_in_level)
-        p->readyweapon = p->pendingweapon = (weapontype_t)ap_state.player_state.ready_weapon;
-    //p->pendingweapon = wp_nochange;
     //p->killcount = ap_state.player_state.kill_count;
     //p->itemcount = ap_state.player_state.item_count;
     //p->secretcount = ap_state.player_state.secret_count;
+
+    p->pendingweapon = wp_nochange;
+    if (!was_in_level)
+        p->readyweapon = (weapontype_t)ap_state.player_state.ready_weapon;
+
+    // in the exceedingly rare case that we were a chicken, switch off the beak
+    // chickens can't interact with things (including the hub), so this only happens on death
+    if (p->readyweapon == wp_beak)
+        p->readyweapon = p->pendingweapon = wp_staff;
+
+    // set the player's pspr up as if they were just spawning, even when loading a save
+    P_SetupPsprites(p);
+
     for (int i = 0; i < NUMPOWERS; ++i)
     {
         if (i == pw_flight || i == pw_allmap) continue;
@@ -2157,12 +2167,22 @@ boolean secretexit;
 
 void G_ExitLevel(void)
 {
+    // [AP] forcibly un-chicken everyone
+    for (int i = 0; i < MAXPLAYERS; i++)
+        if (playeringame[i] && players[i].mo && players[i].mo->type == MT_CHICPLAYER)
+            P_UndoPlayerChicken(&players[i], true);
+
     secretexit = false;
     gameaction = ga_completed;
 }
 
 void G_SecretExitLevel(void)
 {
+    // [AP] forcibly un-chicken everyone
+    for (int i = 0; i < MAXPLAYERS; i++)
+        if (playeringame[i] && players[i].mo && players[i].mo->type == MT_CHICPLAYER)
+            P_UndoPlayerChicken(&players[i], true);
+
     secretexit = true;
     gameaction = ga_levelselect; // [AP] over ga_completed
 }

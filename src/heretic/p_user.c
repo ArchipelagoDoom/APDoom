@@ -488,9 +488,11 @@ int P_GetPlayerNum(player_t * player)
 //
 // FUNC P_UndoPlayerChicken
 //
+// [AP] added force parameter
+//
 //----------------------------------------------------------------------------
 
-boolean P_UndoPlayerChicken(player_t * player)
+boolean P_UndoPlayerChicken(player_t * player, boolean force)
 {
     mobj_t *fog;
     mobj_t *mo;
@@ -514,7 +516,7 @@ boolean P_UndoPlayerChicken(player_t * player)
     oldFlags2 = pmo->flags2;
     P_SetMobjState(pmo, S_FREETARGMOBJ);
     mo = P_SpawnMobj(x, y, z, MT_PLAYER);
-    if (P_TestMobjLocation(mo) == false)
+    if (!force && P_TestMobjLocation(mo) == false)
     {                           // Didn't fit
         P_RemoveMobj(mo);
         mo = P_SpawnMobj(x, y, z, MT_CHICPLAYER);
@@ -702,7 +704,7 @@ void P_PlayerThink(player_t * player)
         }
         if (!--player->chickenTics)
         {                       // Attempt to undo the chicken
-            P_UndoPlayerChicken(player);
+            P_UndoPlayerChicken(player, false);
         }
     }
     // Cycle psprites
@@ -1011,7 +1013,7 @@ boolean P_UseArtifact(player_t * player, artitype_t arti)
         case arti_tomeofpower:
             if (player->chickenTics)
             {                   // Attempt to undo chicken
-                if (P_UndoPlayerChicken(player) == false)
+                if (P_UndoPlayerChicken(player, false) == false)
                 {               // Failed
                     P_DamageMobj(player->mo, NULL, NULL, 10000);
                 }

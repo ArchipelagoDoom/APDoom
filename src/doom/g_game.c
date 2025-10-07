@@ -1501,12 +1501,17 @@ void set_ap_player_states()
     p->neghealth /* ? */ = p->health = ap_state.player_state.health;
     p->armorpoints = ap_state.player_state.armor_points;
     p->armortype = ap_state.player_state.armor_type;
-    if (!was_in_level)
-        p->readyweapon = p->pendingweapon = (weapontype_t)ap_state.player_state.ready_weapon;
-    //p->pendingweapon = wp_nochange;
     //p->killcount = ap_state.player_state.kill_count;
     //p->itemcount = ap_state.player_state.item_count;
     //p->secretcount = ap_state.player_state.secret_count;
+
+    p->pendingweapon = wp_nochange;
+    if (!was_in_level)
+        p->readyweapon = (weapontype_t)ap_state.player_state.ready_weapon;
+
+    // set the player's pspr up as if they were just spawning, even when loading a save
+    P_SetupPsprites(p);
+
     for (int i = 0; i < NUMPOWERS; ++i)
         p->powers[i] = ap_state.player_state.powers[i];
     p->powers[pw_allmap] = ap_get_level_state(ap_make_level_index(gameepisode, gamemap))->has_map;
