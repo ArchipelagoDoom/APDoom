@@ -1363,6 +1363,9 @@ static void process_received_item(int64_t item_id)
 	if (ap_practice_mode)
 	{
 		// We have no AP server to give us item messages, so let's pretend we got one.
+		std::string msg = std::string("Received ") + item.name + " from Player";
+		printf("APDOOM: %s\n", msg.c_str());
+
 		std::string colored_msg = std::string("~2Received ~9") + item.name + "~2 from ~4Player";
 		ap_settings.message_callback(colored_msg.c_str());
 	}
@@ -1565,11 +1568,16 @@ void apdoom_check_location(ap_level_index_t idx, int index)
 
 	if (ap_practice_mode)
 	{
+		int item_id;
+
 		f_locrecv(id);
 
 		// Get the item that's supposed to be in that location.
 		ap_level_info_t* level_info = ap_get_level_info(idx);
-		int item_id = level_info->thing_infos[index].doom_type;
+		if (index == -1) // Complete location for level
+			item_id = 99999;
+		else
+			item_id = level_info->thing_infos[index].doom_type;
 
 		// If it exists in the item table already, great.
 		// If not, append the episode and map numbers and try again.
