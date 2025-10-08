@@ -78,6 +78,10 @@ static void CheatSpecHitFunc(player_t *player, Cheat_t *cheat);
 static void CheatNoMomentumFunc(player_t *player, Cheat_t *cheat);
 static void CheatHomDetectFunc(player_t *player, Cheat_t *cheat);
 
+// [AP] new cheat functions
+static void CheatIDKEY1Func(player_t *player, Cheat_t *cheat);
+static void CheatIDKEY2Func(player_t *player, Cheat_t *cheat);
+
 // [crispy] player crosshair functions
 static void HU_DrawCrosshair(void);
 static byte *R_CrosshairColor(void);
@@ -207,6 +211,10 @@ cheatseq_t CheatSpecHitSeq = CHEAT("spechits", 0);      // Trigger all special l
 cheatseq_t CheatNoMomentumSeq = CHEAT("nomomentum", 0); // No momentum mode
 cheatseq_t CheatHomDetectSeq = CHEAT("homdet", 0);      // Flash unrendered areas red
 
+// [AP] new cheat sequences
+cheatseq_t CheatIDKEY1Seq = CHEAT("idkey", 0);
+cheatseq_t CheatIDKEY2Seq = CHEAT("idkey", 1);
+
 static Cheat_t Cheats[] = {
     {CheatGodFunc,       &CheatGodSeq},
     {CheatNoClipFunc,    &CheatNoClipSeq},
@@ -232,6 +240,10 @@ static Cheat_t Cheats[] = {
     {CheatSpecHitFunc,      &CheatSpecHitSeq},
     {CheatNoMomentumFunc,   &CheatNoMomentumSeq},
     {CheatHomDetectFunc,    &CheatHomDetectSeq},
+
+    // [AP] new cheats
+    {CheatIDKEY1Func, &CheatIDKEY1Seq},
+    {CheatIDKEY2Func, &CheatIDKEY2Seq},
 
     {NULL,               NULL}
 };
@@ -1592,6 +1604,7 @@ static void CheatArtifact3Func(player_t * player, Cheat_t * cheat)
 
 static void CheatWarpFunc(player_t * player, Cheat_t * cheat)
 {
+#if 0 // [AP] stubbed, warping disabled
     char args[2];
     int episode;
     int map;
@@ -1606,6 +1619,7 @@ static void CheatWarpFunc(player_t * player, Cheat_t * cheat)
         G_DeferedInitNew(gameskill, episode, map);
         P_SetMessage(player, DEH_String(TXT_CHEATWARP), false);
     }
+#endif
 }
 
 static void CheatChickenFunc(player_t * player, Cheat_t * cheat)
@@ -1740,15 +1754,16 @@ static void CheatAddRemoveWpnFunc(player_t *player, Cheat_t *cheat)
     if (w == -1)
     {
         // remove backpack if the player has it
-        // [AP] don't remove backpack state with cheats
-        //if (player->backpack)
-        //{
-        //    player->backpack = false;
-        //    for (i = 0; i < NUMAMMO; i++)
-        //    {
-        //        player->maxammo[i] /= 2;
-        //    }
-        //}
+#if 0 // [AP] don't remove backpack state with cheats
+        if (player->backpack)
+        {
+            player->backpack = false;
+            for (i = 0; i < NUMAMMO; i++)
+            {
+                player->maxammo[i] /= 2;
+            }
+        }
+#endif
 
         // remove Tome of Power if active
         player->powers[pw_weaponlevel2] = 0;
@@ -1974,6 +1989,72 @@ static void CheatNoTargetFunc(player_t *player, Cheat_t *cheat)
     else
     {
         P_SetMessage(player, DEH_String(TXT_CHEATNOTARGETOFF), false);
+    }
+}
+
+// [AP] Keys function for single keys
+static void CheatIDKEY1Func(player_t * player, Cheat_t * cheat)
+{
+    NIGHTMARE_NETGAME_CHECK;
+    P_SetMessage(player, DEH_String(TXT_CHEATIDKEY), false);
+}
+
+static void CheatIDKEY2Func(player_t * player, Cheat_t * cheat)
+{
+    NIGHTMARE_NETGAME_CHECK;
+
+    char arg;
+    cht_GetParam(cheat->seq, &arg);
+
+    switch (arg)
+    {
+    case 'y':
+    case '1':
+        player->keys[key_yellow] = !player->keys[key_yellow];
+        playerkeys ^= 1;
+        if (player->keys[key_yellow])
+        {
+            P_SetMessage(player, DEH_String(TXT_GOTYELLOWKEY), false);
+            S_StartSound(NULL, sfx_keyup); // [NS] Fallback to itemup.
+        }
+        else
+            P_SetMessage(player, DEH_String(TXT_CHEATIDKEYREMOVE), false);
+        break;
+    case 'g':
+    case '2':
+        player->keys[key_green] = !player->keys[key_green];
+        playerkeys ^= 2;
+        if (player->keys[key_green])
+        {
+            P_SetMessage(player, DEH_String(TXT_GOTGREENKEY), false);
+            S_StartSound(NULL, sfx_keyup); // [NS] Fallback to itemup.
+        }
+        else
+            P_SetMessage(player, DEH_String(TXT_CHEATIDKEYREMOVE), false);
+        break;
+    case 'b':
+    case '3':
+        player->keys[key_blue] = !player->keys[key_blue];
+        playerkeys ^= 4;
+        if (player->keys[key_blue])
+        {
+            P_SetMessage(player, DEH_String(TXT_GOTBLUEKEY), false);
+            S_StartSound(NULL, sfx_keyup); // [NS] Fallback to itemup.
+        }
+        else
+            P_SetMessage(player, DEH_String(TXT_CHEATIDKEYREMOVE), false);
+        break;
+    case 'a':
+    case '0':
+        player->keys[key_yellow] = false;
+        player->keys[key_green] = false;
+        player->keys[key_blue] = false;
+        playerkeys = 0; // Key refresh flags
+        P_SetMessage(player, DEH_String(TXT_CHEATIDKEYREMOVEALL), false);
+        break;
+    default:
+        P_SetMessage(player, DEH_String(TXT_CHEATARTIFACTSFAIL), false);
+        return;
     }
 }
 

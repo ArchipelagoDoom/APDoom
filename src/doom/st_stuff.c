@@ -64,6 +64,8 @@
 
 #include "v_trans.h" // [crispy] colored cheat messages
 
+#include "apdoom.h" // [AP] keys cheat
+
 extern int screenblocks; // [crispy] for the Crispy HUD
 extern boolean inhelpscreens; // [crispy] prevent palette changes
 
@@ -372,6 +374,13 @@ cheatseq_t cheat_goobers = CHEAT("goobers", 0);
 cheatseq_t cheat_version = CHEAT("version", 0); // [crispy] Russian Doom
 cheatseq_t cheat_skill = CHEAT("skill", 0);
 cheatseq_t cheat_snow = CHEAT("letitsnow", 0);
+
+// [AP] new cheats
+cheatseq_t cheat_key[2] = 
+{
+	CHEAT("idkey", 0),
+	CHEAT("idkey", 1),
+};
 static char msg[ST_MSGWIDTH];
 
 // [crispy] restrict cheat usage
@@ -1279,6 +1288,69 @@ ST_Responder (event_t* ev)
 	return isdigit(buf[0]);
     }
 #endif
+	if (!netgame && cht_CheckCheat(&cheat_key[1], ev->data2) && !menuactive)
+	{
+		ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
+		char buf[2];
+		int cardnum = -1;
+
+		cht_GetParam(&cheat_key[1], buf);
+		switch (buf[0])
+		{
+		case 'b': cardnum = (!level_info->use_skull[0] ? it_bluecard : it_blueskull); break;
+		case 'y': cardnum = (!level_info->use_skull[1] ? it_yellowcard : it_yellowskull); break;
+		case 'r': cardnum = (!level_info->use_skull[2] ? it_redcard : it_redskull); break;
+		case '1': cardnum = it_bluecard; break;
+		case '2': cardnum = it_yellowcard; break;
+		case '3': cardnum = it_redcard; break;
+		case '4': cardnum = it_blueskull; break;
+		case '5': cardnum = it_yellowskull; break;
+		case '6': cardnum = it_redskull; break;
+		case '0': break; // stays at -1
+		default: return false;
+		}
+
+		st_firsttime = true;
+		if (cardnum != -1)
+		{
+			plyr->cards[cardnum] = !plyr->cards[cardnum];
+			if (plyr->cards[cardnum])
+			{
+				S_StartSoundOptional(NULL, sfx_keyup, sfx_itemup); // [NS] Fallback to itemup.
+				switch (cardnum)
+				{
+				case it_bluecard: plyr->message = DEH_String(GOTBLUECARD); break;
+				case it_yellowcard: plyr->message = DEH_String(GOTYELWCARD); break;
+				case it_redcard: plyr->message = DEH_String(GOTREDCARD); break;
+				case it_blueskull: plyr->message = DEH_String(GOTBLUESKUL); break;
+				case it_yellowskull: plyr->message = DEH_String(GOTYELWSKUL); break;
+				case it_redskull: plyr->message = DEH_String(GOTREDSKULL); break;
+				default: break;
+				}
+			}
+			else
+			{
+				plyr->message = "Key removed";
+			}
+		}
+		else
+		{
+			for (i=0;i<NUMCARDS;i++)
+				plyr->cards[i] = false;
+			plyr->message = "Removed all keys";
+		}
+		return true;
+	}
+	else if (!netgame && cht_CheckCheat(&cheat_key[0], ev->data2) && !menuactive)
+	{
+		M_snprintf(msg, sizeof(msg), "%sB%slue, %sY%sellow, %sR%sed, or 1 - 6",
+			crstr[CR_GOLD], crstr[CR_NONE],
+			crstr[CR_GOLD], crstr[CR_NONE],
+			crstr[CR_GOLD], crstr[CR_NONE]
+		);
+		plyr->message = msg;
+	}
+
   }
   return false;
 }

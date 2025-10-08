@@ -2038,6 +2038,14 @@ P_SetupLevel
 
     //printf ("free memory: 0x%x\n", Z_FreeMemory());
 
+    // [AP] set up keys for crispy hud
+    {
+        ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
+        st_keyorskull[it_bluecard] = (level_info->use_skull[it_bluecard] ? 3 : 0);
+        st_keyorskull[it_yellowcard] = (level_info->use_skull[it_yellowcard] ? 3 : 0);
+        st_keyorskull[it_redcard] = (level_info->use_skull[it_redcard] ? 3 : 0);
+    }
+
     // [ap] inform AP of last loaded level
     ap_remote_set("Last Loaded Map", true, (episode * 1000) + map);
 }
