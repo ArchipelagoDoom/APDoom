@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <filesystem>
 #include <json/json.h>
 
@@ -29,7 +30,10 @@ struct WorldInfo {
 	std::vector<const char *> c_optional_wads; // As above
 	ap_worldinfo_t c_world_info;
 
-
+	bool operator<(const WorldInfo& other)
+	{
+		return strcmp(fullname.c_str(), other.fullname.c_str()) < 0;
+	}
 };
 
 std::vector<WorldInfo> AllGameInfo;
@@ -165,6 +169,8 @@ void populate_worlds(void)
 			w->embedded = embed;
 		APZipReader_Close(zip);
 	}
+
+	std::sort(AllGameInfo.begin(), AllGameInfo.end());
 
 	// Create the C version of game info.
 	CGameInfo.reserve(AllGameInfo.size() + 1);
