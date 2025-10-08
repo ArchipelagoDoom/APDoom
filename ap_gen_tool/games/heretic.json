@@ -243,7 +243,7 @@
             },
             {
                 "map_name_position": "individual",
-                "background_image": "MAPE4",
+                "background_image": "MAPE6",
                 "maps":[
                     {"y": 15, "cursor":{"graphic":"M_SLCTR2","x":-35,"y":-13}, "checks":{"relative_to":"map-name-right","x":13,"y":9}, "map_name":{"text":"RAVEN'S LAIR"} },
                     {"y": 36, "cursor":{"graphic":"M_SLCTR2","x":-35,"y":-13}, "checks":{"relative_to":"map-name-right","x":13,"y":9}, "map_name":{"text":"THE WATER SHRINE"} }

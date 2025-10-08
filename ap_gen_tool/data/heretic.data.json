@@ -5224,6 +5224,11 @@
                         "requirements_and" : [ 80 ],
                         "requirements_or" : [],
                         "target_region" : 0
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
                   "x" : -4897,
@@ -5240,6 +5245,11 @@
                         "requirements_and" : [ 73 ],
                         "requirements_or" : [],
                         "target_region" : 0
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
                   "x" : -1456,
@@ -5253,7 +5263,6 @@
                   13,
                   14,
                   15,
-                  24,
                   25,
                   34,
                   35,
@@ -5290,6 +5299,22 @@
                   128
                ],
                "tint" : [ 0, 1, 0, 1 ]
+            },
+            {
+               "name" : "Grab w/Wings",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     }
+                  ],
+                  "x" : -3060,
+                  "y" : -3811
+               },
+               "sectors" : [ 24 ],
+               "tint" : [ 0, 1, 0.94117641448974609, 1 ]
             }
          ],
          "world_rules" : {
@@ -5300,8 +5325,8 @@
                   "target_region" : 0
                }
             ],
-            "x" : -3077,
-            "y" : -3927
+            "x" : -4887,
+            "y" : -1557
          }
       },
       {
@@ -5814,8 +5839,8 @@
          "ep" : 1,
          "exit_rules" : {
             "connections" : [],
-            "x" : -4947,
-            "y" : 3853
+            "x" : -4928,
+            "y" : 3421
          },
          "locations" : [
             {
@@ -6081,8 +6106,8 @@
                         "target_region" : 3
                      }
                   ],
-                  "x" : -4933,
-                  "y" : 2829
+                  "x" : -4924,
+                  "y" : 2729
                },
                "sectors" : [ 196, 197, 198, 199, 200, 229, 230 ],
                "tint" : [ 0, 0, 1, 1 ]
@@ -6100,10 +6125,15 @@
                         "requirements_and" : [],
                         "requirements_or" : [],
                         "target_region" : 0
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -6719,
-                  "y" : 1121
+                  "x" : -6609,
+                  "y" : 469
                },
                "sectors" : [
                   0,
@@ -6253,7 +6283,7 @@
                         "target_region" : 0
                      }
                   ],
-                  "x" : -4914,
+                  "x" : -4923,
                   "y" : 1785
                },
                "sectors" : [
@@ -6321,6 +6351,22 @@
                   245
                ],
                "tint" : [ 0, 1, 0, 1 ]
+            },
+            {
+               "name" : "Center Jump",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 3
+                     }
+                  ],
+                  "x" : -6607,
+                  "y" : 1783
+               },
+               "sectors" : [],
+               "tint" : [ 0, 1, 0.97058796882629395, 1 ]
             }
          ],
          "world_rules" : {
@@ -14763,8 +14809,8 @@
          "ep" : 3,
          "exit_rules" : {
             "connections" : [],
-            "x" : -6806,
-            "y" : -3789
+            "x" : -3301,
+            "y" : 146
          },
          "locations" : [
             {
@@ -14951,6 +14997,16 @@
                         "requirements_and" : [ 80 ],
                         "requirements_or" : [],
                         "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [ -3 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 5
                      }
                   ],
                   "x" : -4901,
@@ -15047,11 +15103,11 @@
                      {
                         "requirements_and" : [ 79 ],
                         "requirements_or" : [],
-                        "target_region" : 3
+                        "target_region" : 5
                      }
                   ],
-                  "x" : -6805,
-                  "y" : -2543
+                  "x" : -3306,
+                  "y" : -679
                },
                "sectors" : [
                   0,
@@ -15111,17 +15167,15 @@
                         "target_region" : 0
                      },
                      {
-                        "requirements_and" : [ 73 ],
+                        "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 3
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -4923,
-                  "y" : -1299
+                  "x" : -6555,
+                  "y" : -2559
                },
                "sectors" : [
-                  37,
-                  38,
                   74,
                   75,
                   76,
@@ -15155,23 +15209,21 @@
                "rules" : {
                   "connections" : [
                      {
-                        "requirements_and" : [ 73 ],
+                        "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 2
+                        "target_region" : 5
                      },
                      {
-                        "requirements_and" : [ 79 ],
+                        "requirements_and" : [ 73 ],
                         "requirements_or" : [],
-                        "target_region" : 1
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -6788,
-                  "y" : -1293
+                  "x" : -4952,
+                  "y" : -1665
                },
                "sectors" : [
-                  41,
                   46,
-                  54,
                   55,
                   56,
                   57,
@@ -15201,6 +15253,48 @@
                   176
                ],
                "tint" : [ 0, 1, 0, 1 ]
+            },
+            {
+               "name" : "Green Lift",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [ 73 ],
+                        "requirements_or" : [],
+                        "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     }
+                  ],
+                  "x" : -6553,
+                  "y" : -1668
+               },
+               "sectors" : [ 37, 38 ],
+               "tint" : [ 0.14705884456634521, 1, 0.59861594438552856, 1 ]
+            },
+            {
+               "name" : "Blue Lift",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [ 79 ],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     }
+                  ],
+                  "x" : -3306,
+                  "y" : -1666
+               },
+               "sectors" : [ 41, 54 ],
+               "tint" : [ 0.15686273574829102, 0.75201845169067383, 1, 1 ]
             }
          ],
          "world_rules" : {
@@ -18224,6 +18318,11 @@
                         "requirements_and" : [ 79 ],
                         "requirements_or" : [],
                         "target_region" : 1
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 5
                      }
                   ],
                   "x" : -5396,
@@ -18319,8 +18418,8 @@
                         "target_region" : 0
                      }
                   ],
-                  "x" : -5410,
-                  "y" : -2591
+                  "x" : -5391,
+                  "y" : -2543
                },
                "sectors" : [
                   31,
@@ -18365,8 +18464,8 @@
                         "target_region" : 0
                      }
                   ],
-                  "x" : -5421,
-                  "y" : -185
+                  "x" : -5398,
+                  "y" : -456
                },
                "sectors" : [
                   162,
@@ -18422,7 +18521,7 @@
                         "target_region" : 4
                      }
                   ],
-                  "x" : -3729,
+                  "x" : -3726,
                   "y" : -1494
                },
                "sectors" : [
@@ -18517,6 +18616,22 @@
                   125
                ],
                "tint" : [ 0, 0.94117641448974609, 1, 1 ]
+            },
+            {
+               "name" : "Jump to Blue",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : -7058,
+                  "y" : -2537
+               },
+               "sectors" : [],
+               "tint" : [ 0.44117593765258789, 0, 1, 1 ]
             }
          ],
          "world_rules" : {
@@ -20072,6 +20187,11 @@
                         "requirements_and" : [ 79 ],
                         "requirements_or" : [],
                         "target_region" : 1
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
                   "x" : -6215,
@@ -20307,9 +20427,14 @@
                         "requirements_and" : [ 73 ],
                         "requirements_or" : [],
                         "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -4459,
+                  "x" : -4481,
                   "y" : 990
                },
                "sectors" : [
@@ -20358,11 +20483,6 @@
                   54,
                   55,
                   56,
-                  57,
-                  58,
-                  59,
-                  60,
-                  61,
                   62,
                   63,
                   64,
@@ -20486,21 +20606,6 @@
                   223,
                   224,
                   226,
-                  229,
-                  235,
-                  236,
-                  238,
-                  239,
-                  240,
-                  243,
-                  248,
-                  249,
-                  250,
-                  251,
-                  252,
-                  253,
-                  260,
-                  267,
                   280,
                   281
                ],
@@ -20516,8 +20621,8 @@
                         "target_region" : 2
                      }
                   ],
-                  "x" : -2783,
-                  "y" : 992
+                  "x" : -2826,
+                  "y" : 986
                },
                "sectors" : [
                   142,
@@ -20557,6 +20662,43 @@
                   215
                ],
                "tint" : [ 0, 1, 0, 1 ]
+            },
+            {
+               "name" : "Outdoors",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     }
+                  ],
+                  "x" : -4481,
+                  "y" : 46
+               },
+               "sectors" : [
+                  57,
+                  58,
+                  59,
+                  60,
+                  61,
+                  229,
+                  235,
+                  236,
+                  238,
+                  239,
+                  240,
+                  243,
+                  248,
+                  249,
+                  250,
+                  251,
+                  252,
+                  253,
+                  260,
+                  267
+               ],
+               "tint" : [ 1, 0.55882352590560913, 0, 1 ]
             }
          ],
          "world_rules" : {
