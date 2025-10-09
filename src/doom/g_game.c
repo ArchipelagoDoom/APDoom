@@ -2088,6 +2088,15 @@ void G_DoReborn (int playernum)
 { 
     int                             i; 
 	 
+    // [AP] if intercepts overflow trashed player starts, we _must_ reload level
+    if (playerstarts[0].angle < 0 || playerstarts[0].angle > 720)
+    {
+        printf("warning: Player start data trashed by INTERCEPTS overflow, level reset forced.\n");
+        killed_from_menu = false;
+        gameaction = ga_loadlevel;
+        return;
+    }
+
     if (!netgame && (ap_state.reset_level_on_death || killed_from_menu))
     {
 #if 1

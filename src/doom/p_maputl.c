@@ -860,6 +860,13 @@ static void InterceptsMemoryOverrun(int location, int value)
         offset += intercepts_overrun[i].len;
         ++i;
     }
+
+    if (location > 176)
+    {
+    	// [AP] Effectively writes a sentinel value to playerstarts to indicate
+    	// that they can no longer be trusted. This forces a level reset on death
+    	playerstarts[0].angle = 0x7272;
+    }
 }
 
 // Emulate overruns of the intercepts[] array.
