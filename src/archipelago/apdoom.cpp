@@ -573,6 +573,15 @@ int validate_doom_location(ap_level_index_t idx, int index)
     return 1;
 }
 
+static void make_init_file(const char *contents)
+{
+	if (!ap_settings.temp_init_file)
+		return;
+	std::ofstream file(ap_settings.temp_init_file);
+	if (file.is_open())
+		file << contents;
+}
+
 
 int apdoom_init(ap_settings_t* settings)
 {
@@ -705,6 +714,8 @@ int apdoom_init(ap_settings_t* settings)
 			AP_MakeDirectory(ap_save_dir_name.c_str());
 
 		ap_initialized = true;
+		printf("APDOOM: Initialized\n");
+		make_init_file("OK");
 		return 1;
 	}
 
@@ -744,6 +755,7 @@ int apdoom_init(ap_settings_t* settings)
 				{
 					printf("APDOOM: Older versions of the APWorld are not supported.\n");
 					printf("  Please use APDOOM 1.2.0 to connect to this slot.\n");
+					make_init_file("OldWorldVersion");
 					return 0;
 				}
 
@@ -791,7 +803,36 @@ int apdoom_init(ap_settings_t* settings)
 				break;
 			}
 			case AP_ConnectionStatus::ConnectionRefused:
-				printf("APDOOM: Failed to connect, connection refused\n");
+				switch (AP_GetErrorType())
+				{
+				default:
+					printf("APDOOM: Failed to connect to server, check your connection settings.\n");
+					make_init_file("ConnectFailed");
+					break;
+
+				case AP_ErrorType::InvalidSlot:
+					printf("APDOOM: Server reports slot name is invalid.\n"
+					       "Check your player name and connection settings.\n");
+					make_init_file("InvalidSlot");
+					break;
+
+				case AP_ErrorType::InvalidGame:
+					printf("APDOOM: Server reports slot name is valid, but is playing a different game.\n"
+					       "Check your player name and connection settings.\n");
+					make_init_file("InvalidGame");
+					break;
+
+				case AP_ErrorType::IncompatibleVersion:
+					printf("APDOOM: Server reports your version is incompatible with the server.\n"
+					       "You may need to update APDoom.\n");
+					make_init_file("IncompatibleVersion");
+					break;
+
+				case AP_ErrorType::InvalidPassword:
+					printf("APDOOM: Server reports your password is invalid, check for typos and try again.\n");
+					make_init_file("InvalidPassword");
+					break;
+				}
 				return 0;
 			default: // Explicitly do not handle
 				break;
@@ -800,7 +841,8 @@ int apdoom_init(ap_settings_t* settings)
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		if (std::chrono::steady_clock::now() - start_time > std::chrono::seconds(10))
 		{
-			printf("APDOOM: Failed to connect, timeout 10s\n");
+			printf("APDOOM: Failed to connect to server (timeout 10s), check your connection settings.\n");
+			make_init_file("ConnectFailed");
 			return 0;
 		}
 	}
@@ -961,6 +1003,7 @@ int apdoom_init(ap_settings_t* settings)
 	
 	printf("APDOOM: Initialized\n");
 	ap_initialized = true;
+	make_init_file("OK");
 	return 1;
 }
 

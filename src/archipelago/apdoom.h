@@ -140,6 +140,8 @@ typedef struct
 
 typedef struct
 {
+    const char* temp_init_file; // Used for launcher
+
     const char* ip;
     const char* game;
     const char* player_name;

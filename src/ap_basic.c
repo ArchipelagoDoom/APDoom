@@ -68,6 +68,17 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     }
 
     //!
+    // @arg <file location>
+    // @category archipelago, launcher
+    //
+    // Creates a temporary file on attempting init, indicating failure type (including success)
+    //
+    if ((p = M_CheckParmWithArgs("-apinitfile", 1)) != 0)
+        ap_settings->temp_init_file = myargv[p + 1];
+    else
+        ap_settings->temp_init_file = NULL;
+
+    //!
     // @arg <override_value>
     // @category archipelago
     //
