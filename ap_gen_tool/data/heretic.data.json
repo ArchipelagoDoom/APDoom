@@ -2714,11 +2714,6 @@
                         "requirements_and" : [],
                         "requirements_or" : [],
                         "target_region" : 0
-                     },
-                     {
-                        "requirements_and" : [],
-                        "requirements_or" : [],
-                        "target_region" : 3
                      }
                   ],
                   "x" : -5557,
@@ -8988,8 +8983,8 @@
          "ep" : 2,
          "exit_rules" : {
             "connections" : [],
-            "x" : -4032,
-            "y" : 4037
+            "x" : -2843,
+            "y" : 2862
          },
          "locations" : [
             {
@@ -9269,10 +9264,15 @@
                         "requirements_and" : [ 80 ],
                         "requirements_or" : [],
                         "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [ -1, -3 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -4054,
-                  "y" : 796
+                  "x" : -4606,
+                  "y" : 528
                },
                "sectors" : [
                   115,
@@ -9309,10 +9309,15 @@
                         "requirements_and" : [ 79 ],
                         "requirements_or" : [],
                         "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
-                  "x" : -4030,
-                  "y" : 3029
+                  "x" : -2835,
+                  "y" : 2027
                },
                "sectors" : [
                   2,
@@ -9354,10 +9359,6 @@
                   54,
                   138,
                   139,
-                  140,
-                  141,
-                  142,
-                  143,
                   144,
                   145,
                   146,
@@ -9368,7 +9369,6 @@
                   151,
                   152,
                   153,
-                  154,
                   155,
                   156,
                   157,
@@ -9417,8 +9417,8 @@
                         "target_region" : 0
                      }
                   ],
-                  "x" : -5749,
-                  "y" : 1396
+                  "x" : -6197,
+                  "y" : 1301
                },
                "sectors" : [
                   119,
@@ -9461,8 +9461,8 @@
                         "target_region" : 2
                      }
                   ],
-                  "x" : -4042,
-                  "y" : 1947
+                  "x" : -4601,
+                  "y" : 2023
                },
                "sectors" : [
                   0,
@@ -9563,6 +9563,22 @@
                   216
                ],
                "tint" : [ 0, 1, 0, 1 ]
+            },
+            {
+               "name" : "Waterfall Top",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     }
+                  ],
+                  "x" : -2835,
+                  "y" : 529
+               },
+               "sectors" : [ 140, 141, 142, 143, 154 ],
+               "tint" : [ 0, 1, 0.91176462173461914, 1 ]
             }
          ],
          "world_rules" : {
@@ -9573,8 +9589,8 @@
                   "target_region" : 0
                }
             ],
-            "x" : -4054,
-            "y" : -418
+            "x" : -4606,
+            "y" : -680
          }
       },
       {
@@ -10883,47 +10899,7 @@
                   "x" : -6424,
                   "y" : 2781
                },
-               "sectors" : [
-                  11,
-                  45,
-                  46,
-                  47,
-                  48,
-                  49,
-                  50,
-                  52,
-                  53,
-                  54,
-                  55,
-                  56,
-                  57,
-                  58,
-                  59,
-                  60,
-                  61,
-                  62,
-                  63,
-                  64,
-                  65,
-                  72,
-                  74,
-                  75,
-                  81,
-                  85,
-                  166,
-                  167,
-                  168,
-                  170,
-                  171,
-                  172,
-                  173,
-                  175,
-                  176,
-                  177,
-                  178,
-                  179,
-                  180
-               ],
+               "sectors" : [ 167, 168, 170, 171, 172, 173, 175, 176, 177, 178, 179, 180 ],
                "tint" : [ 0, 0, 1, 1 ]
             },
             {
@@ -10944,6 +10920,11 @@
                         "requirements_and" : [ 73 ],
                         "requirements_or" : [],
                         "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [ -3 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
                      }
                   ],
                   "x" : -6427,
@@ -11108,17 +11089,43 @@
                   2,
                   3,
                   5,
+                  11,
                   41,
+                  45,
+                  46,
+                  47,
+                  48,
+                  49,
+                  50,
+                  52,
+                  53,
+                  54,
+                  55,
+                  56,
+                  57,
+                  58,
+                  59,
+                  60,
+                  61,
+                  62,
+                  63,
+                  64,
+                  65,
                   66,
                   67,
                   68,
                   69,
                   70,
                   71,
+                  72,
                   73,
+                  74,
+                  75,
                   80,
+                  81,
                   82,
                   83,
+                  85,
                   86,
                   87,
                   88,
@@ -11141,6 +11148,7 @@
                   113,
                   114,
                   115,
+                  166,
                   169,
                   183,
                   184,
@@ -19249,8 +19257,8 @@
          "ep" : 4,
          "exit_rules" : {
             "connections" : [],
-            "x" : -2187,
-            "y" : -4365
+            "x" : -1995,
+            "y" : -4847
          },
          "locations" : [
             {
@@ -19485,10 +19493,25 @@
                         "requirements_and" : [ 80 ],
                         "requirements_or" : [],
                         "target_region" : 2
+                     },
+                     {
+                        "requirements_and" : [ -1, -3 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
+                     },
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 5
+                     },
+                     {
+                        "requirements_and" : [ -3 ],
+                        "requirements_or" : [],
+                        "target_region" : 6
                      }
                   ],
-                  "x" : -4001,
-                  "y" : -2887
+                  "x" : -5017,
+                  "y" : -2963
                },
                "sectors" : [
                   13,
@@ -19569,7 +19592,7 @@
                      {
                         "requirements_and" : [ 79 ],
                         "requirements_or" : [],
-                        "target_region" : 3
+                        "target_region" : 4
                      },
                      {
                         "requirements_and" : [],
@@ -19577,8 +19600,8 @@
                         "target_region" : -2
                      }
                   ],
-                  "x" : -2173,
-                  "y" : -3373
+                  "x" : -1994,
+                  "y" : -3843
                },
                "sectors" : [
                   78,
@@ -19648,25 +19671,15 @@
                         "target_region" : 0
                      },
                      {
-                        "requirements_and" : [ 73 ],
+                        "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 3
+                        "target_region" : 6
                      }
                   ],
-                  "x" : -3994,
-                  "y" : -1655
+                  "x" : -6550,
+                  "y" : -2012
                },
                "sectors" : [
-                  19,
-                  20,
-                  22,
-                  23,
-                  28,
-                  40,
-                  41,
-                  42,
-                  43,
-                  44,
                   192,
                   193,
                   194,
@@ -19791,8 +19804,6 @@
                   323,
                   324,
                   325,
-                  326,
-                  327,
                   328,
                   329,
                   330,
@@ -19829,21 +19840,21 @@
                      {
                         "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 0
+                        "target_region" : 4
                      },
                      {
                         "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 2
+                        "target_region" : 5
                      },
                      {
-                        "requirements_and" : [ 79 ],
+                        "requirements_and" : [],
                         "requirements_or" : [],
-                        "target_region" : 1
+                        "target_region" : 6
                      }
                   ],
-                  "x" : -2174,
-                  "y" : -2216
+                  "x" : -1994,
+                  "y" : -1098
                },
                "sectors" : [
                   0,
@@ -19859,8 +19870,6 @@
                   10,
                   11,
                   12,
-                  15,
-                  16,
                   17,
                   18,
                   21,
@@ -19908,9 +19917,6 @@
                   75,
                   76,
                   77,
-                  128,
-                  142,
-                  191,
                   236,
                   238,
                   273,
@@ -19918,6 +19924,69 @@
                   342
                ],
                "tint" : [ 0, 1, 0, 1 ]
+            },
+            {
+               "name" : "Door to Blue",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     },
+                     {
+                        "requirements_and" : [ 79 ],
+                        "requirements_or" : [],
+                        "target_region" : 1
+                     }
+                  ],
+                  "x" : -1994,
+                  "y" : -2958
+               },
+               "sectors" : [ 128 ],
+               "tint" : [ 0.55882358551025391, 0, 1, 1 ]
+            },
+            {
+               "name" : "Jump from Top",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [ -2 ],
+                        "requirements_or" : [],
+                        "target_region" : 4
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 6
+                     }
+                  ],
+                  "x" : -3519,
+                  "y" : -2000
+               },
+               "sectors" : [ 15, 16, 142, 191 ],
+               "tint" : [ 0, 0.91176462173461914, 1, 1 ]
+            },
+            {
+               "name" : "Door to Green",
+               "rules" : {
+                  "connections" : [
+                     {
+                        "requirements_and" : [ 73 ],
+                        "requirements_or" : [],
+                        "target_region" : 3
+                     },
+                     {
+                        "requirements_and" : [],
+                        "requirements_or" : [],
+                        "target_region" : 0
+                     }
+                  ],
+                  "x" : -5015,
+                  "y" : -1102
+               },
+               "sectors" : [ 19, 20, 22, 23, 28, 40, 41, 42, 43, 44, 326, 327 ],
+               "tint" : [ 1, 0.5, 0, 1 ]
             }
          ],
          "world_rules" : {
@@ -19928,8 +19997,8 @@
                   "target_region" : 0
                }
             ],
-            "x" : -3995,
-            "y" : -4375
+            "x" : -5011,
+            "y" : -4416
          }
       },
       {

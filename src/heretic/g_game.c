@@ -2152,6 +2152,9 @@ void set_ap_player_states()
         else
             p->mo->flags &= ~MF_SHADOW;
     }
+
+    // Make sure we don't leave this variable around to mess with things later
+    was_in_level = 0;
 }
 
 

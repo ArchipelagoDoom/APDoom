@@ -141,20 +141,14 @@
 
         // The Confluence (E3M3)
         "E3M3":{
-            "things":{
-                // Move the player 1 spawn to a reachable position.
-                // This is done instead of just moving the hub for legacy reasons.
-                "0":{"y":-1088}
-            }
+            // Move the hub to a reachable position.
+            "hub":{"x":-256, "y":-1088}
         },
 
         // Hydratyr (E5M5)
         "E5M5":{
-            "things":{
-                // Move the player 1 spawn to a reachable position.
-                // This is done instead of just moving the hub for legacy reasons.
-                "0":{"x":320}
-            }
+            // Move the hub to a reachable position.
+            "hub":{"x":320, "y":-3264}
         }
     },
     "level_select":{
