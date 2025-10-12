@@ -31,8 +31,11 @@
 #include "i_system.h"
 #include "i_video.h"
 #include "m_misc.h"
-#include "v_diskicon.h"
 #include "z_zone.h"
+
+#ifndef LAUNCHER_PRG // [AP] Launcher does not use normal drawing routines, and so does not reference this
+#include "v_diskicon.h"
+#endif
 
 #include "w_wad.h"
 
@@ -380,7 +383,9 @@ void W_ReadLump(lumpindex_t lump, void *dest)
 
     l = lumpinfo[lump];
 
+#ifndef LAUNCHER_PRG // [AP] removed from launcher
     V_BeginRead(l->size);
+#endif
 
     c = W_Read(l->wad_file, l->position, dest, l->size);
 

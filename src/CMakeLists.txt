@@ -1,4 +1,4 @@
-foreach(SUBDIR doom heretic hexen strife setup)
+foreach(SUBDIR doom heretic hexen strife setup launcher)
     add_subdirectory("${SUBDIR}")
 endforeach()
 
@@ -308,3 +308,33 @@ else()
 endif()
 
 endif() # ENABLE_EXTRA_TOOLS
+
+# Launcher2
+set(LAUNCHER_FILES
+    ap_basic.c          ap_basic.h
+                        doomtype.h
+    d_iwad.c            d_iwad.h
+    d_mode.c            d_mode.h
+    deh_str.c           deh_str.h
+    i_glob.c            i_glob.h
+    m_fixed.c           m_fixed.h
+    m_config.c          m_config.h
+    m_controls.c        m_controls.h
+    sha1.c              sha1.h
+    tables.c            tables.h
+                        v_patch.h
+    w_checksum.c        w_checksum.h
+    w_main.c            w_main.h
+    w_wad.c             w_wad.h
+    w_file.c            w_file.h
+    w_file_apzip.c
+    w_file_stdc.c
+    w_file_posix.c
+    w_file_win32.c
+    w_merge.c           w_merge.h
+    z_zone.c            z_zone.h)
+add_executable("${GENERIC_PREFIX}launcher" ${LAUNCHER_FILES} ${COMMON_SOURCE_FILES})
+target_compile_definitions("${GENERIC_PREFIX}launcher" PRIVATE -DLAUNCHER_PRG)
+target_include_directories("${GENERIC_PREFIX}launcher"
+                           PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
+target_link_libraries("${GENERIC_PREFIX}launcher" ${EXTRA_LIBS} launcher)

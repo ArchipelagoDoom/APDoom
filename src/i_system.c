@@ -53,9 +53,13 @@
 #include "apdoom.h"
 #endif
 
+#ifdef LAUNCHER_PRG // [AP] We don't want the launcher to use that much memory. It doesn't need it.
+#define DEFAULT_RAM 4
+#define MIN_RAM     4
+#else
 #define DEFAULT_RAM 16*2 /* MiB [crispy] */
 #define MIN_RAM     4*4  /* MiB [crispy] */
-
+#endif
 
 typedef struct atexit_listentry_s atexit_listentry_t;
 
