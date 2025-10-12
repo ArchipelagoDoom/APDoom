@@ -487,7 +487,7 @@ void D_DoomMain(void)
     startmap = 1;
     gamemode = commercial;
 
-    I_PrintBanner(PACKAGE_STRING);
+    I_PrintVersionBanner();
 
     // Initialize subsystems
 

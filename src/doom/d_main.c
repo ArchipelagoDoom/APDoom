@@ -883,7 +883,7 @@ void D_DoomLoop (void)
     main_loop_started = true;
 
     static char window_title[260];
-    sprintf(window_title, "%s - Archipelago", gamedescription);
+    sprintf(window_title, "%s", gamedescription);
     I_SetWindowTitle(window_title);
     I_GraphicsCheckCommandLine();
     I_SetGrabMouseCallback(D_GrabMouseCallback);
@@ -1744,7 +1744,7 @@ void D_DoomMain (void)
 
     // print banner
 
-    I_PrintBanner(PACKAGE_STRING);
+    I_PrintVersionBanner();
 
     DEH_printf("Z_Init: Init zone memory allocation daemon. \n");
     Z_Init ();

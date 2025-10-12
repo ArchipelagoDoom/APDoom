@@ -74,6 +74,10 @@ void I_BindVariables(void);
 
 void I_PrintStartupBanner(const char *gamedescription);
 
+// [AP] Prints version and upstream info.
+
+void I_PrintVersionBanner(void);
+
 // Print a centered text banner displaying the given string.
 
 void I_PrintBanner(const char *text);

@@ -1630,7 +1630,7 @@ void D_DoomMain (void)
 
     // print banner
 
-    I_PrintBanner(PACKAGE_STRING);
+    I_PrintVersionBanner();
 
     //DEH_printf("Z_Init: Init zone memory allocation daemon. \n"); [STRIFE] removed
     Z_Init ();

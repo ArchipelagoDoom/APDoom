@@ -25,17 +25,10 @@ extern "C"
 {
 #endif
 
+#include "config.h"
 
-
-#define APDOOM_MAJOR 2
-#define APDOOM_MINOR 0
-#define APDOOM_PATCH 0
-#define APDOOM_STR(x) APDOOM_STR2(x)
-#define APDOOM_STR2(x) #x
-#define APDOOM_VERSION APDOOM_STR(APDOOM_MAJOR) "." APDOOM_STR(APDOOM_MINOR) "." APDOOM_STR(APDOOM_PATCH)
-#define APDOOM_VERSION_TEXT APDOOM_VERSION ""
-#define APDOOM_VERSION_SUFFIX "-BETA2"
-#define APDOOM_VERSION_FULL_TEXT "APDOOM " APDOOM_VERSION_TEXT "" APDOOM_VERSION_SUFFIX
+// Displayed in menus, uses shortened "APDOOM" instead of full name.
+#define APDOOM_VERSION_FULL_TEXT "APDOOM " PACKAGE_VERSION
 
 
 #define AP_CHECK_MAX 128 // 999 is enforced by ID format

@@ -1202,7 +1202,7 @@ void D_DoomMain(void)
     ap_settings_t ap_settings;
     memset(&ap_settings, 0, sizeof(ap_settings));
 
-    I_PrintBanner(PACKAGE_STRING);
+    I_PrintVersionBanner();
 
     I_AtExit(D_Endoom, false);
 
@@ -1618,7 +1618,7 @@ void D_DoomMain(void)
     }
 
     static char window_title[260];
-    sprintf(window_title, "%s - Archipelago", gamedescription);
+    sprintf(window_title, "%s", gamedescription);
     I_SetWindowTitle(window_title);
 
 

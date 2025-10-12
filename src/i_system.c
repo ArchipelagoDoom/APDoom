@@ -224,6 +224,18 @@ void I_PrintStartupBanner(const char *gamedescription)
     I_PrintDivider();
 }
 
+void I_PrintVersionBanner(void)
+{
+    char *upstream = M_StringJoin("(based on ", UPSTREAM_STRING, ")", NULL);
+
+    I_PrintDivider();
+    I_PrintBanner(PACKAGE_STRING);
+    I_PrintBanner(upstream);
+    I_PrintDivider();
+
+    free(upstream);
+}
+
 // 
 // I_ConsoleStdout
 //

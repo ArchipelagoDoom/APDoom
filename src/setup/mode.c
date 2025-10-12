@@ -244,6 +244,7 @@ static mission_config_t *GetMissionForName(const char *name)
 // Check the name of the executable.  If it contains one of the game
 // names (eg. chocolate-hexen-setup.exe) then use that game.
 
+#if 0 // [AP] The executable is apdoom-setup, but we don't want this behavior
 static boolean CheckExecutableName(GameSelectCallback callback)
 {
     mission_config_t *config;
@@ -266,6 +267,7 @@ static boolean CheckExecutableName(GameSelectCallback callback)
 
     return false;
 }
+#endif
 
 static void GameSelected(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(config))
 {
@@ -279,7 +281,7 @@ static void OpenGameSelectDialog(GameSelectCallback callback)
 {
     mission_config_t *mission = NULL;
     txt_window_t *window;
-    const iwad_t **iwads;
+    //const iwad_t **iwads;
     int num_games;
     int i;
 
@@ -292,12 +294,20 @@ static void OpenGameSelectDialog(GameSelectCallback callback)
 
     for (i=0; i<arrlen(mission_configs); ++i)
     {
+#if 1
+        // [AP] Use the presence of the program to determine configuration options.
+        char *path_a = M_StringJoin("./", mission_configs[i].executable, NULL);
+        char *path_b = M_StringJoin(mission_configs[i].executable, ".exe", NULL);
+
+        if (M_FileExists(path_a) || M_FileExists(path_b))
+#else
         // Do we have any IWADs for this game installed?
         // If so, add a button.
 
         iwads = D_FindAllIWADs(mission_configs[i].mask | -1u); // [crispy] always all games
 
         if (iwads[0] != NULL)
+#endif
         {
             mission = &mission_configs[i];
             TXT_AddWidget(window, TXT_NewButton2(mission_configs[i].label,
@@ -306,7 +316,12 @@ static void OpenGameSelectDialog(GameSelectCallback callback)
             ++num_games;
         }
 
+#if 1
+        free(path_a);
+        free(path_b);
+#else
         free(iwads);
+#endif
     }
 
     TXT_AddWidget(window, TXT_NewStrut(0, 1));
@@ -315,6 +330,7 @@ static void OpenGameSelectDialog(GameSelectCallback callback)
 
     if (num_games == 0)
     {
+        printf("No games found, defaulting to Doom.\n");
         TXT_CloseWindow(window);
         SetMission(DEFAULT_MISSION);
         callback();
@@ -363,10 +379,15 @@ void SetupMission(GameSelectCallback callback)
         SetMission(config);
         callback();
     }
+#if 1 // [AP] Always open game select
+    else
+        OpenGameSelectDialog(callback);
+#else
     else if (!CheckExecutableName(callback))
     {
         OpenGameSelectDialog(callback);
     }
+#endif
 }
 
 const char *GetExecutableName(void)

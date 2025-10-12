@@ -3269,7 +3269,8 @@ void M_SetConfigDir(const char *dir)
 
     if (strcmp(configdir, exedir) != 0)
     {
-        printf("Using %s for configuration and saves\n", configdir);
+        // [AP] Don't mention saves
+        printf("Using %s for configuration\n", configdir);
     }
 
     // Make the directory if it doesn't already exist:

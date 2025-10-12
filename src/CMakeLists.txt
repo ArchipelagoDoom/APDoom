@@ -36,8 +36,8 @@ set(DEDSERV_FILES
     net_structrw.c      net_structrw.h
     z_native.c          z_zone.h)
 
-add_executable("${PROGRAM_PREFIX}server" WIN32 ${COMMON_SOURCE_FILES} ${DEDSERV_FILES})
-target_include_directories("${PROGRAM_PREFIX}server"
+add_executable("${GENERIC_PREFIX}server" WIN32 ${COMMON_SOURCE_FILES} ${DEDSERV_FILES})
+target_include_directories("${GENERIC_PREFIX}server"
                            PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
 
 if (DEFINED EMSCRIPTEN)
@@ -60,9 +60,9 @@ else()
     endif()
 endif()
 
-target_link_libraries("${PROGRAM_PREFIX}server" ${SDL_LINK_LIBS})
-set_target_properties("${PROGRAM_PREFIX}server" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
-set_target_properties("${PROGRAM_PREFIX}server" PROPERTIES LINK_FLAGS "${SDL_FLAGS}")
+target_link_libraries("${GENERIC_PREFIX}server" ${SDL_LINK_LIBS})
+set_target_properties("${GENERIC_PREFIX}server" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
+set_target_properties("${GENERIC_PREFIX}server" PROPERTIES LINK_FLAGS "${SDL_FLAGS}")
 
 # Source files used by the game binaries (chocolate-doom, etc.)
 
@@ -256,34 +256,36 @@ set(SETUP_FILES
     z_native.c          z_zone.h)
 
 if(WIN32)
-    add_executable("${PROGRAM_PREFIX}setup" WIN32 ${SETUP_FILES} ${COMMON_SOURCE_FILES} "${CMAKE_CURRENT_BINARY_DIR}/setup-res.rc")
+    add_executable("${GENERIC_PREFIX}setup" WIN32 ${SETUP_FILES} ${COMMON_SOURCE_FILES} "${CMAKE_CURRENT_BINARY_DIR}/setup-res.rc")
 else()
-    add_executable("${PROGRAM_PREFIX}setup" ${SETUP_FILES} ${COMMON_SOURCE_FILES})
+    add_executable("${GENERIC_PREFIX}setup" ${SETUP_FILES} ${COMMON_SOURCE_FILES})
 endif()
 
-target_compile_definitions("${PROGRAM_PREFIX}setup" PRIVATE -DSETUP_PRG)
+target_compile_definitions("${GENERIC_PREFIX}setup" PRIVATE -DSETUP_PRG)
 
-target_include_directories("${PROGRAM_PREFIX}setup"
+target_include_directories("${GENERIC_PREFIX}setup"
                            PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries("${PROGRAM_PREFIX}setup" ${SDL_LINK_LIBS} setup textscreen)
-set_target_properties("${PROGRAM_PREFIX}setup" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
+target_link_libraries("${GENERIC_PREFIX}setup" ${SDL_LINK_LIBS} setup textscreen)
+set_target_properties("${GENERIC_PREFIX}setup" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
 
 if(WIN32)
-    target_link_libraries("${PROGRAM_PREFIX}setup" winmm)
+    target_link_libraries("${GENERIC_PREFIX}setup" winmm)
 endif()
 
 if(MSVC)
-    set_target_properties("${PROGRAM_PREFIX}setup" PROPERTIES
+    set_target_properties("${GENERIC_PREFIX}setup" PROPERTIES
                           LINK_FLAGS "/MANIFEST:NO")
 endif()
 
 if (DEFINED EMSCRIPTEN)
-    set_target_properties("${PROGRAM_PREFIX}setup" PROPERTIES LINK_FLAGS "${SDL_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1 -s EXPORTED_FUNCTIONS=_main,ccall,cwrap,FS,ENV,PATH,ERRNO_CODES")
+    set_target_properties("${GENERIC_PREFIX}setup" PROPERTIES LINK_FLAGS "${SDL_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1 -s EXPORTED_FUNCTIONS=_main,ccall,cwrap,FS,ENV,PATH,ERRNO_CODES")
     set_target_properties("${PROGRAM_PREFIX}strife" PROPERTIES LINK_FLAGS "${SDL_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1 -s EXPORTED_FUNCTIONS=_main,ccall,cwrap,FS,ENV,PATH,ERRNO_CODES")
     set_target_properties("${PROGRAM_PREFIX}doom" PROPERTIES LINK_FLAGS "${SDL_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1 -s EXPORTED_FUNCTIONS=_main,ccall,cwrap,FS,ENV,PATH,ERRNO_CODES")
     set_target_properties("${PROGRAM_PREFIX}heretic" PROPERTIES LINK_FLAGS "${SDL_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1 -s EXPORTED_FUNCTIONS=_main,ccall,cwrap,FS,ENV,PATH,ERRNO_CODES")
     set_target_properties("${PROGRAM_PREFIX}hexen" PROPERTIES LINK_FLAGS "${SDL_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1 -s EXPORTED_FUNCTIONS=_main,ccall,cwrap,FS,ENV,PATH,ERRNO_CODES")
 endif()
+
+if (ENABLE_EXTRA_TOOLS)
 
 add_executable(midiread midifile.c z_native.c i_system.c m_argv.c m_misc.c d_iwad.c deh_str.c m_config.c)
 target_compile_definitions(midiread PRIVATE "-DTEST")
@@ -304,3 +306,5 @@ if (DEFINED EMSCRIPTEN)
 else()
     target_link_libraries(mus2mid SDL2::SDL2)
 endif()
+
+endif() # ENABLE_EXTRA_TOOLS
