@@ -388,6 +388,7 @@ void on_ap_give_item(int doom_type, int ep, int map)
             player->message = DEH_String(GOTSUIT);
             if (gameversion > exe_doom_1_2)
                 sound = sfx_getpow;
+            break;
         case 2045: // Light amplification visor
             if (!P_GivePower (player, pw_infrared))
                 return;

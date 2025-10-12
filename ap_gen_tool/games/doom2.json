@@ -117,7 +117,18 @@
             },
             "sidedefs":{
                 "316":{"lower": "SUPPORT2"},
+                "318":{"lower": "SUPPORT2"},
                 "366":{"lower": "SUPPORT2"}
+            }
+        },
+        "MAP27":{
+            "linedefs":{
+                // Make the platform lowering switch retriggerable
+                "727":{"special": 70},
+
+                // Allow opening up the Pain Elemental cubby from inside
+                "580":{"special": 31},
+                "581":{"special": 31}
             }
         },
         "MAP28":{
