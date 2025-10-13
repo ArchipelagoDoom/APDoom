@@ -348,7 +348,21 @@ static int DoExecute(int has_init_file)
 
 static char *GetProgram(const char *iwad)
 {
-	return M_StringJoin("./", GetBaseProgram(iwad), NULL);
+	// We want to execute from the same path as the launcher, relative "./" doesn't cut it.
+	char *orig_path = M_StringDuplicate(myargv[0]);
+	char *separator = strrchr(orig_path, DIR_SEPARATOR);
+
+	if (separator == NULL)
+	{
+		free(orig_path);
+		return M_StringDuplicate(GetBaseProgram(iwad));
+	}
+
+	*separator = 0; // Turn the separator into a null terminator
+	char *result = M_StringJoin(orig_path, DIR_SEPARATOR_S, GetBaseProgram(iwad), NULL);
+	free(orig_path);
+
+	return result;
 }
 
 // ----------------------------------------------------------------------------
@@ -414,7 +428,7 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
 				"\n"
 				"Please check your installation of APDoom for missing files, "
 				"and make sure the program is not blocked from executing by "
-				"the Operating System, an antivirus, or some other program.", program);
+				"the Operating System, an antivirus, or some other program.", GetBaseProgram(world->iwad));
 			LN_OpenDialog(DIALOG_OK, "Error", reason);
 			free(reason);
 		}
@@ -430,7 +444,7 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
 				"\n"
 				"Please check your installation of APDoom for missing files, "
 				"and make sure the program is not blocked from executing by "
-				"the Operating System, an antivirus, or some other program.", program);
+				"the Operating System, an antivirus, or some other program.", GetBaseProgram(world->iwad));
 			LN_OpenDialog(DIALOG_OK, "Error", reason);
 			free(reason);
 		}
@@ -466,7 +480,7 @@ void LN_ExecuteSetup(void)
 			"\n"
 			"Please check your installation of APDoom for missing files, "
 			"and make sure the program is not blocked from executing by "
-			"the Operating System, an anti-virus, or some other program.", program);
+			"the Operating System, an anti-virus, or some other program.", GetBaseProgram(NULL));
 		LN_OpenDialog(DIALOG_OK, "Error", reason);
 		free(reason);
 	}

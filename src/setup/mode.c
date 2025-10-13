@@ -32,6 +32,7 @@
 #include "accessibility.h"
 #include "compatibility.h"
 #include "display.h"
+#include "execute.h" // [AP] CouldExecute()
 #include "joystick.h"
 #include "keyboard.h"
 #include "mouse.h"
@@ -296,10 +297,7 @@ static void OpenGameSelectDialog(GameSelectCallback callback)
     {
 #if 1
         // [AP] Use the presence of the program to determine configuration options.
-        char *path_a = M_StringJoin("./", mission_configs[i].executable, NULL);
-        char *path_b = M_StringJoin(mission_configs[i].executable, ".exe", NULL);
-
-        if (M_FileExists(path_a) || M_FileExists(path_b))
+        if (CouldExecute(mission_configs[i].executable))
 #else
         // Do we have any IWADs for this game installed?
         // If so, add a button.
@@ -316,10 +314,7 @@ static void OpenGameSelectDialog(GameSelectCallback callback)
             ++num_games;
         }
 
-#if 1
-        free(path_a);
-        free(path_b);
-#else
+#if 0
         free(iwads);
 #endif
     }

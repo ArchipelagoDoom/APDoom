@@ -355,6 +355,23 @@ static int ExecuteCommand(const char *program, const char *arg)
 
 #endif
 
+boolean CouldExecute(const char *program)
+{
+    boolean result;
+    char *path;
+
+#ifdef _WIN32
+    path = M_StringJoin(program, ".exe", NULL);
+#else
+    path = GetFullExePath(program);
+#endif
+
+    result = M_FileExists(path);
+    free(path);
+
+    return result;
+}
+
 int ExecuteDoom(execute_context_t *context)
 {
     char *response_file_arg;
