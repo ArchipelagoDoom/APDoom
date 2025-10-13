@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Archipelago Doom
+Comment=Doom and derived games with Archipelago MultiWorld support
+Icon=apdoom
+TryExec=apdoom-launcher
+Exec=apdoom-launcher
+Categories=Game;ActionGame;

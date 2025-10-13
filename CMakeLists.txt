@@ -30,13 +30,13 @@ if(MSVC)
 else()
     add_compile_options("-Wall" "-Wredundant-decls" "-Wno-format-truncation")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-    set(CMAKE_INSTALL_RPATH "\$ORIGIN")
+    set(CMAKE_INSTALL_RPATH "\$ORIGIN;\$ORIGIN/../lib")
 endif()
 
 option(CMAKE_FIND_PACKAGE_PREFER_CONFIG
        "Lookup package config files before using find modules" On)
 
-option(ENABLE_SDL2_NET "Enable SDL2_net" On)
+option(ENABLE_SDL2_NET "Enable SDL2_net" Off) # [AP] Disable by default, has little to no use for us.
 option(ENABLE_SDL2_MIXER "Enable SDL2_mixer" On)
 
 if (NOT DEFINED EMSCRIPTEN)
