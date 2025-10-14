@@ -100,6 +100,14 @@ enum
     GAMEPAD_BUTTON_MAX
 };
 
+// [AP] Extend SDL_GameControllerType for extra known controllers.
+// SDL_CONTROLLER_TYPE_MAX didn't exist until 2.30.0, so we just use a random
+// number well above the real max
+enum
+{
+    CONTROLLER_TYPE_STEAMDECK = 100,
+};
+
 extern int use_analog;
 extern int joystick_turn_sensitivity;
 extern int joystick_move_sensitivity;
@@ -110,6 +118,8 @@ void I_ShutdownJoystick(void);
 void I_UpdateJoystick(void);
 
 void I_BindJoystickVariables(void);
+
+int I_ControllerTypeForIndex(int joy_index);
 
 #endif /* #ifndef __I_JOYSTICK__ */
 

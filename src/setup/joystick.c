@@ -628,6 +628,29 @@ int use_gamepad = 0;
 // SDL_GameControllerType of gamepad
 int gamepad_type = 0;
 
+// [AP] Specialized Steam Deck input, we want something usable out of the box
+static const joystick_config_t steamdeck_controller[] =
+{
+    {"joystick_x_axis",      SDL_CONTROLLER_AXIS_RIGHTX},
+    {"joystick_y_axis",      SDL_CONTROLLER_AXIS_LEFTY},
+    {"joystick_strafe_axis", SDL_CONTROLLER_AXIS_LEFTX},
+    {"joystick_look_axis",   SDL_CONTROLLER_AXIS_RIGHTY},
+    {"joyb_fire",            GAMEPAD_BUTTON_TRIGGERRIGHT}, // R2
+    {"joyb_speed",           GAMEPAD_BUTTON_TRIGGERLEFT}, // L2
+    {"joyb_use",             SDL_CONTROLLER_BUTTON_A}, // A
+    {"joyb_prevweapon",      SDL_CONTROLLER_BUTTON_LEFTSHOULDER}, // L1
+    {"joyb_nextweapon",      SDL_CONTROLLER_BUTTON_RIGHTSHOULDER}, // R1
+    {"joyb_menu_activate",   SDL_CONTROLLER_BUTTON_START}, // MENU
+    {"joyb_toggle_automap",  SDL_CONTROLLER_BUTTON_BACK}, // VIEW
+    {"joyb_useartifact",     SDL_CONTROLLER_BUTTON_X}, // X
+    {"joyb_invleft",         SDL_CONTROLLER_BUTTON_DPAD_LEFT}, // DPAD L
+    {"joyb_invright",        SDL_CONTROLLER_BUTTON_DPAD_RIGHT}, // DPAD R
+    {"joyb_flyup",           SDL_CONTROLLER_BUTTON_PADDLE2}, // L4
+    {"joyb_flydown",         SDL_CONTROLLER_BUTTON_PADDLE1}, // R4
+    {"joyb_flycenter",       SDL_CONTROLLER_BUTTON_PADDLE3}, // R5
+    {NULL, 0},
+};
+
 // Based on Unity Doom mapping
 static const joystick_config_t modern_gamepad[] =
 {
@@ -985,7 +1008,12 @@ static void GetGamepadDefaultConfig(void)
 
     LoadConfigurationSet(empty_defaults);
 
-    if (have_four_shoulder && have_dual_sticks)
+    // [AP] We have special mappings for Deck
+    if (gamepad_type == CONTROLLER_TYPE_STEAMDECK)
+    {
+        LoadConfigurationSet(steamdeck_controller);
+    }
+    else if (have_four_shoulder && have_dual_sticks)
     {
         LoadConfigurationSet(modern_gamepad);
     }
@@ -1015,7 +1043,7 @@ static int CalibrationEventCallback(SDL_Event *event, void *user_data)
     {
         usejoystick = 1;
         use_gamepad = 1;
-        gamepad_type = SDL_GameControllerTypeForIndex(joystick_index);
+        gamepad_type = ControllerTypeForIndex(joystick_index);
         LoadConfigurationSet(empty_defaults);
         GetGamepadDefaultConfig();
         TXT_CloseWindow(calibration_window);
@@ -1357,3 +1385,14 @@ void BindJoystickVariables(void)
     }
 }
 
+// [AP] Allow extending gamepad types
+int ControllerTypeForIndex(int joy_index)
+{
+    int type = SDL_GameControllerTypeForIndex(joy_index);
+    if (type == SDL_CONTROLLER_TYPE_UNKNOWN)
+    {
+        if (!strcmp(SDL_JoystickNameForIndex(joy_index), "Steam Deck"))
+            return CONTROLLER_TYPE_STEAMDECK;
+    }
+    return type;
+}

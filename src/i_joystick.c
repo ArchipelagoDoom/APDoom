@@ -206,7 +206,7 @@ void I_InitGamepad(void)
     }
 
     joystick_index = index;
-    gamepad_type = SDL_GameControllerTypeForIndex(index);
+    gamepad_type = I_ControllerTypeForIndex(index);
 
     if (strcmp(joystick_guid, ""))
     {
@@ -824,3 +824,14 @@ void I_BindJoystickVariables(void)
     }
 }
 
+// [AP] Allow extending gamepad types
+int I_ControllerTypeForIndex(int joy_index)
+{
+    int type = SDL_GameControllerTypeForIndex(joy_index);
+    if (type == SDL_CONTROLLER_TYPE_UNKNOWN)
+    {
+        if (!strcmp(SDL_JoystickNameForIndex(joy_index), "Steam Deck"))
+            return CONTROLLER_TYPE_STEAMDECK;
+    }
+    return type;
+}

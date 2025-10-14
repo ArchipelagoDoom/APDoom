@@ -259,6 +259,33 @@ static const char *switchpro_buttons[GAMEPAD_BUTTON_MAX] =
     "ZR",
 };
 
+static const char *steamdeck_buttons[GAMEPAD_BUTTON_MAX] =
+{
+    "A",
+    "B",
+    "X",
+    "Y",
+    "VIEW",
+    "STEAM",
+    "MENU",
+    "L3",
+    "R3",
+    "L1",
+    "R1",
+    "DPAD U",
+    "DPAD D",
+    "DPAD L",
+    "DPAD R",
+    "QUICK ACC.",
+    "R4",
+    "L4",
+    "R5",
+    "L5",
+    "",
+    "L2",
+    "R2"
+};
+
 static int PhysicalForVirtualButton(int vbutton)
 {
     if (vbutton < NUM_VIRTUAL_BUTTONS)
@@ -631,6 +658,10 @@ static void GetGamepadButtonDescription(int vbutton, char *buf, size_t buf_len)
 
         case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
             M_snprintf(buf, buf_len, "%s", switchpro_buttons[index]);
+            break;
+
+        case CONTROLLER_TYPE_STEAMDECK:
+            M_snprintf(buf, buf_len, "%s", steamdeck_buttons[index]);
             break;
 
         default:

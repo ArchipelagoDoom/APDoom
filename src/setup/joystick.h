@@ -27,6 +27,7 @@ extern int gamepad_type;
 
 void ConfigJoystick(void *widget, void *user_data);
 void BindJoystickVariables(void);
+int ControllerTypeForIndex(int joy_index);
 
 #endif /* #ifndef SETUP_JOYSTICK_H */
 
