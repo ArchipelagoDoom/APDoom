@@ -72,6 +72,7 @@ typedef enum
 typedef enum
 {
     MENU_MAIN,
+    MENU_INGAME,
     MENU_EPISODE,
     MENU_SKILL,
     MENU_OPTIONS,
@@ -84,7 +85,6 @@ typedef enum
     MENU_CRISPNESS2,
     MENU_CRISPNESS3,
     MENU_CRISPNESS4,
-    MENU_INGAME,
     MENU_NONE
 } MenuType_t;
 
@@ -620,6 +620,7 @@ static const multiitem_t multiitem_ap_automapicons[NUM_AP_AUTOMAPICON] =
 
 static Menu_t *Menus[] = {
     &MainMenu,
+    &InGameMenu,
     &EpisodeMenu,
     &SkillMenu,
     &OptionsMenu,
@@ -1497,6 +1498,11 @@ static boolean SCQuitGame(int option)
 
 static boolean SCEndGame(int option)
 {
+#if 1 // [AP] Can't end game, function stubbed
+    MN_DeactivateMenu();
+    P_SetMessage(&players[consoleplayer], "YOU CAN'T END AN ARCHIPELAGO GAME!", true);
+    return true;
+#else
     if (demoplayback || netgame)
     {
         return false;
@@ -1509,6 +1515,7 @@ static boolean SCEndGame(int option)
         paused = true;
     }
     return true;
+#endif
 }
 
 //---------------------------------------------------------------------------
@@ -3181,7 +3188,7 @@ void MN_ActivateMenu(void)
     FileMenuKeySteal = false;
     MenuTime = 0;
 
-    if (gamestate == 3)
+    if (gamestate == GS_DEMOSCREEN)
         CurrentMenu = &MainMenu;
     else
         CurrentMenu = &InGameMenu;
@@ -3277,6 +3284,10 @@ void MN_DrawInfo(void)
 
 static void SetMenu(MenuType_t menu)
 {
+    // [AP] Force any attempts to go to Main menu while ingame, to InGame menu instead
+    if (gamestate != GS_DEMOSCREEN && menu == MENU_MAIN)
+        menu = MENU_INGAME;
+
     CurrentMenu->oldItPos = CurrentItPos;
     CurrentMenu = Menus[menu];
     CurrentItPos = CurrentMenu->oldItPos;

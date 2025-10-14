@@ -1951,11 +1951,7 @@ void M_ReadThis2(int choice)
 void M_FinishReadThis(int choice)
 {
     choice = 0;
-    // [AP] do not allow Read This! / help menu to return to out of game menu
-    if (gamestate == 3)
-        M_SetupNextMenu(&MainDef);
-    else
-        M_SetupNextMenu(&InGameMenuDef);
+    M_SetupNextMenu(&MainDef);
 }
 
 
@@ -2924,8 +2920,7 @@ boolean M_Responder (event_t* ev)
         else if (key == key_menu_volume)   // Sound Volume
         {
 	    M_StartControlPanel ();
-	    currentMenu = &SoundDef;
-	    itemOn = currentMenu->lastOn; // [crispy] remember cursor position
+        M_SetupNextMenu(&SoundDef); // [crispy] remember cursor position
 	    S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
 	    return true;
 	}
@@ -3176,8 +3171,7 @@ boolean M_Responder (event_t* ev)
 	currentMenu->lastOn = itemOn;
 	if (currentMenu->prevMenu)
 	{
-	    currentMenu = currentMenu->prevMenu;
-	    itemOn = currentMenu->lastOn;
+        M_SetupNextMenu(currentMenu->prevMenu);
 	    S_StartSoundOptional(NULL, sfx_mnubak, sfx_swtchn); // [NS] Optional menu sounds.
 	}
 	return true;
@@ -3290,11 +3284,7 @@ void M_StartControlPanel (void)
     
     menuactive = 1;
 
-    if (gamestate == 3)
-        currentMenu = &MainDef;
-    else     // JDC
-        currentMenu = &InGameMenuDef;
-    itemOn = currentMenu->lastOn;   // JDC
+    M_SetupNextMenu(&MainDef);
 }
 
 // Display OPL debug messages - hack for GENMIDI development.
@@ -3483,6 +3473,11 @@ void M_ClearMenus (void)
 void M_SetupNextMenu(menu_t *menudef)
 {
     currentMenu = menudef;
+
+    // [AP] Force any attempts to go to MainDef while ingame, to InGameMenuDef instead
+    if (currentMenu == &MainDef && gamestate != GS_DEMOSCREEN)
+        currentMenu = &InGameMenuDef;
+
     itemOn = currentMenu->lastOn;
 }
 
