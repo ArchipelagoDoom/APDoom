@@ -1372,6 +1372,12 @@ void D_DoomMain(void)
         ap_settings.override_skill = 1;
         ap_settings.skill = startskill;
     }
+    else if (ap_practice_mode)
+    {
+        // Ensure skill is set for practice
+        ap_settings.override_skill = 1;
+        ap_settings.skill = startskill;
+    }
 
     DEH_printf("Z_Init: Init zone memory allocation daemon.\n");
     Z_Init();
