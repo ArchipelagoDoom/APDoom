@@ -2224,7 +2224,7 @@ boolean MN_Responder(event_t * event)
 
     // In testcontrols mode, none of the function keys should do anything
     // - the only key is escape to quit.
-
+#if 0 // [AP] Split up, so joystick controls can exit the game when testing.
     if (testcontrols)
     {
         if (event->type == ev_quit
@@ -2238,10 +2238,18 @@ boolean MN_Responder(event_t * event)
 
         return false;
     }
+#endif
 
     // "close" button pressed on window?
     if (event->type == ev_quit)
     {
+        // [AP] split off from just above
+        if (testcontrols)
+        {
+            I_Quit();
+            return true;
+        }
+
         // First click on close = bring up quit confirm message.
         // Second click = confirm quit.
 
@@ -2482,6 +2490,17 @@ boolean MN_Responder(event_t * event)
     {
         key = event->data1;
         charTyped = event->data2;
+    }
+
+    // [AP] moved testcontrols checks from above down here
+    if (testcontrols)
+    {
+        if (key == key_menu_activate || key == key_menu_quit)
+        {
+            I_Quit();
+            return true;
+        }
+        return false;
     }
 
     if (InfoType)
