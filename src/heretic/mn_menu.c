@@ -744,7 +744,7 @@ void MN_Init(void)
 //
 //---------------------------------------------------------------------------
 
-static patch_t* FontAColoredLumps[4]['Z' + 1 - '!'];
+static patch_t* FontAColoredLumps[4]['[' + 1 - '!'];
 static int ColoredIdRemap[10] = { 0, 0, 0, 1, 2, 0, 0, 0, 0, 3 };
 #define OG_FONT_BASE_IDX 10
 #define OG_FONT_TOP_IDX 35
@@ -762,7 +762,7 @@ static void InitFonts(void)
     FontBBaseLump = W_GetNumForName(DEH_String("FONTB_S")) + 1;
 
     // [AP] We generate different colors for fonta
-    for (int c = '!'; c <= 'Z'; ++c)
+    for (int c = '!'; c <= '['; ++c)
     {
         p = W_CacheLumpNum(FontABaseLump + c - 33, PU_CACHE);
         size = W_LumpLength(FontABaseLump + c - 33);

@@ -32,7 +32,16 @@ int HU_GetActiveAPMessageCount(void);
 void HU_AddAPLine(const char* line, int len)
 {
     char baked_line[HU_MAXLINELENGTH + 1];
-    memcpy(baked_line, line, len);
+    for (int i = 0; i < len; ++i)
+    {
+        // Alias square brackets to parenthesis, for easier reading
+        switch (line[i])
+        {
+        case '[': baked_line[i] = '('; break;
+        case ']': baked_line[i] = ')'; break;
+        default: baked_line[i] = line[i]; break;
+        }
+    }
     baked_line[len] = '\0';
 
     // Add to buffer
