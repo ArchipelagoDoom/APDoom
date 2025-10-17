@@ -92,7 +92,7 @@
             "generate_early":[
                 "# For Solo Episode 1, place the Yellow Key for E1M1 early.",
                 "# Gives the generator five potential placements (plus the forced key) instead of only two.",
-                "if self.solo_episode() == 1:",
+                "if self.solo_episode(1):",
                 "    self.multiworld.early_items[self.player]['The Docks (E1M1) - Yellow key'] = 1"
             ]
         },

@@ -28,13 +28,14 @@
 
 gamesettings_t exec_settings = {
 	"", "archipelago.gg:", "", false,
-	-1, -1, -1, -1, -1, -1
+	-1, -1, -1, -1, -1, -1, -1,
+	""
 };
 
 // ============================================================================
 
-static const char *arglist[64 + 1];
-static unsigned char argquote[64 + 1];
+static const char *arglist[64];
+static unsigned char argquote[64];
 static int argv = 0;
 
 static inline void SetupArgs(const char *program)
@@ -56,6 +57,16 @@ static inline void AddArgParam(const char *param, const char *value)
 	arglist[argv++] = param;
 	argquote[argv] = true;
 	arglist[argv++] = value;
+}
+
+static inline void AddMultipleArgs(char *str)
+{
+	char *token = strtok(str, " ");
+	while (token && argv < 64)
+	{
+		arglist[argv++] = token;
+		token = strtok(NULL, " ");
+	}
 }
 
 static const char *GetBaseProgram(const char *iwad)
@@ -102,6 +113,13 @@ static char *MakeHexString(const char *str)
 static char *MakeIntString(int value)
 {
 	char *newstr = LN_allocsprintf("%d", value);
+	strslots[strslotused++] = newstr;
+	return newstr;
+}
+
+static char *MakeDupString(const char *str)
+{
+	char *newstr = M_StringDuplicate(str);
 	strslots[strslotused++] = newstr;
 	return newstr;
 }
@@ -170,9 +188,9 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
 	if (!strcmp(init_result, "ConnectFailed"))
 	{
 		error_reason = LN_allocsprintf(
-			"Couldn't connect to the Archipelago server at \xF4%s\xF0.\n"
+			"Couldn't connect to the Archipelago server at \xF2%s\xF0.\n"
 			"\n"
-			"Check the address and port for typos, and then try again.", "localhost:38281");
+			"Check the address and port for typos, and then try again.", exec_settings.address);
 	}
 	else if (!strcmp(init_result, "InvalidSlot"))
 	{
@@ -180,7 +198,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
 			"The server reports that the slot name \xF2%s\xF0 "
 			"does not match any players in the MultiWorld.\n"
 			"\n"
-			"Check the slot name for typos, and then try again.", "ST");
+			"Check the slot name for typos, and then try again.", exec_settings.slot_name);
 	}
 	else if (!strcmp(init_result, "InvalidGame"))
 	{
@@ -188,7 +206,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
 			"The server reports that the slot name \xF2%s\xF0 "
 			"is not playing the game that you attempted to connect with.\n"
 			"\n"
-			"Make sure you are connecting to the correct MultiWorld and/or slot.", "ST");
+			"Make sure you are connecting to the correct MultiWorld and/or slot.", exec_settings.slot_name);
 	}
 	else if (!strcmp(init_result, "IncompatibleVersion"))
 	{
@@ -333,13 +351,15 @@ static int DoExecute(int has_init_file)
 	if (child_pid == 0) // Child process
 	{
 		execvp(arglist[0], (char **)arglist);
-		exit(0x80); // Unreachable unless exec failed
+		_exit(0x80); // Unreachable unless exec failed
 	}
 	else // Parent process
 	{
 		CommonPostExecLoop(has_init_file, WaitOnChild);
 
-		if (WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0x80)
+		if (WIFSIGNALED(child_status))
+			return -WTERMSIG(child_status);
+		else if (WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0x80)
 			return WEXITSTATUS(child_status);
 		else
 			return -666;
@@ -398,13 +418,15 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
 		AddArgParam("-applayerhex", MakeHexString(exec_settings.slot_name));
 		AddArgParam("-apserver", exec_settings.address);
 
-		if (strlen(exec_settings.password) != 0)
+		if (exec_settings.password[0])
 			AddArgParam("-password", exec_settings.password);
 
 		if (exec_settings.no_deathlink > 0)
 			AddArg("-apdeathlinkoff");
 	}
 
+	if (exec_settings.skill >= 0)
+		AddArgParam("-skill", MakeIntString(exec_settings.skill));
 	if (exec_settings.monster_rando >= 0)
 		AddArgParam("-apmonsterrando", MakeIntString(exec_settings.monster_rando));
 	if (exec_settings.item_rando >= 0)
@@ -416,10 +438,19 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
 	if (exec_settings.reset_level >= 0)
 		AddArgParam("-apresetlevelondeath", MakeIntString(exec_settings.reset_level));
 
+	if (exec_settings.extra_cmdline[0])
+		AddMultipleArgs(MakeDupString(exec_settings.extra_cmdline));
+
 	int code = DoExecute(true);
 	switch (code)
 	{
 	case 0: // Successful exit
+		if (!initfile_buf[0])
+		{
+			// Successful exit without making an init file.
+			// Likely some command that aborts early was used.
+			LN_OpenDialog(DIALOG_OK, "Closed", "Your command executed successfully.");
+		}
 		break;
 	case -666: // Couldn't execute program
 		{
@@ -444,7 +475,10 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
 				"\n"
 				"Please check your installation of APDoom for missing files, "
 				"and make sure the program is not blocked from executing by "
-				"the Operating System, an antivirus, or some other program.", GetBaseProgram(world->iwad));
+				"the Operating System, an antivirus, or some other program.\n"
+				"\n"
+				"The terminal may have more information about the exact nature "
+				"of the error.", GetBaseProgram(world->iwad));
 			LN_OpenDialog(DIALOG_OK, "Error", reason);
 			free(reason);
 		}

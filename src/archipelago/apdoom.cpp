@@ -699,8 +699,6 @@ int apdoom_init(ap_settings_t* settings)
 
 				auto level_info = ap_get_level_info(ap_level_index_t{ep, map});
 				level_info->true_check_count = level_info->check_count;
-
-				ap_state.level_states[ep * max_map_count + map].music = get_original_music_for_level(ep + 1, map + 1);
 			}
 
 		}
@@ -712,12 +710,9 @@ int apdoom_init(ap_settings_t* settings)
 		ap_save_dir_name = ap_seed_string;
 		if (!AP_FileExists(ap_save_dir_name.c_str()))
 			AP_MakeDirectory(ap_save_dir_name.c_str());
-
-		ap_initialized = true;
-		printf("APDOOM: Initialized\n");
-		make_init_file("OK");
-		return 1;
 	}
+	else
+	{
 
 	printf("APDOOM: Initializing Game: \"%s\", Server: %s, Slot: %s\n", settings->game, settings->ip, settings->player_name);
 	AP_NetworkVersion version = {0, 6, 3};
@@ -735,11 +730,12 @@ int apdoom_init(ap_settings_t* settings)
 	AP_RegisterSlotDataIntCallback("random_monsters", f_random_monsters);
 	AP_RegisterSlotDataIntCallback("random_pickups", f_random_items);
 	AP_RegisterSlotDataIntCallback("random_music", f_random_music);
-	AP_RegisterSlotDataIntCallback("flip_levels", f_flip_levels);
 	AP_RegisterSlotDataRawCallback("suppressed_locations", f_suppressed_locations);
 	AP_RegisterSlotDataRawCallback("episodes", f_episodes);
 	AP_RegisterSlotDataRawCallback("ammo_start", f_ammo_start);
 	AP_RegisterSlotDataRawCallback("ammo_add", f_ammo_add);
+	if (ap_base_game != ap_game_t::heretic)
+		AP_RegisterSlotDataIntCallback("flip_levels", f_flip_levels);
     AP_Start();
 
 	// Block DOOM until connection succeeded or failed
@@ -846,6 +842,8 @@ int apdoom_init(ap_settings_t* settings)
 			return 0;
 		}
 	}
+
+	} // if (ap_practice_mode)
 
 	// If none episode is selected, select the first one.
 	int ep_count = 0;
@@ -954,6 +952,14 @@ int apdoom_init(ap_settings_t* settings)
 			}
 		}
 	}
+ 
+	if (ap_practice_mode)
+	{
+		printf("APDOOM: Initialized\n");
+		ap_initialized = true;
+		make_init_file("OK");
+		return 1;
+	}
 
 	// Scout locations to see which are progressive
 	if (ap_progressive_locations.empty())
@@ -983,7 +989,7 @@ int apdoom_init(ap_settings_t* settings)
 		AP_SendLocationScouts(location_scouts, 0);
 
 		// Wait for location infos
-		start_time = std::chrono::steady_clock::now();
+		auto start_time = std::chrono::steady_clock::now();
 		while (ap_progressive_locations.empty())
 		{
 			apdoom_update();

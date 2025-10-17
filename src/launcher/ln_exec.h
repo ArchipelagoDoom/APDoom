@@ -14,12 +14,15 @@ typedef struct {
 	int practice_mode; // -practice
 
 	// Overrides of server options
+	int skill; // -skill <n>
 	int monster_rando; // -apmonsterrando <n>
 	int item_rando; // -apitemrando <n>
 	int music_rando; // -apmusicrando <n>
 	int flip_levels; // -apfliplevels <n>
 	int reset_level; // -apresetlevelondeath <n>
 	int no_deathlink; // -apdeathlinkoff
+
+	char extra_cmdline[256+1];
 } gamesettings_t;
 
 extern gamesettings_t exec_settings;

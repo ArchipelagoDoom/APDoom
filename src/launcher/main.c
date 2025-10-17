@@ -149,15 +149,18 @@ typedef enum {
     MENU_NONE = 0,
     MENU_MAIN,
     MENU_SELECT_GAME,
+    MENU_CONNECT,
     MENU_PRACTICE,
+    MENU_ADVANCED_OPTIONS,
     NUM_MENUS
 } menulist_t;
 
-typedef enum {
-    ACTION_DRAW_DISABLED_CHECK,
-    ACTION_SELECT_DISABLED_CHECK,
-    NUM_ACTIONS
-} actiontype_t;
+enum {
+    INTERACT_NONE,
+    INTERACT_SELECT,
+    INTERACT_LEFT,
+    INTERACT_RIGHT,
+};
 
 struct menudata_s;
 
@@ -166,7 +169,8 @@ typedef struct {
     int y;
     const char *text;
 
-    int (*action_handler)(int num, actiontype_t action, struct menudata_s *data);
+    // Return nonzero to suppress default menu drawing.
+    int (*draw_handler)(int num, struct menudata_s *data);
 } menutarget_t;
 
 typedef struct menudata_s {
@@ -174,9 +178,6 @@ typedef struct menudata_s {
 
     int target_count;
     const menutarget_t *target_list;
-
-    int extra_data[3];
-    const void *extra_ptr[3];
 } menudata_t;
 
 static void Main_Init(menudata_t *data);
@@ -187,9 +188,17 @@ static void SelectGame_Init(menudata_t *data);
 static void SelectGame_Draw(menudata_t *data);
 static void SelectGame_Input(menudata_t *data);
 
+static void Connect_Init(menudata_t *data);
+static void Connect_Draw(menudata_t *data);
+static void Connect_Input(menudata_t *data);
+
 static void Practice_Init(menudata_t *data);
 static void Practice_Draw(menudata_t *data);
 static void Practice_Input(menudata_t *data);
+
+static void AdvancedOptions_Init(menudata_t *data);
+static void AdvancedOptions_Draw(menudata_t *data);
+static void AdvancedOptions_Input(menudata_t *data);
 
 struct {
     void (*initfunc)(menudata_t *data);
@@ -201,7 +210,9 @@ struct {
     {NULL, NULL, NULL},
     {Main_Init, Main_Draw, Main_Input},
     {SelectGame_Init, SelectGame_Draw, SelectGame_Input},
+    {Connect_Init, Connect_Draw, Connect_Input},
     {Practice_Init, Practice_Draw, Practice_Input},
+    {AdvancedOptions_Init, AdvancedOptions_Draw, AdvancedOptions_Input},
 };
 
 static int menu_stack_pos = 0;
@@ -222,19 +233,10 @@ void DrawHeader(int y, const char *txt)
     LV_SetPalette(0);
 }
 
-void DrawMenuItem(int x, int y, int disabled, int selected, const char *fmt, ...)
+void DrawMenuItem(int x, int y, int selected, const char *fmt, ...)
 {
     if (selected)
-    {
-        int h = anim_bg_fade[anim_step];
-        int slow_fade = 16 + (finesine[(int)((SDL_GetTicks() % 1000) * 8.200200020002f)] >> 12);
-        uint32_t color = 0x000070FF + (slow_fade << 8) + (slow_fade << 17);
-
-        LV_FillRect(l_primary, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 0x60000000 | color);
-        LV_OutlineRect(l_primary, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 1, 0x40000000 | color);        
-
         x += anim_text_move[anim_step];
-    }
 
     va_list args;
 
@@ -242,28 +244,56 @@ void DrawMenuItem(int x, int y, int disabled, int selected, const char *fmt, ...
     char *str = LN_allocvsprintf(fmt, args);
     va_end(args);
 
-    LV_SetPalette(disabled ? 9 : 0);
     LV_PrintText(l_primary, x, y, &large_font, str);
-    LV_SetPalette(0);
+
+    free(str);
+}
+
+void DrawLabel(int x, int y, const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    char *str = LN_allocvsprintf(fmt, args);
+    va_end(args);
+
+    const int width = LV_TextWidth(&large_font, str);
+    LV_PrintText(l_primary, (SCREEN_WIDTH-x)-width, y, &large_font, str);
 
     free(str);
 }
 
 void StandardMenuDraw(menudata_t *data)
 {
+    int pal = LV_GetPalette();
     for (int i = 0; i < data->target_count; ++i)
     {
         const menutarget_t *target = &data->target_list[i];
-        int disabled = false;
-        if (target->action_handler)
-            disabled = target->action_handler(i, ACTION_DRAW_DISABLED_CHECK, data);
-        DrawMenuItem(target->x, target->y, disabled, data->cursor == i, target->text);
+
+        if (data->cursor == i)
+        {
+            const int y = target->y;
+            const int h = anim_bg_fade[anim_step];
+            int slow_fade = 16 + (finesine[(int)((SDL_GetTicks() % 1000) * 8.200200020002f)] >> 12);
+            uint32_t color = 0x000070FF + (slow_fade << 8) + (slow_fade << 17);
+
+            LV_FillRect(l_primary, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 0x60000000 | color);
+            LV_OutlineRect(l_primary, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 1, 0x40000000 | color);
+        }
+
+        if (target->draw_handler && target->draw_handler(i, data))
+            continue;
+        DrawMenuItem(target->x, target->y, data->cursor == i, target->text);
+        LV_SetPalette(pal); // Restore palette, as draw handler may change it
     }
 }
 
-int StandardMenuInput(menudata_t *data)
+int StandardMenuInput(menudata_t *data, int *interaction_type)
 {
     int oldcursor = data->cursor;
+
+    if (interaction_type)
+        *interaction_type = INTERACT_NONE;
 
     if (mouse.active)
     {
@@ -271,16 +301,14 @@ int StandardMenuInput(menudata_t *data)
         {
             const menutarget_t *target = &data->target_list[i];
 
-            if (mouse.x > target->x - 5 && mouse.y > target->y - 4 && mouse.y < target->y + 12)
+            if (mouse.x >= target->x - 5 && mouse.y >= target->y - 4 && mouse.y < target->y + 12)
             {
                 data->cursor = i;
                 if (mouse.primary)
                 {
-                    if (!(target->action_handler
-                        && target->action_handler(i, ACTION_SELECT_DISABLED_CHECK, data)))
-                    {
-                        return i;
-                    }
+                    if (interaction_type)
+                        *interaction_type = INTERACT_SELECT;
+                    return i;
                 }
                 break;
             }
@@ -302,55 +330,86 @@ int StandardMenuInput(menudata_t *data)
     if (data->cursor != oldcursor)
         anim_step = 0;
 
-    if (nav[NAV_PRIMARY])
+    if (nav[NAV_BACK])
     {
-        const menutarget_t *target = &data->target_list[data->cursor];
-        if (!(target->action_handler
-            && target->action_handler(data->cursor, ACTION_SELECT_DISABLED_CHECK, data)))
-        {
-            return data->cursor;
-        }
-    }
-    else if (nav[NAV_BACK])
         next_menu = MENU_BACK;
-    return -1;
+        return -1;
+    }
+
+    if (interaction_type)
+    {
+        if (nav[NAV_PRIMARY])
+            *interaction_type = INTERACT_SELECT;
+        else if (nav[NAV_LEFT])
+            *interaction_type = INTERACT_LEFT;
+        else if (nav[NAV_RIGHT])
+            *interaction_type = INTERACT_RIGHT;
+        else
+            return -1;
+        return data->cursor;
+    }
+    else
+    {
+        return (nav[NAV_PRIMARY]) ? data->cursor : -1;
+    }
+}
+
+static int TextInputDrawer(int num, menudata_t *data)
+{
+    const char *text;
+    // TODO HACK
+    switch (num)
+    {
+    case 1: text = exec_settings.slot_name; break;
+    case 2: text = exec_settings.address; break;
+    case 3: text = exec_settings.password; break;
+    default: text = exec_settings.extra_cmdline; break;
+    }
+
+    LV_PrintText(l_primary, SCREEN_WIDTH/2, data->target_list[num].y + 3, &small_font, text);
+    if (data->cursor == num && SDL_GetTicks() % 500 > 250)
+    {
+        const int width = LV_TextWidth(&small_font, text);
+        LV_PrintText(l_primary, SCREEN_WIDTH/2 + width, data->target_list[num].y + 3, &small_font, "_");
+    }
+    return false;
 }
 
 // ----- Main Menu ------------------------------------------------------------
 
-static int LPG_Disabled(int num, actiontype_t action, menudata_t *data)
+static int DrawDisabled(int num, menudata_t *data)
 {
-    return true;
+    LV_SetPalette(9);
+    return 0;
 }
 
 static const menutarget_t MainTargets[] = {
     {60, 120, "Connect to Game"},
-    {60, 140, "Load Previous Game", LPG_Disabled},
+    {60, 140, "Load Previous Game", DrawDisabled},
     {60, 200, "Practice"},
     {60, 220, "Launch Setup"},
-    {40, 280, "Quit"},
+    {40, 320, "Quit"},
 };
 
 static void Main_Init(menudata_t *data)
 {
-    data->cursor = 0;
     data->target_count = 5;
     data->target_list = MainTargets;
 }
 
 static void Main_Draw(menudata_t *data)
 {
-    DrawMenuItem(40, 100, false, false, "\xF2" "Archipelago");
-    DrawMenuItem(40, 180, false, false, "\xF2" "Offline");
+    DrawMenuItem(40, 100, false, "\xF2" "Archipelago");
+    DrawMenuItem(40, 180, false, "\xF2" "Offline");
 }
 
 static void Main_Input(menudata_t *data)
 {
-    int result = StandardMenuInput(data);
+    int result = StandardMenuInput(data, NULL);
     switch (result)
     {
     default: break;
-    case 0: next_menu = MENU_SELECT_GAME; break;
+    case 0: next_menu = MENU_CONNECT; break;
     case 2: next_menu = MENU_PRACTICE; break;
     case 3: next_menu = MENU_EXECSETUP; break;
     case 4: next_menu = MENU_BACK; break;
@@ -359,12 +418,11 @@ static void Main_Input(menudata_t *data)
 
 // ----- Select Game ----------------------------------------------------------
 
-static int GameActionHandler(int num, actiontype_t action, menudata_t *data)
+static int GameActionHandler(int num, menudata_t *data)
 {
-    if (action != ACTION_DRAW_DISABLED_CHECK)
-        return 0;
-
-    return !extra_world_info[num].is_functional;
+    if (!extra_world_info[num].is_functional)
+        LV_SetPalette(9);
+    return false;
 }
 
 static void SelectGame_Init(menudata_t *data)
@@ -379,13 +437,17 @@ static void SelectGame_Init(menudata_t *data)
             newtargets[i].x = 40;
             newtargets[i].y = 120 + (i * 20);
             newtargets[i].text = all_worlds[i]->fullname;
-            newtargets[i].action_handler = GameActionHandler;
+            newtargets[i].draw_handler = GameActionHandler;
         }
         data->target_list = newtargets;
         data->target_count = world_count;
     }
 
-    data->cursor = 0;
+    for (int i = 0; i < world_count; ++i)
+    {
+        if (world_to_exec == all_worlds[i])
+            data->cursor = i;
+    }
 }
 
 static void SelectGame_Draw(menudata_t *data)
@@ -395,13 +457,12 @@ static void SelectGame_Draw(menudata_t *data)
 
 static void SelectGame_Input(menudata_t *data)
 {
-    int result = StandardMenuInput(data);
+    int result = StandardMenuInput(data, NULL);
     if (result < 0)
         return;
 
     if (extra_world_info[result].is_functional)
     {
-        //menus[menu_stack[menu_stack_pos - 1]].data.extra_ptr[0] = all_worlds[result];
         world_to_exec = all_worlds[result];
         next_menu = MENU_BACK;
     }
@@ -409,58 +470,53 @@ static void SelectGame_Input(menudata_t *data)
         LN_OpenDialog(DIALOG_OK, "Can't Select Game", extra_world_info[result].error_reason);
 }
 
-// ----- Setup Game (generic) -------------------------------------------------
+// ----- Practice -------------------------------------------------------------
 
-static int StartActionHandler(int num, actiontype_t action, menudata_t *data)
+static int DrawGameName(int num, menudata_t *data)
 {
-    if (action == ACTION_DRAW_DISABLED_CHECK || action == ACTION_SELECT_DISABLED_CHECK)
-        return (world_to_exec == NULL);
-    return 0;
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, "%c%s",
+        (world_to_exec ? 0xF4 : 0xF9),
+        (world_to_exec ? world_to_exec->fullname : "<no game selected>"));
+    return false;
+}
+
+static int DisableStartIfNoWorld(int num, menudata_t *data)
+{
+    if (world_to_exec == NULL)
+        LV_SetPalette(9);
+    return false;
 }
 
 static const menutarget_t PracticeTargets[] = {
-    {40, 120, "Select Game..."},
-//    {40, 160, "Slot Name"},
-//    {40, 180, "Server Address"},
-//    {40, 200, "Server Password"},
-    {40, 240, "Advanced Options..."},
-    {40, 280, "Start", StartActionHandler}
+    {40, 120, "Select Game...", DrawGameName},
+    {40, 240, "Start", DisableStartIfNoWorld},
+    {40, 280, "Advanced Options..."},
+    {40, 320, "Back"},
 };
 
 static void Practice_Init(menudata_t *data)
 {
-    exec_settings.practice_mode = true;
-    data->target_count = 3;
+    data->target_count = 4;
     data->target_list = PracticeTargets;
 
-    data->cursor = (!world_to_exec) ? 0 : 2;
+    exec_settings.practice_mode = true;
+
+    exec_settings.skill = 3;
+    exec_settings.monster_rando = 0;
+    exec_settings.item_rando = 0;
+    exec_settings.music_rando = 0;
+    exec_settings.flip_levels = 0;
+    exec_settings.reset_level = 0;
 }
 
 static void Practice_Draw(menudata_t *data)
 {
     DrawHeader(100, "Setup Practice Game");
-
-    const char *name;
-    if (!world_to_exec)
-    {
-        name = "<no game selected>";
-        LV_SetPalette(9);
-    }
-    else
-    {
-        name = world_to_exec->fullname;
-        LV_SetPalette(4);
-    }
-
-    const int name_width = LV_TextWidth(&large_font, name);
-    LV_PrintText(l_primary, (SCREEN_WIDTH-40)-name_width, 120, &large_font, name);
-
-    LV_SetPalette(0);
 }
 
 static void Practice_Input(menudata_t *data)
 {
-    int result = StandardMenuInput(data);
+    int result = StandardMenuInput(data, NULL);
     if (result < 0)
         return;
 
@@ -468,7 +524,268 @@ static void Practice_Input(menudata_t *data)
     {
     default: break;
     case 0: next_menu = MENU_SELECT_GAME; break;
-    case 2: next_menu = MENU_EXECGAME; break;
+    case 1: next_menu = MENU_EXECGAME; break;
+    case 2: next_menu = MENU_ADVANCED_OPTIONS; break;
+    case 3: next_menu = MENU_BACK; break;
+    }
+
+    if (next_menu == MENU_EXECGAME && !world_to_exec)
+        next_menu = MENU_NONE;
+}
+
+// ----- Connect --------------------------------------------------------------
+
+static int IsReadyToConnect(void)
+{
+    return (world_to_exec && exec_settings.slot_name[0] && exec_settings.address[0]);
+}
+
+static int DisableStartIfNotReady(int num, menudata_t *data)
+{
+    if (!IsReadyToConnect())
+        LV_SetPalette(9);
+    return false;
+}
+
+static const menutarget_t ConnectTargets[] = {
+    {40, 120, "Select Game...", DrawGameName},
+    {40, 160, "Slot Name", TextInputDrawer},
+    {40, 180, "Server Address", TextInputDrawer},
+    {40, 200, "Server Password", TextInputDrawer},
+    {40, 240, "Connect to Server", DisableStartIfNotReady},
+    {40, 280, "Advanced Options..."},
+    {40, 320, "Back"},
+};
+
+static void Connect_Init(menudata_t *data)
+{
+    data->target_count = 7;
+    data->target_list = ConnectTargets;
+
+    exec_settings.practice_mode = false;
+
+    exec_settings.skill = -1;
+    exec_settings.monster_rando = -1;
+    exec_settings.item_rando = -1;
+    exec_settings.music_rando = -1;
+    exec_settings.flip_levels = -1;
+    exec_settings.reset_level = -1;
+    exec_settings.no_deathlink = -1;
+}
+
+static void Connect_Draw(menudata_t *data)
+{
+    DrawHeader(100, "Connect to Game");
+}
+
+static void Connect_Input(menudata_t *data)
+{
+    switch (data->cursor)
+    {
+    case 1:  LI_SetTextInput(exec_settings.slot_name, 16 + 1); break;
+    case 2:  LI_SetTextInput(exec_settings.address, 128 + 1); break;
+    case 3:  LI_SetTextInput(exec_settings.password, 128 + 1); break;
+    default: LI_SetTextInput(NULL, 0); break;
+    }
+
+    int result = StandardMenuInput(data, NULL);
+    if (result < 0)
+        return;
+
+    switch (result)
+    {
+    default: break;
+    case 0: next_menu = MENU_SELECT_GAME; break;
+    case 4: next_menu = MENU_EXECGAME; break;
+    case 5: next_menu = MENU_ADVANCED_OPTIONS; break;
+    case 6: next_menu = MENU_BACK; break;
+    }
+
+    if (next_menu == MENU_EXECGAME && !IsReadyToConnect())
+        next_menu = MENU_NONE;
+}
+
+// ----- Advanced Options -----
+
+static int AdvOptDrawSkill(int num, menudata_t *data)
+{
+    const char *text = "\xF9<unchanged>";
+    switch (exec_settings.skill)
+    {
+    case 1: text = "Baby"; break;
+    case 2: text = "Easy"; break;
+    case 3: text = "Medium"; break;
+    case 4: text = "Hard"; break;
+    case 5: text = "Nightmare"; break;
+    default: break;
+    }
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    return false;
+}
+
+static int AdvOptDrawMonsterRando(int num, menudata_t *data)
+{
+    const char *text = "\xF9<unchanged>";
+    switch (exec_settings.monster_rando)
+    {
+    case 0: text = "Off"; break;
+    case 1: text = "Shuffle"; break;
+    case 2: text = "Random Balanced"; break;
+    case 3: text = "Random Chaotic"; break;
+    default: break;
+    }
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    return false;
+}
+
+static int AdvOptDrawItemRando(int num, menudata_t *data)
+{
+    const char *text = "\xF9<unchanged>";
+    switch (exec_settings.item_rando)
+    {
+    case 0: text = "Off"; break;
+    case 1: text = "Shuffle"; break;
+    case 2: text = "Random Balanced"; break;
+    default: break;
+    }
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    return false;
+}
+
+static int AdvOptDrawMusicRando(int num, menudata_t *data)
+{
+    const char *text = "\xF9<unchanged>";
+    switch (exec_settings.music_rando)
+    {
+    case 0: text = "Off"; break;
+    case 1: text = "Shuffle Selected"; break;
+    case 2: text = "Shuffle Game"; break;
+    default: break;
+    }
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    return false;
+}
+
+static int AdvOptDrawFlipLevels(int num, menudata_t *data)
+{
+    const char *text = "\xF9<unchanged>";
+    if (world_to_exec && !strcmp(world_to_exec->iwad, "HERETIC.WAD"))
+    {
+        LV_SetPalette(9);
+        text = "\xF9<not available>";
+    }
+    else switch (exec_settings.flip_levels)
+    {
+    case 0: text = "Off"; break;
+    case 1: text = "On"; break;
+    case 2: text = "Random Mix"; break;
+    default: break;
+    }
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    return false;
+}
+
+static int AdvOptDrawResetLevel(int num, menudata_t *data)
+{
+    const char *text = "\xF9<unchanged>";
+    switch (exec_settings.reset_level)
+    {
+    case 0: text = "Off"; break;
+    case 1: text = "On"; break;
+    default: break;
+    }
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    return false;
+}
+
+static int AdvOptDrawDeathLink(int num, menudata_t *data)
+{
+    const char *text = "\xF9<unchanged>";
+    if (exec_settings.practice_mode)
+    {
+        LV_SetPalette(9);
+        text = "\xF9<not available>";
+    }
+    else if (exec_settings.no_deathlink > 0)
+        text = "Force Off";
+    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    return false;
+}
+
+static const menutarget_t AdvancedOptsTargets[] = {
+    {40, 120, "Skill",                AdvOptDrawSkill},
+    {40, 140, "Random Monsters",      AdvOptDrawMonsterRando},
+    {40, 160, "Random Pickups",       AdvOptDrawItemRando},
+    {40, 180, "Random Music",         AdvOptDrawMusicRando},
+    {40, 200, "Flip Levels",          AdvOptDrawFlipLevels},
+    {40, 220, "Reset Level on Death", AdvOptDrawResetLevel},
+    {40, 240, "DeathLink",            AdvOptDrawDeathLink},
+    {40, 280, "Command Line Args.",   TextInputDrawer},
+    {40, 320, "Back"}
+};
+
+struct {
+    int *value;
+
+    int range_min;
+    int range_max;
+} AdvOptValues[] = {
+    {&exec_settings.skill,         1, 5},
+    {&exec_settings.monster_rando, 0, 3},
+    {&exec_settings.item_rando,    0, 2},
+    {&exec_settings.music_rando,   0, 2},
+    {&exec_settings.flip_levels,   0, 2},
+    {&exec_settings.reset_level,   0, 1},
+    {&exec_settings.no_deathlink,  1, 1},
+};
+
+static void AdvancedOptions_Init(menudata_t *data)
+{
+    data->target_count = 9;
+    data->target_list = AdvancedOptsTargets;
+}
+
+static void AdvancedOptions_Draw(menudata_t *data)
+{
+    DrawHeader(100, "Option Overrides");
+}
+
+static void AdvancedOptions_Input(menudata_t *data)
+{
+    LI_SetTextInput((data->cursor == 7 ? exec_settings.extra_cmdline : NULL), 256 + 1);
+    int interaction_type;
+    int result = StandardMenuInput(data, &interaction_type);
+    if (result < 0)
+        return;
+
+    switch (result)
+    {
+    default:
+        if (interaction_type == INTERACT_LEFT)
+        {
+            if (*AdvOptValues[result].value == -1)
+                *AdvOptValues[result].value = AdvOptValues[result].range_max;
+            else if (--*AdvOptValues[result].value < AdvOptValues[result].range_min)
+                *AdvOptValues[result].value = -1;
+            if (exec_settings.practice_mode && *AdvOptValues[result].value == -1)
+                *AdvOptValues[result].value = AdvOptValues[result].range_max;
+        }
+        else
+        {
+            if (*AdvOptValues[result].value == -1)
+                *AdvOptValues[result].value = AdvOptValues[result].range_min;
+            else if (++*AdvOptValues[result].value > AdvOptValues[result].range_max)
+                *AdvOptValues[result].value = -1;
+            if (exec_settings.practice_mode && *AdvOptValues[result].value == -1)
+                *AdvOptValues[result].value = AdvOptValues[result].range_min;
+        }
+        break;
+    case 7:
+        break;
+    case 8:
+        if (interaction_type == INTERACT_SELECT)
+            next_menu = MENU_BACK;
+        break;
     }
 }
 
@@ -550,6 +867,7 @@ void D_DoomMain(void)
     LV_LoadFont(&small_font, "F_SML", 4, 8);
     LV_LoadFont(&large_font, "F_LRG", 7, 16);
 
+    menus[MENU_MAIN].data.cursor = 0;
     menus[MENU_MAIN].initfunc(&menus[MENU_MAIN].data);
     anim_step = 0;
 
@@ -557,7 +875,7 @@ void D_DoomMain(void)
     LV_SetBrightness(l_background, 255, 4);
 
     // Temporary...
-    LV_DrawPatch(l_background, 94+160, 2, W_CacheLumpName("LN_DOOM1", PU_CACHE));
+    LV_DrawPatch(l_background, 94+160, 10, W_CacheLumpName("LN_DOOM1", PU_CACHE));
 
     while (true)
     {
@@ -609,6 +927,7 @@ void D_DoomMain(void)
             if (++menu_stack_pos >= 6)
                 I_Error("Menus layered too deep!");
             menu_stack[menu_stack_pos] = next_menu;
+            menus[next_menu].data.cursor = 0;
             menus[next_menu].initfunc(&menus[next_menu].data);
             LV_SetBrightness(l_primary, 128, 0);
             LV_SetBrightness(l_primary, 255, 16);

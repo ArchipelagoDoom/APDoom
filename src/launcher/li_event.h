@@ -14,6 +14,8 @@ enum {
 	NAV_OPTIONS,
 	NAV_BACK,
 
+	NAV_BACKSPACE, // Used internally
+
 	NUM_NAV
 };
 
@@ -33,5 +35,7 @@ extern mouse_t mouse;
 
 void LI_Init(void);
 void LI_HandleEvents(void);
+
+void LI_SetTextInput(char *buffer, int size);
 
 #endif

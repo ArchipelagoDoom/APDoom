@@ -56,17 +56,6 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
             I_Error("Failed to initialize Archipelago.");
     }
 
-    // If certain arguments are set don't attempt to initialize Archipelago.
-    if (M_CheckParmWithArgs ("-playdemo", 1) || M_CheckParmWithArgs ("-timedemo", 1)
-        || M_CheckParm("-testcontrols"))
-    {
-        printf("Not initializing Archipelago due to certain command line arguments being specified.\n");
-        ap_practice_mode = true;
-        ap_force_disable_behaviors = true;
-        I_AtExit(apdoom_remove_save_dir, true);
-        return;
-    }
-
     //!
     // @arg <file location>
     // @category archipelago, launcher
@@ -77,6 +66,17 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
         ap_settings->temp_init_file = myargv[p + 1];
     else
         ap_settings->temp_init_file = NULL;
+
+    // If certain arguments are set don't attempt to initialize Archipelago.
+    if (M_CheckParmWithArgs ("-playdemo", 1) || M_CheckParmWithArgs ("-timedemo", 1)
+        || M_CheckParm("-testcontrols"))
+    {
+        printf("Not initializing Archipelago due to certain command line arguments being specified.\n");
+        ap_practice_mode = true;
+        ap_force_disable_behaviors = true;
+        I_AtExit(apdoom_remove_save_dir, true);
+        return;
+    }
 
     //!
     // @arg <override_value>
