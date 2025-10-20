@@ -745,6 +745,9 @@ int apdoom_init(ap_settings_t* settings)
 		bool should_break = false;
 		switch (AP_GetConnectionStatus())
 		{
+			case AP_ConnectionStatus::Connected:
+				// Connected, but not authenticated. Likely fetching datapackages.
+				break;
 			case AP_ConnectionStatus::Authenticated:
 			{
 				if (detected_old_apworld)
@@ -830,17 +833,18 @@ int apdoom_init(ap_settings_t* settings)
 					break;
 				}
 				return 0;
-			default: // Explicitly do not handle
+			default:
+				// Not connected yet, check for timeout.
+				if (std::chrono::steady_clock::now() - start_time > std::chrono::seconds(10))
+				{
+					printf("APDOOM: Failed to connect to server (timeout 10s), check your connection settings.\n");
+					make_init_file("ConnectFailed");
+					return 0;
+				}
 				break;
 		}
 		if (should_break) break;
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		if (std::chrono::steady_clock::now() - start_time > std::chrono::seconds(10))
-		{
-			printf("APDOOM: Failed to connect to server (timeout 10s), check your connection settings.\n");
-			make_init_file("ConnectFailed");
-			return 0;
-		}
 	}
 
 	} // if (ap_practice_mode)
