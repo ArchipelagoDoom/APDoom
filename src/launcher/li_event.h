@@ -34,6 +34,7 @@ extern navigation_t nav;
 extern mouse_t mouse;
 
 void LI_Init(void);
+void LI_Reset(void);
 void LI_HandleEvents(void);
 
 void LI_SetTextInput(char *buffer, int size);

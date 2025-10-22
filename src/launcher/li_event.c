@@ -5,6 +5,14 @@
 #include "li_event.h"
 #include "m_misc.h"
 
+enum {
+	AXIS_REGION_NEGATIVE = -2,
+	AXIS_REGION_NBUFFER = -1,
+	AXIS_REGION_NEUTRAL = 0,
+	AXIS_REGION_PBUFFER = 1,
+	AXIS_REGION_POSITIVE = 2
+};
+
 mouse_t mouse;
 navigation_t nav;
 
@@ -12,6 +20,7 @@ static char *text_input_buffer;
 static int text_input_size;
 
 static navigation_t held_nav; // Time each key is held
+static char axis_regions[16][2];
 
 static void SetNavKey(SDL_Keycode key, char state)
 {
@@ -30,49 +39,86 @@ static void SetNavKey(SDL_Keycode key, char state)
 	}
 }
 
-static void SetNavJoyButton(Uint8 button, char state)
+static void SetNavControllerButton(SDL_JoystickID which, Uint8 button, char state)
 {
+	if (which >= 16)
+		return;
 	switch (button)
 	{
-	case 0: /* south */ held_nav[NAV_PRIMARY] = state;   break;
-	case 1: /* east  */ held_nav[NAV_BACK] = state;      break;
-	case 2: /* west  */ held_nav[NAV_SECONDARY] = state; break;
-	case 3: /* north */ held_nav[NAV_OPTIONS] = state;   break;
+	case SDL_CONTROLLER_BUTTON_A: /* south */ held_nav[NAV_PRIMARY] = state;   break;
+	case SDL_CONTROLLER_BUTTON_B: /* east  */ held_nav[NAV_BACK] = state;      break;
+	case SDL_CONTROLLER_BUTTON_X: /* west  */ held_nav[NAV_SECONDARY] = state; break;
+	case SDL_CONTROLLER_BUTTON_Y: /* north */ held_nav[NAV_OPTIONS] = state;   break;
+	case SDL_CONTROLLER_BUTTON_DPAD_UP:       held_nav[NAV_UP] = state;        break;
+	case SDL_CONTROLLER_BUTTON_DPAD_DOWN:     held_nav[NAV_DOWN] = state;      break;
+	case SDL_CONTROLLER_BUTTON_DPAD_LEFT:     held_nav[NAV_LEFT] = state;      break;
+	case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:    held_nav[NAV_RIGHT] = state;     break;
 	}
 }
 
-static void SetNavJoyHat(Uint8 hat_dir)
+static void SetNavControllerAxis(SDL_JoystickID which, Uint8 axis, Sint16 value)
 {
-	held_nav[NAV_UP] = !!(hat_dir & SDL_HAT_UP);
-	held_nav[NAV_DOWN] = !!(hat_dir & SDL_HAT_DOWN);
-	held_nav[NAV_LEFT] = !!(hat_dir & SDL_HAT_LEFT);
-	held_nav[NAV_RIGHT] = !!(hat_dir & SDL_HAT_RIGHT);
-}
+	static const int neg_dir[2] = {NAV_LEFT,  NAV_UP};
+	static const int pos_dir[2] = {NAV_RIGHT, NAV_DOWN};
 
-static void SetNavJoyAxis(Uint8 axis, Sint16 value)
-{
-	switch (axis)
+	if (which >= 16 || axis >= 2)
+		return;
+
+	char new_region = AXIS_REGION_NEUTRAL;
+	if (value < -25000)      new_region = AXIS_REGION_NEGATIVE;
+	else if (value > 25000)  new_region = AXIS_REGION_POSITIVE;
+	else if (value < -24000) new_region = AXIS_REGION_NBUFFER;
+	else if (value > 24000)  new_region = AXIS_REGION_PBUFFER;
+
+	if (new_region != axis_regions[which][axis])
 	{
-	case 0: // Primary stick X
-		held_nav[NAV_LEFT] = (value < -24000);
-		held_nav[NAV_RIGHT] = (value > 24000);
-		break;
-	case 1: // Primary stick Y
-		held_nav[NAV_UP] = (value < -24000);
-		held_nav[NAV_DOWN] = (value > 24000);
-	default: break;
+		axis_regions[which][axis] = new_region;
+		switch (new_region)
+		{
+		case AXIS_REGION_POSITIVE:
+			if (!held_nav[pos_dir[axis]])
+				held_nav[pos_dir[axis]] = true;
+			// fall through
+		case AXIS_REGION_PBUFFER:
+			held_nav[neg_dir[axis]] = false;
+			break;
+
+		case AXIS_REGION_NEGATIVE:
+			if (!held_nav[neg_dir[axis]])
+				held_nav[neg_dir[axis]] = true;
+			// fall through
+		case AXIS_REGION_NBUFFER:
+			held_nav[pos_dir[axis]] = false;
+			break;
+
+		default:
+			held_nav[pos_dir[axis]] = false;
+			held_nav[neg_dir[axis]] = false;
+			break;
+		}
 	}
 }
 
-void LI_Init(void)
+void LI_Reset(void)
 {
 	memset(held_nav, 0, sizeof(navigation_t));
 	memset(&mouse, 0, sizeof(mouse_t));
 
-	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+	text_input_buffer = NULL;
+	text_input_size = 0;
+}
+
+void LI_Init(void)
+{
+	LI_Reset();
+	SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
 	int num_joy = SDL_NumJoysticks();
 	for (int i = 0; i < num_joy; ++i)
-		SDL_JoystickOpen(i);
+	{
+		if (SDL_IsGameController(i))
+			SDL_GameControllerOpen(i);
+		// Right now I don't support regular joysticks. Should I?
+	}
 }
 
 void LI_SetTextInput(char *buffer, int size)
@@ -92,15 +138,14 @@ void LI_HandleEvents(void)
 		{
 		default:
 			break;
-		case SDL_JOYBUTTONDOWN:
-		case SDL_JOYBUTTONUP:
-			SetNavJoyButton(ev.jbutton.button, ev.type == SDL_JOYBUTTONDOWN);
+		case SDL_CONTROLLERBUTTONDOWN:
+		case SDL_CONTROLLERBUTTONUP:
+			mouse.active = false;
+			SetNavControllerButton(ev.cbutton.which, ev.cbutton.button, ev.type == SDL_CONTROLLERBUTTONDOWN);
 			break;
-		case SDL_JOYHATMOTION:
-			SetNavJoyHat(ev.jhat.value);
-			break;
-		case SDL_JOYAXISMOTION:
-			SetNavJoyAxis(ev.jaxis.axis, ev.jaxis.value);
+		case SDL_CONTROLLERAXISMOTION:
+			mouse.active = false;
+			SetNavControllerAxis(ev.caxis.which, ev.caxis.axis, ev.caxis.value);
 			break;
 		case SDL_TEXTINPUT:
 			if (text_input_buffer)

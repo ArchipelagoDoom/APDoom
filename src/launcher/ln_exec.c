@@ -154,11 +154,13 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
 		// If we're not checking an init file (e.g., entering setup)
 		// then we have no reason to do anything but just immediately minimize
 		LV_EnterMinimalMode(waitfunc);
+		LI_Reset();
 		return;
 	}
 
 	int waitdone = false;
 	int initready = false;
+	uint64_t warningtime = SDL_GetTicks64() + 16000;
 
 	LN_OpenDialog(DIALOG_EMPTY, "Starting...", "Starting game, please wait...");
 	memset(initfile_buf, 0, sizeof(initfile_buf));
@@ -167,6 +169,21 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
 	{
 		waitdone = waitfunc();
 		initready = (InitFileResult() != NULL);
+
+		if (warningtime && SDL_GetTicks64() > warningtime)
+		{
+			warningtime = 0;
+			LN_OpenDialog(DIALOG_EMPTY, "Starting...",
+				"Starting game, please wait...\n"
+				"\n"
+				"The game has been starting for an exceptionally long time, but "
+				"has not reported a connection timeout yet.\n"
+				"\n"
+				"If you are connecting to a very large multiworld for the first "
+				"time, this is normal. Otherwise, some other program (such as "
+				"an anti-virus) may be preventing the game from starting.");
+		}
+
 		LV_RenderFrame();
 	} while (!waitdone && !initready);
 
@@ -180,6 +197,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
 		// Execution successful, drop to minimal mode to reduce resource use
 		LN_CloseDialog();
 		LV_EnterMinimalMode(waitfunc);
+		LI_Reset();
 		return;
 	}
 
