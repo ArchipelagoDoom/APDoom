@@ -1,10 +1,41 @@
 #include <vector>
 #include <sstream>
 #include <ostream>
+#include <filesystem>
 
 #include <sys/stat.h>
 #include <zlib.h>
 #include <onut/Json.h>
+
+class GroupedOutput
+{
+public:
+	bool include_manifest_version = false;
+
+	virtual bool Finalize(void) = 0;
+
+	virtual bool AddSStream(const std::string& group_path, std::stringstream& stream) = 0;
+	virtual bool AddFile(const std::string& group_path, const std::string& file_path) = 0;
+
+	bool AddJson(const std::string &group_path, const Json::Value &json, bool fast = true)
+	{
+		Json::StreamWriterBuilder builder;
+		builder["commentStyle"] = "None";
+		builder["enableYAMLCompatibility"] = true;
+		if (fast)
+			builder["indentation"] = "";
+		else
+			builder["indentation"] = "\t";
+
+		std::stringstream stream;
+		builder.newStreamWriter()->write(json, &stream);
+		return AddSStream(group_path, stream);
+	}
+
+	virtual const std::string& GetOutputPathName(void) = 0;
+
+	virtual ~GroupedOutput(void) {};
+};
 
 struct ZipEntry
 {
@@ -85,8 +116,9 @@ public:
 	}
 };
 
-class ZipFile
+class ZipFile : public GroupedOutput
 {
+	std::string base_path;
 	std::vector<ZipEntry> entries;
 
 	const std::string eocd_comment = "apworld created with ap_gen_tool";
@@ -170,10 +202,14 @@ class ZipFile
 	}
 
 public:
-
-	bool Output(const std::string &path)
+	ZipFile(const std::string& base_path) : base_path(base_path)
 	{
-		handle = fopen(path.c_str(), "wb");
+		include_manifest_version = true;
+	}
+
+	bool Finalize(void) override
+	{
+		handle = fopen(base_path.c_str(), "wb");
 		if (!handle)
 			return false;
 
@@ -190,31 +226,15 @@ public:
 		return true;
 	}
 
-	void AddJson(const std::string &zip_path, const Json::Value &json, bool fast = true)
+	bool AddSStream(const std::string &group_path, std::stringstream &stream) override
 	{
-		Json::StreamWriterBuilder builder;
-		builder["commentStyle"] = "None";
-		builder["enableYAMLCompatibility"] = true;
-		if (fast)
-			builder["indentation"] = "";
-		else
-			builder["indentation"] = "\t";
-
-		std::stringstream stream;
-		builder.newStreamWriter()->write(json, &stream);
-		ZipEntry e(zip_path, stream.str().data(), stream.str().length());
+		ZipEntry e(group_path, stream.str().data(), stream.str().length());
 		e.is_text = 1;
 		entries.push_back(e);
+		return true;
 	}
 
-	void AddSStream(const std::string &zip_path, std::stringstream &stream)
-	{
-		ZipEntry e(zip_path, stream.str().data(), stream.str().length());
-		e.is_text = 1;
-		entries.push_back(e);
-	}
-
-	bool AddFile(const std::string &zip_path, const std::string &file_path)
+	bool AddFile(const std::string &group_path, const std::string &file_path) override
 	{
 		FILE *f = fopen(file_path.c_str(), "rb");
 		if (!f)
@@ -227,7 +247,7 @@ public:
 		fread(file_data.data(), file_data.size(), 1, f);
 		fclose(f);
 
-		ZipEntry e(zip_path, file_data);
+		ZipEntry e(group_path, file_data);
 
 		// Get datetime from file
 		struct stat filestat;
@@ -236,5 +256,90 @@ public:
 
 		entries.push_back(e);
 		return true;
+	}
+
+	const std::string& GetOutputPathName(void) override
+	{
+		return base_path;
+	}
+};
+
+class OutputToFolder : public GroupedOutput
+{
+	std::string output_world_name;
+
+	std::filesystem::path base_path;
+	std::filesystem::path next_path;
+
+	bool GetNextPath(const std::filesystem::path group_path)
+	{
+		if (group_path.is_absolute())
+			return false;
+
+		next_path = base_path / group_path;
+		std::filesystem::path full_dir = next_path;
+		full_dir.remove_filename();
+		try
+		{
+			std::filesystem::create_directories(full_dir);
+		}
+		catch (std::filesystem::filesystem_error &)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+public:
+	OutputToFolder(const std::string &path, const std::string &world) : base_path(path)
+	{
+		base_path.remove_filename().make_preferred();
+
+		if (!std::filesystem::exists(base_path)
+			|| !std::filesystem::exists(base_path / "__init__.py")
+			|| !std::filesystem::exists(base_path / "AutoWorld.py"))
+		{
+			throw std::runtime_error("Folder does not appear to be a valid worlds folder.");
+		}
+
+		output_world_name = std::string(base_path) + world;
+	}
+
+	bool Finalize(void) override { return true; } // No operation.
+
+	bool AddSStream(const std::string &group_path, std::stringstream &stream) override
+	{
+		if (!GetNextPath(group_path))
+			return false;
+
+		std::ofstream file(next_path);
+		if (!file.is_open())
+			return false;
+
+		file << stream.rdbuf();			
+		return true;
+	}
+
+	bool AddFile(const std::string &group_path, const std::string &file_path) override
+	{
+		if (!GetNextPath(group_path))
+			return false;
+
+		std::filesystem::path source_path = file_path;
+		try
+		{
+			std::filesystem::copy_file(source_path, next_path, std::filesystem::copy_options::update_existing);
+			return true; // If the file is already there, copy_file returns false; that's not an error for us
+		}
+		catch (std::filesystem::filesystem_error &)
+		{
+			return false;
+		}
+	}
+
+	const std::string& GetOutputPathName(void) override
+	{
+		return output_world_name;
 	}
 };

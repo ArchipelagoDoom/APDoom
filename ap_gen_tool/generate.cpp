@@ -119,6 +119,8 @@ struct level_t
     map_state_t* map_state = nullptr;
 };
 
+static GroupedOutput *world = nullptr;
+
 int64_t location_next_id = 0;
 
 std::vector<ap_item_t> ap_items;
@@ -391,8 +393,11 @@ Json::Value generate_apworld_manifest(game_t *game, const Json::Value &apdoom_js
     strftime(buf, sizeof(buf), "%Y%m%d", localtime(&dt));
 
     Json::Value json;
-    json["version"] = 7;
-    json["compatible_version"] = 7;
+    if (world->include_manifest_version)
+    {
+        json["version"] = 7;
+        json["compatible_version"] = 7;        
+    }
     json["game"] = game->ap_name;
     json["world_version"] = "2.0." + std::string(buf);
     json["__apdoom"] = apdoom_json;
@@ -521,8 +526,36 @@ Json::Value generate_game_defs_json(game_t *game, level_map_t& levels_map)
 int generate(game_t* game)
 {
     OLog("AP Gen Tool version 2.0");
-    onut::createFolder("output");
     long runtime_start = get_runtime_us();
+
+    for (int i = 0; i < (int)OArguments.size(); ++i)
+    {
+        if (OArguments[i] == "--world-folder")
+        {
+            try
+            {
+                if (i + 1 >= (int)OArguments.size())
+                    throw std::runtime_error("Requires an argument.");
+                world = new OutputToFolder(OArguments[i+1], game->ap_world_name);
+            }
+            catch (const std::runtime_error& e)
+            {
+                std::string error_str = std::string("--world-folder: ") + e.what();
+                OLogE(error_str);
+                OnScreenMessages::AddError(error_str);
+                return 1;
+            }
+            break;
+        }
+    }
+
+    if (!world)
+    {
+        onut::createFolder("output");
+        world = new ZipFile("./output/" + game->ap_world_name + ".apworld");
+    }
+
+    // ========================================================================
 
     ap_items.clear();
     ap_locations.clear();
@@ -756,6 +789,7 @@ int generate(game_t* game)
             OnScreenMessages::AddError(error);
         }
 
+        delete world;
         for (auto level : levels) delete level;
         return 1;
     }
@@ -769,7 +803,6 @@ int generate(game_t* game)
 
     const std::string zip_world_path = game->ap_world_name + "/";
     const std::string zip_wad_path = zip_world_path + "wad/";
-    ZipFile world;
 
     Json::Value ap_json;
     { // Regions
@@ -858,7 +891,7 @@ int generate(game_t* game)
         }
 
         ap_json["regions"] = allregions_json;
-        //world.AddJson(zip_world_path + "regions.json", ap_json, false);
+        //world->AddJson(zip_world_path + "regions.json", ap_json, false);
     }
     { // Items
         Json::Value itemtable_json;
@@ -893,7 +926,7 @@ int generate(game_t* game)
 
         ap_json["item_table"] = itemtable_json;
         ap_json["item_name_groups"] = itemgroups_json;
-        //world.AddJson(zip_world_path + "items.json", ap_json, false);
+        //world->AddJson(zip_world_path + "items.json", ap_json, false);
     }
     { // Locations
         Json::Value locations_json;
@@ -939,7 +972,7 @@ int generate(game_t* game)
         ap_json["location_table"] = locations_json;
         ap_json["location_name_groups"] = locgroups_json;
         ap_json["death_logic_excluded_locations"] = deathlogic_json;
-        //world.AddJson(zip_world_path + "locations.json", ap_json, false);
+        //world->AddJson(zip_world_path + "locations.json", ap_json, false);
     }
     { // Starting levels
         Json::Value startlevels_json = Json::objectValue;
@@ -952,7 +985,7 @@ int generate(game_t* game)
         }
 
         ap_json["starting_levels_by_episode"] = startlevels_json;
-        //world.AddJson(zip_world_path + "start.json", ap_json, false);
+        //world->AddJson(zip_world_path + "start.json", ap_json, false);
     }
     { // World info
         Json::Value customratio_json = Json::objectValue;
@@ -972,9 +1005,9 @@ int generate(game_t* game)
             ap_json["custom_pool_ratio"] = customratio_json;
         if (!filleritem_json.empty())
             ap_json["filler_item_weight"] = filleritem_json;
-        //world.AddJson(zip_world_path + "filler.json", ap_json, false);
+        //world->AddJson(zip_world_path + "filler.json", ap_json, false);
     }
-    world.AddJson(zip_world_path + game->short_name + ".data.json", ap_json, false);
+    world->AddJson(zip_world_path + game->short_name + ".data.json", ap_json, false);
 
     // ========================================================================
 
@@ -1005,7 +1038,7 @@ int generate(game_t* game)
     {
         const auto dirsep = wad_path.find_last_of('/');
         std::string wad_name = wad_path.substr(dirsep == std::string::npos ? 0 : dirsep + 1);
-        if (!world.AddFile(zip_wad_path + wad_name, wad_path))
+        if (!world->AddFile(zip_wad_path + wad_name, wad_path))
         {
             OnScreenMessages::AddError("Couldn't add " + wad_path + " to the APWorld!");
             continue;
@@ -1018,11 +1051,11 @@ int generate(game_t* game)
 
     // Generate the game def json that contains all the info for apdoom
     std::string defs_path = zip_world_path + game->short_name + ".game.json";
-    world.AddJson(defs_path, generate_game_defs_json(game, levels_map));
+    world->AddJson(defs_path, generate_game_defs_json(game, levels_map));
     info_json["definitions"] = defs_path;
 
     // Lastly generate the apworld manifest
-    world.AddJson(zip_world_path + "archipelago.json", generate_apworld_manifest(game, info_json));
+    world->AddJson(zip_world_path + "archipelago.json", generate_apworld_manifest(game, info_json));
 
     // ========================================================================
 
@@ -1078,13 +1111,13 @@ int generate(game_t* game)
 
     WorldOptions_MixinPyOptions(game, opts);
 
-    world.AddSStream(zip_world_path + "options.py", Py_CreateOptionsPy(game, opts));
-    world.AddSStream(zip_world_path + "__init__.py", Py_CreateInitPy(game));
+    world->AddSStream(zip_world_path + "options.py", Py_CreateOptionsPy(game, opts));
+    world->AddSStream(zip_world_path + "__init__.py", Py_CreateInitPy(game));
 
     int result = 0;
-    result += world.AddFile(zip_world_path + "id1common/__init__.py", "./assets/py/id1common/__init__.py");
-    result += world.AddFile(zip_world_path + "id1common/options.py", "./assets/py/id1common/options.py");
-    result += world.AddFile(zip_world_path + "id1common/LICENSE", "./assets/py/id1common/LICENSE");
+    result += world->AddFile(zip_world_path + "id1common/__init__.py", "./assets/py/id1common/__init__.py");
+    result += world->AddFile(zip_world_path + "id1common/options.py", "./assets/py/id1common/options.py");
+    result += world->AddFile(zip_world_path + "id1common/LICENSE", "./assets/py/id1common/LICENSE");
     if (result != 3)
         OnScreenMessages::AddError("Couldn't add the id1common Python module to the APWorld!");
 
@@ -1128,10 +1161,10 @@ int generate(game_t* game)
     if (warning_count_empty_region)
         OnScreenMessages::AddWarning(std::to_string(warning_count_empty_region) + " location(s) are not associated with any regions.");
 
-    std::string apworld_zip_path = "./output/" + game->ap_world_name + ".apworld";
-    if (!world.Output(apworld_zip_path))
-        OnScreenMessages::AddError("Couldn't create file '" + apworld_zip_path + "'.");
-    OnScreenMessages::AddNotice("Created world '" + apworld_zip_path + "' successfully (" + compare_runtime(runtime_start, runtime_end) + "sec.)");
+    if (!world->Finalize())
+        OnScreenMessages::AddError("Couldn't create '" + world->GetOutputPathName() + "'.");
+    else
+        OnScreenMessages::AddNotice("Created world '" + world->GetOutputPathName() + "' successfully (" + compare_runtime(runtime_start, runtime_end) + "sec.)");
 
     OLog("Generation complete: " 
         + compare_runtime(runtime_start, runtime_end) + " sec. total, "
@@ -1141,6 +1174,7 @@ int generate(game_t* game)
     // TODO: Pop tracker logic
 
     // Clean up
+    delete world;
     for (auto level : levels) delete level;
     return 0;
 }
