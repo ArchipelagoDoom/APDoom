@@ -159,7 +159,7 @@ void populate_worlds(void)
 			if (w)
 				w->path = path_str;
 			APZipReader_Close(zip);
-		}			
+		}
 	}
 	catch (std::filesystem::filesystem_error &) {}
 
