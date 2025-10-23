@@ -153,10 +153,11 @@ void populate_worlds(void)
 			if (!entry.is_regular_file() || entry.path().extension() != ".apworld")
 				continue;
 
-			APZipReader *zip = APZipReader_FromFile(entry.path().native().c_str());
+			std::string path_str = entry.path().string();
+			APZipReader *zip = APZipReader_FromFile(path_str.c_str());
 			WorldInfo *w = parse_world(zip);
 			if (w)
-				w->path = entry.path().native();
+				w->path = path_str;
 			APZipReader_Close(zip);
 		}			
 	}
