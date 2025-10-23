@@ -134,6 +134,10 @@ static WorldInfo *parse_world(APZipReader *world)
 	if (apdoom_json.isMember("wads_included") && apdoom_json["wads_included"].isArray())
 		json_to_vector(apdoom_json["wads_included"], w.included_wads);
 
+	// Will be set later. For now, initialize them.
+	w.embedded = NULL;
+	memset(&w.c_world_info, 0, sizeof(ap_worldinfo_t));
+
 	AllGameInfo.push_back(w);
 	return &AllGameInfo.back();
 }

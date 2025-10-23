@@ -54,8 +54,7 @@ static void LV_InitPalette(void)
             const byte r = playpal[idx];
             const byte g = playpal[idx+1];
             const byte b = playpal[idx+2];
-            const byte a = 0xFF;
-            palette[pnum][c] = (a << 24) | (r << 16) | (g << 8) | (b);
+            palette[pnum][c] = 0xFF000000 | (r << 16) | (g << 8) | (b);
         }        
     }
     active_palette = palette[0];
