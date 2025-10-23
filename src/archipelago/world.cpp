@@ -153,10 +153,10 @@ void populate_worlds(void)
 			if (!entry.is_regular_file() || entry.path().extension() != ".apworld")
 				continue;
 
-			APZipReader *zip = APZipReader_FromFile(entry.path().c_str());
+			APZipReader *zip = APZipReader_FromFile(entry.path().native().c_str());
 			WorldInfo *w = parse_world(zip);
 			if (w)
-				w->path = entry.path().string();
+				w->path = entry.path().native();
 			APZipReader_Close(zip);
 		}			
 	}

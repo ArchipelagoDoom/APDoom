@@ -1462,7 +1462,7 @@ void f_locinfo(std::vector<AP_NetworkItem> loc_infos)
 
 const char* apdoom_get_save_dir()
 {
-	return ap_save_path.c_str();
+	return ap_save_path.native().c_str();
 }
 
 

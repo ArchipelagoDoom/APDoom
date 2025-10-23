@@ -138,7 +138,7 @@ set(GAME_SOURCE_FILES
     w_merge.c           w_merge.h
     z_zone.c            z_zone.h)
 
-set(GAME_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/../")
+set(GAME_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/../" ${PROJECT_SOURCE_DIR}/src/archipelago)
 
 if(WIN32)
     list(APPEND GAME_SOURCE_FILES
@@ -184,7 +184,7 @@ else()
     add_executable("${PROGRAM_PREFIX}doom" ${SOURCE_FILES_WITH_DEH})
 endif()
 
-target_include_directories("${PROGRAM_PREFIX}doom" PRIVATE ${GAME_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/src/archipelago)
+target_include_directories("${PROGRAM_PREFIX}doom" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${PROGRAM_PREFIX}doom" doom ${EXTRA_LIBS})
 set_target_properties("${PROGRAM_PREFIX}doom" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
 
@@ -199,7 +199,7 @@ else()
     add_executable("${PROGRAM_PREFIX}heretic" ${SOURCE_FILES_WITH_DEH})
 endif()
 
-target_include_directories("${PROGRAM_PREFIX}heretic" PRIVATE ${GAME_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/src/archipelago)
+target_include_directories("${PROGRAM_PREFIX}heretic" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${PROGRAM_PREFIX}heretic" heretic ${EXTRA_LIBS})
 set_target_properties("${PROGRAM_PREFIX}heretic" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
 
@@ -333,8 +333,13 @@ set(LAUNCHER_FILES
     w_file_win32.c
     w_merge.c           w_merge.h
     z_zone.c            z_zone.h)
+
+if(WIN32)
+    list(APPEND LAUNCHER_FILES
+         "../win32/win_opendir.c" "../win32/win_opendir.h")
+endif()
+
 add_executable("${GENERIC_PREFIX}launcher" ${LAUNCHER_FILES} ${COMMON_SOURCE_FILES})
 target_compile_definitions("${GENERIC_PREFIX}launcher" PRIVATE -DLAUNCHER_PRG)
-target_include_directories("${GENERIC_PREFIX}launcher"
-                           PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
+target_include_directories("${GENERIC_PREFIX}launcher" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${GENERIC_PREFIX}launcher" ${EXTRA_LIBS} launcher)

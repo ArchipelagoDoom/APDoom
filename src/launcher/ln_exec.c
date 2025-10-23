@@ -293,7 +293,7 @@ static wchar_t *BuildCommandLine(void)
 	for (int i = 0; i < argv; ++i)
 		path_len += strlen(arglist[i]) + (argquote[i] ? 3 : 1);
 
-	command_path = calloc(path_len, sizeof(wchar_t));
+	wchar_t* command_path = calloc(path_len, sizeof(wchar_t));
 
 	for (int i = 1; i < argv; ++i)
 	{
@@ -326,23 +326,23 @@ static int DoExecute(int has_init_file)
 		NULL, /* lpApplicationName */
 		command, /* lpCommandLine */
 		NULL, /* lpProcessAttributes */
-		NULL /* lpThreadAttributes */
+		NULL, /* lpThreadAttributes */
 		FALSE, /* bInheritHandles */
 		0, /* dwCreationFlags */
 		NULL, /* lpEnvironment*/
 		NULL, /* lpCurrentDirectory */
 		&startup_info, /* lpStartupInfo */
-		&process_info) /* lpProcessInformation */
+		&process_info); /* lpProcessInformation */
 
-	child_process = proc_info.hProcess;
+	child_process = process_info.hProcess;
 	CommonPostExecLoop(has_init_file, WaitOnChild);
 	child_process = NULL;
 
-	GetExitCodeProcess(proc_info.hProcess, &exit_code);
+	GetExitCodeProcess(process_info.hProcess, &exit_code);
 
 	free(command);
-	CloseHandle(proc_info.hProcess);
-	CloseHandle(proc_info.hThread);
+	CloseHandle(process_info.hProcess);
+	CloseHandle(process_info.hThread);
 	return (int)exit_code;
 }
 

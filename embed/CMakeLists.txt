@@ -56,6 +56,10 @@ set(embed_h_contents "// Do not modify this file!
 #ifndef __EMBEDDED_FILES_H__
 #define __EMBEDDED_FILES_H__
 
+#ifdef __cplusplus
+extern \"C\" {
+#endif
+
 #include <stddef.h>
 
 typedef struct {
@@ -67,6 +71,10 @@ typedef struct {
 extern const embedded_file_t embedded_files[${embed_array_size}]\;
 
 ${embed_defines}
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __EMBEDDED_FILES_H__
 ")
