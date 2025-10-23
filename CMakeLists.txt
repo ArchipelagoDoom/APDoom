@@ -123,11 +123,6 @@ foreach(SUBDIR embed textscreen opl pcsound src)
     add_subdirectory("${SUBDIR}")
 endforeach()
 
-option(ENABLE_AP_GEN_TOOL "Enable AP Gen Tool" On)
-if (ENABLE_AP_GEN_TOOL)
-    add_subdirectory(ap_gen_tool)
-endif()
-
 # Do not build games we don't support by default.
 # (You're allowed to build them manually, but they won't be built by default.)
 set_target_properties(hexen ${PROGRAM_PREFIX}hexen PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
