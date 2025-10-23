@@ -66,5 +66,6 @@ cp lib/libAPCpp.so ./AppDir/usr/lib || exit 1
 cp ../data/launcher_icon.png ./AppDir/apdoom.png || exit 1
 cp ../data/AppImage/apdoom.desktop ./AppDir/apdoom.desktop || exit 1
 cp ../data/AppImage/run_launcher.sh ./AppDir/usr/bin || exit 1
+cp ../CREDITS ./AppDir || exit 1
 
 "$LINUXDEPLOY_PATH" --appdir=AppDir --desktop-file=AppDir/apdoom.desktop --icon-file=AppDir/apdoom.png --custom-apprun=AppDir/usr/bin/run_launcher.sh --output=appimage || exit 1

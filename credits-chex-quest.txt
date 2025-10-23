@@ -1,9 +1,0 @@
-# Credits
-
-Daivuk - David St-Louis - Creator of APDOOM
-Kay "Kaito" Sinclaire - Linux binaries/support
-
-## Extra help
-
-StuBob - Logic and Rules
-The rest of the community on discord for helping testing, helping with design question, coding questions, reviewing, etc.
