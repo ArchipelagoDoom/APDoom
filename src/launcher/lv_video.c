@@ -81,7 +81,7 @@ static void LV_OnExit(void)
     {
         if (layer2free->tex)
             SDL_DestroyTexture(layer2free->tex);
-        free(layer2free->surf);
+        SDL_FreeSurface(layer2free->surf);
 
         layer_t *layernext = layer2free->_next;
         free(layer2free);

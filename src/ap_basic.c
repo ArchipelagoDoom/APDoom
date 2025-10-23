@@ -220,13 +220,13 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
         else
         {
             char* player_name = myargv[p + 1];
-            int len = strlen(player_name) / 2;
+            size_t len = strlen(player_name) / 2;
             char byte_str[3] = {0};
 
-            for (int i = 0; i < len; ++i)
+            for (size_t i = 0; i < len; ++i)
             {
                 memcpy(byte_str, player_name + (i * 2), 2);
-                player_name[i] = strtol(byte_str, NULL, 16);
+                player_name[i] = (char)strtol(byte_str, NULL, 16);
             }
             player_name[len] = '\0';
         }
@@ -320,7 +320,7 @@ void APC_DumpEmbeddedFiles(void)
         {
             printf("  %s: Already exists, not dumping\n", file->name);
         }
-        else if (!M_WriteFile(embed_path, file->data, file->size))
+        else if (!M_WriteFile(embed_path, file->data, (int)file->size))
         {
             printf("  %s: Couldn't write file\n", file->name);
         }

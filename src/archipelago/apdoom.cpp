@@ -278,7 +278,7 @@ const ap_worldinfo_t *ap_loaded_world_info(void)
 
 int ap_is_location_type(int doom_type)
 {
-	return preloaded_location_types.count(doom_type);
+	return (int)preloaded_location_types.count(doom_type);
 }
 
 ap_levelselect_t *ap_get_level_select_info(unsigned int ep)
@@ -668,7 +668,11 @@ int apdoom_init(ap_settings_t* settings)
 				ap_save_path /= ap_seed_string;
 
 				// Create a directory where saves will go for this AP seed.
+#ifdef _WIN32
+				printf("APDOOM: Save directory: %ws\n", ap_save_path.c_str());
+#else
 				printf("APDOOM: Save directory: %s\n", ap_save_path.c_str());
+#endif
 				std::filesystem::create_directories(ap_save_path);
 
 				// Make sure that ammo starts at correct base values no matter what
@@ -1556,7 +1560,7 @@ int apdoom_is_location_progression(ap_level_index_t idx, int index)
 
 	int64_t id = it3->second;
 
-	return ap_progressive_locations.count(id);
+	return (int)ap_progressive_locations.count(id);
 }
 
 void apdoom_complete_level(ap_level_index_t idx)
@@ -1820,7 +1824,7 @@ void apdoom_update()
 				notification_icon.yf = previous_y - AP_NOTIF_SIZE - AP_NOTIF_PADDING;
 				notification_icon.vely *= -0.3f / ((float)(ap_notification_icons.size() / 4) * 0.05f + 1.0f);
 
-				notification_icon.t += ap_notification_icons.size() / 4 + 1; // Faster the more we have queued (4 can display on screen)
+				notification_icon.t += (int)ap_notification_icons.size() / 4 + 1; // Faster the more we have queued (4 can display on screen)
 				if (notification_icon.t > 350 * 3 / 4) // ~7.5sec
 				{
 					notification_icon.state = AP_NOTIF_STATE_HIDING;

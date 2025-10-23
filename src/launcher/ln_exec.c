@@ -34,13 +34,12 @@ gamesettings_t exec_settings = {
 
 // ============================================================================
 
-static const char *arglist[64];
+static const char *arglist[64] = {NULL};
 static unsigned char argquote[64];
 static int argv = 0;
 
 static inline void SetupArgs(const char *program)
 {
-	memset(arglist, 0, sizeof(arglist));
 	memset(argquote, 0, sizeof(argquote));
 	argquote[0] = true;
 	arglist[0] = program;
@@ -282,7 +281,8 @@ static void ConcatWCString(wchar_t *buf, const char *value)
 static wchar_t *BuildCommandLine(void)
 {
 	wchar_t exe_path[MAX_PATH];
-	int path_len = 0;
+    wchar_t *sep;
+	size_t path_len = 0;
 
 	GetModuleFileNameW(NULL, exe_path, MAX_PATH);
 
@@ -294,6 +294,15 @@ static wchar_t *BuildCommandLine(void)
 		path_len += strlen(arglist[i]) + (argquote[i] ? 3 : 1);
 
 	wchar_t* command_path = calloc(path_len, sizeof(wchar_t));
+
+    wcscat(command_path, L"\"");
+    if ((sep = wcsrchr(exe_path, DIR_SEPARATOR)) != NULL)
+    {
+        wcsncpy(command_path + 1, exe_path, sep - exe_path + 1);
+        command_path[sep - exe_path + 2] = '\0';
+    }
+    ConcatWCString(command_path, arglist[0]);
+    wcscat(command_path, L"\"");
 
 	for (int i = 1; i < argv; ++i)
 	{
@@ -316,13 +325,14 @@ static int DoExecute(int has_init_file)
 	STARTUPINFOW startup_info;
 	PROCESS_INFORMATION process_info;
 	wchar_t* command = BuildCommandLine();
-	DWORD exit_code = -666;
+	DWORD exit_code = -777;
+    BOOL process_return;
 
 	memset(&process_info, 0, sizeof(process_info));
 	memset(&startup_info, 0, sizeof(startup_info));
 	startup_info.cb = sizeof(startup_info);
 
-	CreateProcessW(
+	process_return = CreateProcessW(
 		NULL, /* lpApplicationName */
 		command, /* lpCommandLine */
 		NULL, /* lpProcessAttributes */
@@ -333,6 +343,14 @@ static int DoExecute(int has_init_file)
 		NULL, /* lpCurrentDirectory */
 		&startup_info, /* lpStartupInfo */
 		&process_info); /* lpProcessInformation */
+
+	if (!process_return)
+    {
+        DWORD error = GetLastError();
+        fprintf(stderr, "CreateProcessW failed (%i).\n", error);
+        free(command);
+        return -666;
+    }
 
 	child_process = process_info.hProcess;
 	CommonPostExecLoop(has_init_file, WaitOnChild);
