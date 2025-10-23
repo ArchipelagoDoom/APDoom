@@ -45,127 +45,6 @@
 #include "apdoom_pwad.hpp"
 #include "apzip.h"
 
-#if defined(_WIN32)
-static wchar_t *ConvertMultiByteToWide(const char *str, UINT code_page)
-{
-    wchar_t *wstr = NULL;
-    int wlen = 0;
-
-    wlen = MultiByteToWideChar(code_page, 0, str, -1, NULL, 0);
-
-    if (!wlen)
-    {
-        errno = EINVAL;
-        printf("APDOOM: ConvertMultiByteToWide: Failed to convert path to wide encoding.\n");
-        return NULL;
-    }
-
-    wstr = (wchar_t*)malloc(sizeof(wchar_t) * wlen);
-
-    if (!wstr)
-    {
-        printf("APDOOM: ConvertMultiByteToWide: Failed to allocate new string.");
-        return NULL;
-    }
-
-    if (MultiByteToWideChar(code_page, 0, str, -1, wstr, wlen) == 0)
-    {
-        errno = EINVAL;
-        printf("APDOOM: ConvertMultiByteToWide: Failed to convert path to wide encoding.\n");
-        free(wstr);
-        return NULL;
-    }
-
-    return wstr;
-}
-
-static wchar_t *AP_ConvertUtf8ToWide(const char *str)
-{
-    return ConvertMultiByteToWide(str, CP_UTF8);
-}
-#endif
-
-
-
-//
-// Create a directory
-//
-
-static void AP_MakeDirectory(const char *path)
-{
-#ifdef _WIN32
-    wchar_t *wdir;
-
-    wdir = AP_ConvertUtf8ToWide(path);
-
-    if (!wdir)
-    {
-        return;
-    }
-
-    _wmkdir(wdir);
-
-    free(wdir);
-#else
-    mkdir(path, 0755);
-#endif
-}
-
-
-static FILE *AP_fopen(const char *filename, const char *mode)
-{
-#ifdef _WIN32
-    FILE *file;
-    wchar_t *wname = NULL;
-    wchar_t *wmode = NULL;
-
-    wname = AP_ConvertUtf8ToWide(filename);
-
-    if (!wname)
-    {
-        return NULL;
-    }
-
-    wmode = AP_ConvertUtf8ToWide(mode);
-
-    if (!wmode)
-    {
-        free(wname);
-        return NULL;
-    }
-
-    file = _wfopen(wname, wmode);
-
-    free(wname);
-    free(wmode);
-
-    return file;
-#else
-    return fopen(filename, mode);
-#endif
-}
-
-
-static int AP_FileExists(const char *filename)
-{
-    FILE *fstream;
-
-    fstream = AP_fopen(filename, "r");
-
-    if (fstream != NULL)
-    {
-        fclose(fstream);
-        return true;
-    }
-    else
-    {
-        // If we can't open because the file is a directory, the 
-        // "file" exists at least!
-
-        return errno == EISDIR;
-    }
-}
-
 
 static Json::Value AP_ReadJson(const char *data, size_t size)
 {
@@ -218,8 +97,9 @@ static std::set<int64_t> suppressed_locations; // Locations that don't exist in 
 static bool ap_initialized = false;
 static std::vector<std::string> ap_cached_messages;
 static std::string ap_seed_string;
-static std::string ap_save_dir_name;
 static std::vector<ap_notification_icon_t> ap_notification_icons;
+
+static std::filesystem::path ap_save_path;
 
 #define SLOT_DATA_CALLBACK(func_name, output, condition) void func_name (int result) { if (condition) output = result; }
 
@@ -707,9 +587,8 @@ int apdoom_init(ap_settings_t* settings)
 		recalc_max_ammo();
 
 		ap_seed_string = "practmp_" + std::to_string(rand());
-		ap_save_dir_name = ap_seed_string;
-		if (!AP_FileExists(ap_save_dir_name.c_str()))
-			AP_MakeDirectory(ap_save_dir_name.c_str());
+		ap_save_path = std::filesystem::current_path() / ap_seed_string;
+		std::filesystem::create_directories(ap_save_path);
 	}
 	else
 	{
@@ -779,20 +658,18 @@ int apdoom_init(ap_settings_t* settings)
 				printf("  Time: %f\n", ap_room_info.time);
 
 				ap_was_connected = true;
+				if (ap_settings.save_dir != NULL)
+					ap_save_path = ap_settings.save_dir;
+				else
+					ap_save_path = std::filesystem::current_path() / "save";
 
 				ap_seed_string = "AP_" + ap_room_info.seed_name + "_" + string_to_hex(ap_settings.player_name);
-				if (ap_settings.save_dir != NULL)
-					ap_save_dir_name = std::string(ap_settings.save_dir) + "/" + ap_seed_string;
-				else
-					ap_save_dir_name = ap_seed_string;
+				ap_save_path /= ap_world_info->shortname;
+				ap_save_path /= ap_seed_string;
 
 				// Create a directory where saves will go for this AP seed.
-				printf("APDOOM: Save directory: %s\n", ap_save_dir_name.c_str());
-				if (!AP_FileExists(ap_save_dir_name.c_str()))
-				{
-					printf("  Doesn't exist, creating...\n");
-					AP_MakeDirectory(ap_save_dir_name.c_str());
-				}
+				printf("APDOOM: Save directory: %s\n", ap_save_path.c_str());
+				std::filesystem::create_directories(ap_save_path);
 
 				// Make sure that ammo starts at correct base values no matter what
 				recalc_max_ammo();
@@ -1076,8 +953,7 @@ void load_state()
 {
 	printf("APDOOM: Load state\n");
 
-	std::string filename = ap_save_dir_name + "/apstate.json";
-	std::ifstream f(filename);
+	std::ifstream f(ap_save_path / "apstate.json");
 	if (!f.is_open())
 	{
 		printf("  None found.\n");
@@ -1241,8 +1117,7 @@ std::vector<ap_level_index_t> get_level_indices()
 
 void save_state()
 {
-	std::string filename = ap_save_dir_name + "/apstate.json";
-	std::ofstream f(filename);
+	std::ofstream f(ap_save_path / "apstate.json");
 	if (!f.is_open())
 	{
 		printf("Failed to save AP state.\n");
@@ -1587,17 +1462,16 @@ void f_locinfo(std::vector<AP_NetworkItem> loc_infos)
 
 const char* apdoom_get_save_dir()
 {
-	return ap_save_dir_name.c_str();
+	return ap_save_path.c_str();
 }
 
 
 void apdoom_remove_save_dir(void)
 {
-	if (ap_save_dir_name.substr(0, 8) != "practmp_")
-		return;
-
-	const std::filesystem::path save_path(ap_save_dir_name);
-	std::filesystem::remove_all(save_path);
+	if (!ap_practice_mode || ap_seed_string.substr(0, 8) != "practmp_")
+		return; // Don't attempt to remove anything that isn't a practice save
+	// We don't support redirecting temp saves, so this shouldn't be able to do anything nasty.
+	std::filesystem::remove_all(ap_save_path);
 }
 
 

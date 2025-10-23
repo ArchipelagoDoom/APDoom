@@ -174,10 +174,11 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     }
 
     //!
-    // @arg <directory>
+    // @arg <path>
     // @category archipelago
     //
-    // Change the subdirectory that Archipelago game saves are placed into.
+    // Change the path that Archipelago game saves are placed into.
+    // Optional, the default is "save" in the current working directory.
     //
     if ((p = M_CheckParmWithArgs("-apsavedir", 1)) != 0)
     {
