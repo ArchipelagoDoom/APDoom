@@ -1390,7 +1390,7 @@ void D_DoomMain(void)
     {
         if (ap_settings.temp_init_file)
             I_Quit(); // If from launcher, don't I_Error
-	    I_Error("Failed to initialize Archipelago.");
+        I_Error("Failed to initialize Archipelago.");
     }
 
 
