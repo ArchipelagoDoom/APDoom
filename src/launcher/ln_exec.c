@@ -183,6 +183,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
                 "an anti-virus) may be preventing the game from starting.");
         }
 
+        LI_HandleEvents();
         LV_RenderFrame();
     } while (!waitdone && !initready);
 

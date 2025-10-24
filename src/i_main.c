@@ -31,6 +31,21 @@
 #include "m_argv.h"
 #include "m_misc.h"
 
+#ifdef _WIN32
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h> // [AP] FreeConsole
+
+static void CloseAutoConsole(void)
+{
+    // If a console was allocated just for us, free it immediately.
+    DWORD _tmp;
+    DWORD proc_count = GetConsoleProcessList(&_tmp, 1);
+    if (proc_count < 2)
+        FreeConsole();
+}
+
+#endif
 
 //
 // D_DoomMain()
@@ -42,6 +57,10 @@ void D_DoomMain (void);
 
 int main(int argc, char **argv)
 {
+#ifdef _WIN32
+    CloseAutoConsole();
+#endif
+
     // save arguments
 
     myargc = argc;

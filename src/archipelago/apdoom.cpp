@@ -586,6 +586,7 @@ int apdoom_init(ap_settings_t* settings)
 		ap_settings.player_name = "Player";
 		recalc_max_ammo();
 
+		srand((unsigned int)time(NULL));
 		ap_seed_string = "practmp_" + std::to_string(rand());
 		ap_save_path = std::filesystem::current_path() / ap_seed_string;
 		std::filesystem::create_directories(ap_save_path);

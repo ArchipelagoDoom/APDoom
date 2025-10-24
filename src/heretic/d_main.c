@@ -1388,6 +1388,8 @@ void D_DoomMain(void)
     ap_settings.victory_callback = on_ap_victory;
     if (!apdoom_init(&ap_settings))
     {
+        if (ap_settings.temp_init_file)
+            I_Quit(); // If from launcher, don't I_Error
 	    I_Error("Failed to initialize Archipelago.");
     }
 
