@@ -1,13 +1,23 @@
 //
-// This source file is copyright (C) 2024 Kay "Kaito" Sinclaire,
-// released under the terms of the GNU General Public License, version 2 or later.
+// Copyright(C) 2025 Kay "Kaito" Sinclaire
 //
-// This code reads AP Doom information from a Json blob,
-// replacing hardcoded C headers which previously accomplished this task.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 
-#ifndef _APDOOM_PWAD_
-#define _APDOOM_PWAD_
+//
+// C++ headers for functions and classes local to the Archipelago scope.
+//
+
+#ifndef __ARCHIPELAGO_LOCAL_HPP__
+#define __ARCHIPELAGO_LOCAL_HPP__
 
 #include <vector>
 #include <set>
@@ -138,4 +148,4 @@ int json_parse_level_info(const Json::Value& json, level_info_storage_t &output)
 int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &output);
 int json_parse_obituaries(const Json::Value& json, obituary_storage_t &output);
 
-#endif // _APDOOM_PWAD_
+#endif // __ARCHIPELAGO_LOCAL_HPP__

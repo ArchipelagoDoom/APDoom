@@ -50,6 +50,11 @@
 
 void	P_SpawnMapThing (mapthing_t*	mthing, int index);
 
+// [AP] Level setup code that depends on data structures
+#define AP_INC_DOOM
+#include "inc_tweaks.c"
+#include "inc_rando.c"
+
 
 //
 // MAP related Lookup tables.
@@ -128,113 +133,6 @@ fixed_t GetOffset(vertex_t *v1, vertex_t *v2)
     r = (fixed_t)(sqrt(dx*dx + dy*dy))<<FRACBITS;
 
     return r;
-}
-
-
-
-// [AP] Functions for tweaking maps after loading them
-// Allow making any change that wouldn't require a nodesbuild.
-static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
-{
-    if (ap_force_disable_behaviors) return;
-    switch (tweak->type)
-    {
-        case TWEAK_SECTOR_SPECIAL:     sector->special = tweak->value;               break;
-        case TWEAK_SECTOR_TAG:         sector->tag = tweak->value;                   break;
-        case TWEAK_SECTOR_FLOOR:       sector->floorheight = tweak->value;           break;
-        case TWEAK_SECTOR_FLOOR_PIC:   memcpy(sector->floorpic, tweak->string, 8);   break;
-        case TWEAK_SECTOR_CEILING:     sector->ceilingheight = tweak->value;         break;
-        case TWEAK_SECTOR_CEILING_PIC: memcpy(sector->ceilingpic, tweak->string, 8); break;
-        default: break;
-    }
-    printf("P_TweakSector: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
-}
-
-static void P_TweakMapThing(mapthing_t *mapthing, ap_maptweak_t *tweak)
-{
-    if (ap_force_disable_behaviors) return;
-    switch (tweak->type)
-    {
-        case TWEAK_MAPTHING_X:     mapthing->x = tweak->value;       break;
-        case TWEAK_MAPTHING_Y:     mapthing->y = tweak->value;       break;
-        case TWEAK_MAPTHING_TYPE:  mapthing->type = tweak->value;    break;
-        case TWEAK_MAPTHING_ANGLE: mapthing->angle = tweak->value;   break;
-        case TWEAK_MAPTHING_FLAGS: mapthing->options = tweak->value; break;
-        default: break;
-    }
-    printf("P_TweakMapThing: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
-}
-
-static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
-{
-    if (ap_force_disable_behaviors) return;
-    switch (tweak->type)
-    {
-        case TWEAK_HUB_X: hub->x = tweak->value; break;
-        case TWEAK_HUB_Y: hub->y = tweak->value; break;
-        default: break;
-    }
-    printf("P_TweakHub: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
-}
-
-static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
-{
-    if (ap_force_disable_behaviors) return;
-    switch (tweak->type)
-    {
-        case TWEAK_LINEDEF_SPECIAL: linedef->special = tweak->value; break;
-        case TWEAK_LINEDEF_TAG:     linedef->tag = tweak->value;     break;
-        case TWEAK_LINEDEF_FLAGS:   linedef->flags = tweak->value;   break;
-        default: break;
-    }
-    printf("P_TweakLinedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
-}
-
-static void P_TweakSidedef(mapsidedef_t *sidedef, ap_maptweak_t *tweak)
-{
-    if (ap_force_disable_behaviors) return;
-    switch (tweak->type)
-    {
-        case TWEAK_SIDEDEF_LOWER:  memcpy(sidedef->bottomtexture, tweak->string, 8); break;
-        case TWEAK_SIDEDEF_MIDDLE: memcpy(sidedef->midtexture, tweak->string, 8);    break;
-        case TWEAK_SIDEDEF_UPPER:  memcpy(sidedef->toptexture, tweak->string, 8);    break;
-        case TWEAK_SIDEDEF_X:      sidedef->textureoffset = tweak->value;            break;
-        case TWEAK_SIDEDEF_Y:      sidedef->rowoffset = tweak->value;                break;
-        default: break;
-    }
-    printf("P_TweakSidedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
-}
-
-static void P_TweakMeta(ap_maptweak_t *tweak)
-{
-    if (ap_force_disable_behaviors) return;
-    switch (tweak->type)
-    {
-        case TWEAK_META_BEHAVES_AS:
-            // Let any arbitrary map have normally hardcoded hacks applied to it
-            if (strncmp(tweak->string, "MAP", 3) == 0)
-            {
-                metaepisode = 1;
-                metamap = atoi(&tweak->string[3]);
-            }
-            else if (tweak->string[0] == 'E'
-                && tweak->string[1] >= '1' && tweak->string[1] <= '9'
-                && tweak->string[2] == 'M')
-            {
-                metaepisode = (tweak->string[1] - '0');
-                metamap = atoi(&tweak->string[3]);
-            }
-            else if (strncmp(tweak->string, "NORMAL", 6) == 0)
-            { // Ignore normally present hacks
-                metaepisode = 1;
-                metamap = 1;
-            }
-            break;
-
-        default:
-            break;
-    }
-    printf("P_TweakMeta: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
 
@@ -602,218 +500,6 @@ void P_LoadNodes (int lump)
 }
 
 
-typedef enum
-{
-    // Not size, but difficulty
-    rmc_small,
-    rmc_medium,
-    rmc_big,
-    rmc_boss,
-
-    NUM_RMC
-} random_monster_cat_t;
-
-
-typedef struct
-{
-    int doom_type;
-    int hit_points;
-    int radius;
-    int height;
-    int frequency; // Globally in entire game. This is used for random balanced
-    random_monster_cat_t category;
-    int dont_shuffle;
-} random_monster_def_t;
-
-
-static random_monster_def_t doom_random_monster_defs[] =
-{
-    { 3004, 20, 20*FRACUNIT, 56*FRACUNIT, 384, rmc_small }, // Former Human
-    { 9, 30, 20*FRACUNIT, 56*FRACUNIT, 656, rmc_small }, // Former Human Sergeant
-    { 3001, 60, 20*FRACUNIT, 56*FRACUNIT, 974, rmc_small }, // Imp
-
-    { 3002, 150, 30*FRACUNIT, 56*FRACUNIT, 443, rmc_medium }, // Demon
-    { 58, 150, 30*FRACUNIT, 56*FRACUNIT, 183, rmc_medium }, // SPECTRE
-    { 3006, 100, 16*FRACUNIT, 56*FRACUNIT, 323, rmc_medium }, // Lost soul
-    { 3005, 400, 31*FRACUNIT, 56*FRACUNIT, 193, rmc_medium }, // Cacodemon
-
-    { 3003, 1000, 24*FRACUNIT, 64*FRACUNIT, 82, rmc_big }, // Baron of hell
-
-    { 16, 4000, 40*FRACUNIT, 110*FRACUNIT, 5, rmc_boss, 1 }, // Cyberdemon
-    { 7, 3000, 128*FRACUNIT, 100*FRACUNIT, 2, rmc_boss, 1 } // Spiderdemon
-};
-
-
-static random_monster_def_t doom2_random_monster_defs[] =
-{
-    { 3004, 20, 20*FRACUNIT, 56*FRACUNIT, 290, rmc_small }, // Former Human
-    { 9, 30, 20*FRACUNIT, 56*FRACUNIT, 483, rmc_small }, // Former Human Sergeant
-    { 3001, 60, 20*FRACUNIT, 56*FRACUNIT, 1223, rmc_small }, // Imp
-
-    { 3002, 150, 30*FRACUNIT, 56*FRACUNIT, 331, rmc_medium }, // Demon
-    { 58, 150, 30*FRACUNIT, 56*FRACUNIT, 175, rmc_medium }, // SPECTRE
-    { 3006, 100, 16*FRACUNIT, 56*FRACUNIT, 197, rmc_medium }, // Lost soul
-    { 3005, 400, 31*FRACUNIT, 56*FRACUNIT, 188, rmc_medium }, // Cacodemon
-
-    { 3003, 1000, 24*FRACUNIT, 64*FRACUNIT, 31, rmc_big }, // Baron of hell
-
-    { 16, 4000, 40*FRACUNIT, 110*FRACUNIT, 12, rmc_boss, 1 }, // Cyberdemon
-    { 7, 3000, 128*FRACUNIT, 100*FRACUNIT, 6, rmc_boss, 1 }, // Spiderdemon
-
-    { 84, 50, 20*FRACUNIT, 56*FRACUNIT, 156, rmc_small }, // Wolf SS
-    { 65, 70, 20*FRACUNIT, 56*FRACUNIT, 273, rmc_small }, // Former Human Commando
-
-    { 71, 400, 31*FRACUNIT, 56*FRACUNIT, 64, rmc_medium }, // Pain Elemental
-    { 67, 600, 48*FRACUNIT, 64*FRACUNIT, 68, rmc_medium }, // Mancubus
-    { 68, 500, 64*FRACUNIT, 64*FRACUNIT, 65, rmc_medium }, // Arachnotron
-    { 66, 300, 20*FRACUNIT, 56*FRACUNIT, 90, rmc_medium }, // Revenant
-
-    { 64, 700, 20*FRACUNIT, 56*FRACUNIT, 17, rmc_big }, // Archvile
-    { 69, 500, 24*FRACUNIT, 64*FRACUNIT, 75, rmc_big } // Hell Knight
-};
-
-
-typedef struct
-{
-    int index;
-    random_monster_def_t* og_monster;
-    random_monster_def_t* monster;
-    fixed_t fit_radius;
-    fixed_t fit_height;
-} monster_spawn_def_t;
-
-
-
-extern fixed_t tmbbox[4];
-extern int tmflags;
-extern fixed_t tmx;
-extern fixed_t tmy;
-fixed_t tmradius;
-
-
-boolean PIT_CheckLine_NoFlags(line_t* ld)
-{
-    if (tmbbox[BOXRIGHT] <= ld->bbox[BOXLEFT]
-     || tmbbox[BOXLEFT] >= ld->bbox[BOXRIGHT]
-     || tmbbox[BOXTOP] <= ld->bbox[BOXBOTTOM]
-     || tmbbox[BOXBOTTOM] >= ld->bbox[BOXTOP])
-        return true;
-
-    if (P_BoxOnLineSide (tmbbox, ld) != -1)
-        return true;
-		
-    // A line has been hit
-    
-    // The moving thing's destination position will cross
-    // the given line.
-    // If this should not be allowed, return false.
-    // If the line is special, keep track of it
-    // to process later if the move is proven ok.
-    // NOTE: specials are NOT sorted by order,
-    // so two special lines that are only 8 pixels apart
-    // could be crossed in either order.
-    
-    if (!ld->backsector)
-	    return false;		// one sided line
-		
-	if (ld->flags & ML_BLOCKING)
-	    return false;	// explicitly blocking everything
-
-	if (ld->flags & ML_BLOCKMONSTERS)
-	    return false;	// block monsters only
-
-    if (tmradius <= 20)
-        return true; // Smallest unit
-
-    // Check if the back sector can step up/down
-    float floor = ld->frontsector->floorheight;
-    float back_floor = ld->backsector->floorheight;
-    
-    return abs(floor - back_floor) <= 20 * FRACUNIT;
-}
-
-
-boolean check_position(fixed_t x, fixed_t y, fixed_t radius)
-{
-    int			xl;
-    int			xh;
-    int			yl;
-    int			yh;
-    int			bx;
-    int			by;
-    subsector_t*	newsubsec;
-	
-    tmx = x;
-    tmy = y;
-    tmradius = radius;
-	
-    tmbbox[BOXTOP] = y + radius;
-    tmbbox[BOXBOTTOM] = y - radius;
-    tmbbox[BOXRIGHT] = x + radius;
-    tmbbox[BOXLEFT] = x - radius;
-
-    newsubsec = R_PointInSubsector(x, y);
-    validcount++;
-    
-    // check lines
-    xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
-    xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
-    yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
-    yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
-
-    for (bx=xl ; bx<=xh ; bx++)
-        for (by=yl ; by<=yh ; by++)
-            if (!P_BlockLinesIterator(bx, by, PIT_CheckLine_NoFlags))
-                return false;
-
-    return true;
-}
-
-
-void get_fit_dimensions(fixed_t x, fixed_t y, fixed_t* fit_radius, fixed_t* fit_height)
-{
-    static const fixed_t radius_checks[] = {
-        128*FRACUNIT,
-        64*FRACUNIT,
-        48*FRACUNIT,
-        40*FRACUNIT,
-        31*FRACUNIT,
-        30*FRACUNIT,
-        24*FRACUNIT,
-        20*FRACUNIT,
-        16*FRACUNIT
-    };
-
-    static const fixed_t height_checks[] = {
-        110*FRACUNIT,
-        100*FRACUNIT,
-        64*FRACUNIT,
-        56*FRACUNIT
-    };
-
-    subsector_t* ss = R_PointInSubsector(x, y);
-
-    for (int i = 0, len = sizeof(height_checks) / sizeof(fixed_t); i < len; ++i)
-    {
-        fixed_t sector_height = ss->sector->ceilingheight - ss->sector->floorheight;
-        if (sector_height >= height_checks[i] || i == len - 1)
-        {
-            *fit_height = height_checks[i];
-            break;
-        }
-    }
-
-    for (int i = 0, len = sizeof(radius_checks) / sizeof(fixed_t); i < len; ++i)
-    {
-        if (check_position(x, y, radius_checks[i]) || i == len - 1)
-        {
-            *fit_radius = radius_checks[i];
-            break;
-        }
-    }
-}
-
-
 //
 // P_LoadThings
 //
@@ -826,386 +512,86 @@ void P_LoadThings (int lump)
     mapthing_t  spawnthing_player1_start;
     int			numthings;
     boolean		spawn;
-    int bit;
+
+    ap_level_index_t  curlvlindex = ap_make_level_index(gameepisode, gamemap);
+    ap_level_state_t *curlvlstate = ap_get_level_state(curlvlindex);
+    ap_level_info_t  *curlvlinfo  = ap_get_level_info(curlvlindex);
+    int               num_ap_items = 0;
 
     data = W_CacheLumpNum (lump,PU_STATIC);
     numthings = W_LumpLength (lump) / sizeof(mapthing_t);
-
-    // Differ random seeds per map (and also per seed, done in ap_srand)
-    ap_srand(gameepisode * 1000 + gamemap);
-
-    int things_type_remap[1024] = {0};
 
     mt = (mapthing_t *)data;
     { // [AP] Tweaks: Alter mapthing data
         ap_maptweak_t *tweak;
 
-        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), MAPTHING_TWEAKS);
+        ap_init_map_tweaks(curlvlindex, MAPTHING_TWEAKS);
         while ((tweak = ap_get_map_tweaks()) != NULL)
             P_TweakMapThing(&mt[tweak->target], tweak);
     }
 
-    for (i = 0; i < numthings; i++, mt++)
+	short *remapped_things = calloc(numthings, sizeof(short));
+	for (i = 0; i < numthings; ++i)
+		remapped_things[i] = mt[i].type;
+
+	if (!ap_force_disable_behaviors && ap_state.random_monsters > 0)
     {
-        things_type_remap[i] = mt->type;
+        // Differ random seeds per map (and also per seed, done in ap_srand)
+        ap_srand(gameepisode * 1000 + gamemap);
+
+        P_MTRando_Setup(&monster_rando, ap_state.random_monsters);
+
+        // Forbid monsters that have map effects from moving, even when settings dictate otherwise.
+        if (gamemode == commercial)
+        {
+            if (metamap /* gamemap */ == 7) // Dead Simple mancubi and arachnotrons
+            {
+                P_MTRando_ForbidItem(mobjinfo[MT_FATSO].doomednum);
+                P_MTRando_ForbidItem(mobjinfo[MT_BABY].doomednum);                
+            }
+        }
+        else
+        {
+            switch (metaepisode /* gameepisode */)
+            {
+            case 1:
+                if (metamap /* gamemap */ == 8) // Barons in Phobos Anomaly
+                    P_MTRando_ForbidItem(mobjinfo[MT_BRUISER].doomednum);
+                break;
+            case 2:
+                if (metamap /* gamemap */ == 8) // Cyberdemon in Tower of Babel
+                    P_MTRando_ForbidItem(mobjinfo[MT_CYBORG].doomednum);
+                break;
+            case 3:
+                if (metamap /* gamemap */ == 8) // Spider Mastermind in Dis
+                    P_MTRando_ForbidItem(mobjinfo[MT_SPIDER].doomednum);
+                break;
+            case 4:
+                if (metamap /* gamemap */ == 6) // Cyberdemon in Against Thee Wickedly (opens exit door)
+                    P_MTRando_ForbidItem(mobjinfo[MT_CYBORG].doomednum);
+                else if (metamap /* gamemap */ == 8) // Spider Mastermind in Unto the Cruel
+                    P_MTRando_ForbidItem(mobjinfo[MT_SPIDER].doomednum);
+                break;
+            default:
+                if (metamap /* gamemap */ == 8) // Any Cyberdemon or Spider Mastermind in ExM8
+                {
+                    P_MTRando_ForbidItem(mobjinfo[MT_CYBORG].doomednum);
+                    P_MTRando_ForbidItem(mobjinfo[MT_SPIDER].doomednum);
+                }
+                break;
+            }
+        }
+
+		P_MTRando_Run(mt, numthings, remapped_things);
     }
 
-#define E1M8_CUTOFF_OFFSET 6176
-
-    int do_random_monsters = ap_state.random_monsters;
-
-    // [AP] Metamap instead of gamemap
-    // That way maps that don't rely on tag 666/667 behavior can have full randomness
-    if (gamemode == commercial && metamap /* gamemap */ == 7) do_random_monsters = 0;
-
-    if (!ap_force_disable_behaviors && do_random_monsters > 0)
+	if (!ap_force_disable_behaviors && ap_state.random_items > 0)
     {
-        random_monster_def_t* random_monster_defs = gamemode == commercial ? doom2_random_monster_defs : doom_random_monster_defs;
-        int monster_def_count = gamemode == commercial ?
-            sizeof(doom2_random_monster_defs) / sizeof(random_monster_def_t) : 
-            sizeof(doom_random_monster_defs) / sizeof(random_monster_def_t);
+        // Differ random seeds per map (and also per seed, done in ap_srand)
+        ap_srand(gameepisode * 1000 + gamemap + 1000000);
 
-        // Make sure at the right difficulty level
-        if (gameskill == sk_baby)
-            bit = 1;
-        else if (gameskill == sk_nightmare)
-            bit = 4;
-        else
-            bit = 1<<(gameskill-1);
-
-        random_monster_def_t* monsters[1024] = {0};
-        int monster_count = 0;
-        monster_spawn_def_t spawns[1024] = {0};
-        int spawn_count = 0;
-
-        // Collect spawn points
-        mt = (mapthing_t *)data;
-        for (i = 0; i < numthings; i++, mt++)
-        {
-            if (!(mt->options & bit))
-                continue;
-
-            if (gameepisode == 1 && gamemap == 8 && gamemode != commercial)
-                if (mt->y > E1M8_CUTOFF_OFFSET)
-                    continue;
-
-            for (int j = 0; j < monster_def_count; ++j)
-            {
-                if (random_monster_defs[j].dont_shuffle)
-                    continue;
-                if (random_monster_defs[j].doom_type == mt->type)
-                {
-                    get_fit_dimensions(mt->x * FRACUNIT, mt->y * FRACUNIT, &spawns[spawn_count].fit_radius, &spawns[spawn_count].fit_height);
-                    spawns[spawn_count].og_monster = &random_monster_defs[j];
-                    spawns[spawn_count++].index = i;
-                    break;
-                }
-            }
-        }
-
-        if (ap_state.random_monsters == 1) // Shuffle
-        {
-            // Collect monsters
-            for (int i = 0; i < spawn_count; ++i)
-            {
-                monster_spawn_def_t* spawn = &spawns[i];
-                monsters[monster_count++] = spawn->og_monster;
-            }
-        }
-        else if (ap_state.random_monsters == 2) // Random balanced
-        {
-            int ratios[NUM_RMC] = {0};
-            random_monster_def_t* defs_by_rmc[NUM_RMC][20];
-            int defs_by_rmc_count[NUM_RMC] = {0};
-            int rmc_ratios[NUM_RMC] = {0};
-            for (int i = 0; i < monster_def_count; ++i)
-            {
-                random_monster_def_t* monster = &random_monster_defs[i];
-                defs_by_rmc[monster->category][defs_by_rmc_count[monster->category]++] = monster;
-                rmc_ratios[monster->category] += monster->frequency;
-            }
-
-            int total = 0;
-            for (int i = 0; i < spawn_count; ++i)
-            {
-                ratios[spawns[i].og_monster->category]++;
-                total++;
-            }
-
-            while (monster_count < spawn_count)
-            {
-                int rnd = ap_rand() % total;
-                for (int i = 0; i < NUM_RMC; ++i)
-                {
-                    if (rnd < ratios[i])
-                    {
-                        rnd = ap_rand() % rmc_ratios[i];
-                        for (int j = 0; j < defs_by_rmc_count[i]; ++j)
-                        {
-                            if (rnd < defs_by_rmc[i][j]->frequency)
-                            {
-                                monsters[monster_count++] = defs_by_rmc[i][j];
-                                break;
-                            }
-                            rnd -= defs_by_rmc[i][j]->frequency;
-                        }
-                        break;
-                    }
-                    rnd -= ratios[i];
-                }
-            }
-        }
-        else if (ap_state.random_monsters == 3) // Random chaotic
-        {
-            int total = 0;
-            for (int i = 0; i < monster_def_count; ++i)
-            {
-                random_monster_def_t* monster = &random_monster_defs[i];
-                if (monster->dont_shuffle) continue;
-                total += monster->frequency;
-            }
-
-            while (monster_count < spawn_count)
-            {
-                int rnd = ap_rand() % total;
-                for (int i = 0; i < monster_def_count; ++i)
-                {
-                    random_monster_def_t* monster = &random_monster_defs[i];
-                    if (monster->dont_shuffle) continue;
-                    if (rnd < monster->frequency)
-                    {
-                        monsters[monster_count++] = monster;
-                        break;
-                    }
-                    rnd -= monster->frequency;
-                }
-            }
-        }
-
-        // Make sure we have at least 2 baron of hell in first episode boss level
-        if (gameepisode == 1 && gamemap == 8 && gamemode != commercial)
-        {
-            int baron_count = 0;
-            for (int i = 0; i < monster_count; ++i)
-                if (monsters[i]->doom_type == 3003)
-                    baron_count++;
-            while (baron_count < 2)
-            {
-                int i = ap_rand() % monster_count;
-                if (monsters[i]->doom_type != 3003)
-                {
-                    monsters[i] = &random_monster_defs[7];
-                    baron_count++;
-                }
-            }
-        }
-        
-        // Randomly pick them until empty, and place them in different spots
-        for (i = 0; i < spawn_count; i++)
-        {
-            int idx = ap_rand() % monster_count;
-            spawns[i].monster = monsters[idx];
-            monsters[idx] = monsters[monster_count - 1];
-            monster_count--;
-        }
-
-        // Go through again, and make sure they fit
-        for (i = 0; i < spawn_count; i++)
-        {
-            monster_spawn_def_t* spawn1 = &spawns[i];
-            if (spawn1->monster->height > spawn1->fit_height ||
-                spawn1->monster->radius > spawn1->fit_radius)
-            {
-                // He doesn't fit here, find another monster randomly that would fit here, then swap
-                int tries = 1000;
-                while (tries--)
-                {
-                    int j = ap_rand() % spawn_count;
-                    if (j == i) continue;
-                    monster_spawn_def_t* spawn2 = &spawns[j];
-                    if (spawn1->monster->height <= spawn2->fit_height &&
-                        spawn1->monster->radius <= spawn2->fit_radius &&
-                        spawn2->monster->height <= spawn1->fit_height &&
-                        spawn2->monster->radius <= spawn1->fit_radius)
-                    {
-                        random_monster_def_t* tmp = spawn1->monster;
-                        spawn1->monster = spawn2->monster;
-                        spawn2->monster = tmp;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Do the final remapping
-        for (i = 0; i < spawn_count; i++)
-        {
-            monster_spawn_def_t* spawn = &spawns[i];
-            things_type_remap[spawn->index] = spawn->monster->doom_type;
-        }
-    }
-
-    if (!ap_force_disable_behaviors && ap_state.random_items > 0)
-    {
-        // Make sure at the right difficulty level
-        if (gameskill == sk_baby)
-            bit = 1;
-        else if (gameskill == sk_nightmare)
-            bit = 4;
-        else
-            bit = 1<<(gameskill-1);
-
-        if (ap_state.random_items == 1) // Shuffle
-        {
-            int items[1024];
-            int item_count = 0;
-            int indices[1024];
-            int index_count = 0;
-
-            // Collect all items
-            mt = (mapthing_t *)data;
-            for (i = 0; i < numthings; i++, mt++)
-            {
-                if (mt->options & 16)
-                    continue; // Multiplayer item
-                if (!(mt->options & bit))
-                    continue;
-
-                switch (mt->type)
-                {
-                    case 2008: // 4 shotgun shells
-                    case 2048: // box of bullets
-                    case 2046: // box of rockets
-                    case 2049: // box of shotgun shells
-                    case 2007: // clip
-                    case 2047: // energy cell
-                    case 17: // energy cell pack
-                    case 2010: // rocket
-                    case 2015: // armor bonus
-                    case 2014: // health bonus
-                    case 2012: // medikit
-                    case 2011: // Stimpack
-                    {
-                        items[item_count++] = mt->type;
-                        indices[index_count++] = i;
-                        break;
-                    }
-                }
-            }
-
-            // Randomly pick them until empty, and place them in different spots
-            mt = (mapthing_t *)data;
-            for (i = 0; i < index_count; i++)
-            {
-                int idx = ap_rand() % item_count;
-                things_type_remap[indices[i]] = items[idx];
-                items[idx] = items[item_count - 1];
-                item_count--;
-            }
-        }
-        else if (ap_state.random_items == 2) // Random balanced
-        {
-            int ratios[3] = {0, 0, 0};
-            int total = 0;
-
-            // Make sure at the right difficulty level
-            if (gameskill == sk_baby)
-                bit = 1;
-            else if (gameskill == sk_nightmare)
-                bit = 4;
-            else
-                bit = 1<<(gameskill-1);
-
-            // Calculate ratios
-            mt = (mapthing_t *)data;
-            for (i = 0; i < numthings; i++, mt++)
-            {
-                if (mt->options & 16)
-                    continue; // Multiplayer item
-
-                switch (mt->type)
-                {
-                    case 2015: // armor bonus
-                    case 2014: // health bonus
-                        ratios[0]++;
-                        total++;
-                        break;
-
-                    case 2011: // Stimpack
-                    case 2008: // 4 shotgun shells
-                    case 2007: // clip
-                    case 2047: // energy cell
-                    case 2010: // rocket
-                        ratios[1]++;
-                        total++;
-                        break;
-
-                    case 2048: // box of bullets
-                    case 2046: // box of rockets
-                    case 2049: // box of shotgun shells
-                    case 17: // energy cell pack
-                    case 2012: // medikit
-                        ratios[2]++;
-                        total++;
-                        break;
-                }
-            }
-
-            // Randomly pick items based on ratio
-            mt = (mapthing_t *)data;
-            for (i = 0; i < numthings; i++, mt++)
-            {
-                switch (mt->type)
-                {
-                    case 2008: // 4 shotgun shells
-                    case 2048: // box of bullets
-                    case 2046: // box of rockets
-                    case 2049: // box of shotgun shells
-                    case 2007: // clip
-                    case 2047: // energy cell
-                    case 17: // energy cell pack
-                    case 2010: // rocket
-                    case 2015: // armor bonus
-                    case 2014: // health bonus
-                    case 2012: // medikit
-                    case 2011: // Stimpack
-                    {
-                        int rnd = ap_rand() % total;
-                        if (rnd < ratios[0])
-                        {
-                            switch (ap_rand()%2)
-                            {
-                                case 0: things_type_remap[i] = 2015; break; // armor bonus
-                                case 1: things_type_remap[i] = 2014; break; // health bonus
-                            }
-                        }
-                        else if (rnd < ratios[0] + ratios[1])
-                        {
-                            switch (ap_rand()%5)
-                            {
-                                case 0: things_type_remap[i] = 2011; break; // Stimpack
-                                case 1: things_type_remap[i] = 2008; break; // 4 shotgun shells
-                                case 2: things_type_remap[i] = 2007; break; // clip
-                                case 3: things_type_remap[i] = 2047; break; // energy cell
-                                case 4: things_type_remap[i] = 2010; break; // rocket
-                            }
-                        }
-                        else
-                        {
-                            switch (ap_rand()%5)
-                            {
-                                case 0: things_type_remap[i] = 2048; break; // box of bullets
-                                case 1: things_type_remap[i] = 2046; break; // box of rockets
-                                case 2: things_type_remap[i] = 2049; break; // box of shotgun shells
-                                case 3: things_type_remap[i] = 17; break; // energy cell pack
-                                case 4: things_type_remap[i] = 2012; break; // medikit
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-        }
+        P_MTRando_Setup(&pickup_rando, ap_state.random_items);
+        P_MTRando_Run(mt, numthings, remapped_things);
     }
 	
     mt = (mapthing_t *)data;
@@ -1237,64 +623,67 @@ void P_LoadThings (int lump)
 	    break;
 
 	// Do spawn all other stuff. 
+	short original_type = SHORT(mt->type);
 	spawnthing.x = SHORT(mt->x);
 	spawnthing.y = SHORT(mt->y);
 	spawnthing.angle = SHORT(mt->angle);
-	spawnthing.type = SHORT(things_type_remap[i]);
+	spawnthing.type = remapped_things[i];
 	spawnthing.options = SHORT(mt->options);
 
-#if 0 // Unused, unsure of intent
-    int type_before = spawnthing.type;
-#endif
+	// [AP] Replace AP locations with AP item
+	if (!ap_force_disable_behaviors && ap_is_location_type(original_type))
+	{
+		spawn = true;
 
-        // Replace AP locations with AP item
-        if (!ap_force_disable_behaviors && ap_is_location_type(spawnthing.type))
-        {
-            // Validate that the location index matches what we have in our data. If it doesn't then the WAD is not the same, we can't continue
-            int ret = ap_validate_doom_location(ap_make_level_index(gameepisode, gamemap), spawnthing.type, i);
-            if (ret == -1)
-            {
-                I_Error("WAD file doesn't match the one used to generate the logic.\nTo make sure it works as intended, get DOOM.WAD or DOOM2.WAD from the steam releases.");
-            }
-            else if (ret == 0)
-            {
-                continue; // Skip it
-            }
-            else if (ret == 1)
-            {
-                if (apdoom_is_location_progression(ap_make_level_index(gameepisode, gamemap), i))
-                    spawnthing.type = 20001;
-                else
-                    spawnthing.type = 20000;
-                int skip = 0;
-                ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
-                for (j = 0; j < level_state->check_count; ++j)
-                {
-                    if (level_state->checks[j] == i)
-                    {
-                        skip = 1;
-                        break;
-                    }
-                }
-                if (skip)
-                    continue;
-            }
-        }
+		// Validate that the location index matches what we have in our data.
+		// If it doesn't then the WAD is not the same, we can't continue
+		switch (ap_validate_doom_location(curlvlindex, original_type, i))
+		{
+		case 1: // Found, valid location
+            ++num_ap_items;
+			spawnthing.type = (apdoom_is_location_progression(curlvlindex, i) ? 20001 : 20000);
 
-        // [AP] On player start 1, put level select teleport "HUB"
-        if (spawnthing.type == 1)
-            spawnthing_player1_start = spawnthing;
+			for (j = 0; j < curlvlstate->check_count; ++j)
+			{
+				if (curlvlstate->checks[j] == i)
+				{
+					spawn = false;
+					break;
+				}
+			}
+			break;
+		case 0: // Found, not a location (suppressed, unreachable, etc.)
+			spawn = false;
+			break;
+		default: // Not found
+			I_Error("P_LoadThings: Archipelago item mismatch.\n\n"
+			        "Your version of this map isn't compatible with the map used to generate the logic for this game.");
+		}
+
+		if (!spawn)
+			continue;
+	}
+
+	// [AP] On player start 1, put level select teleport "HUB"
+	if (spawnthing.type == 1)
+		spawnthing_player1_start = spawnthing;
 
 	P_SpawnMapThing(&spawnthing, i);
 
     }
+
+    // [AP] The number of items we attempted to spawn should match the true check count
+    // If it doesn't then the level mismatched by having too few things
+    if (num_ap_items != curlvlinfo->true_check_count)
+        I_Error("P_LoadThings: Archipelago item mismatch.\n\n"
+                "Your version of this map isn't compatible with the map used to generate the logic for this game.");
 
     // [AP] Spawn level select teleport "HUB"
     spawnthing_player1_start.type = 20002;
     { // [AP] Tweaks: Alter hub data
         ap_maptweak_t *tweak;
 
-        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), HUB_TWEAKS);
+        ap_init_map_tweaks(curlvlindex, HUB_TWEAKS);
         while ((tweak = ap_get_map_tweaks()) != NULL)
             P_TweakHub(&spawnthing_player1_start, tweak);
     }
@@ -1315,6 +704,7 @@ void P_LoadThings (int lump)
     }
 
     W_ReleaseLumpNum(lump);
+    free(remapped_things);
 }
 
 
@@ -2060,6 +1450,9 @@ void P_Init (void)
     P_InitSwitchList ();
     P_InitPicAnims ();
     R_InitSprites (sprnames);
+
+    // [AP]
+    P_PrepareMapThingRandos();
 }
 
 

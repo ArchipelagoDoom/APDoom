@@ -623,29 +623,18 @@ static int AdvOptDrawSkill(int num, menudata_t *data)
     return false;
 }
 
-static int AdvOptDrawMonsterRando(int num, menudata_t *data)
+static int AdvOptDrawMapThingRando(int num, menudata_t *data)
 {
     const char *text = "\xF9<unchanged>";
-    switch (exec_settings.monster_rando)
-    {
-    case 0: text = "Off"; break;
-    case 1: text = "Shuffle"; break;
-    case 2: text = "Random Balanced"; break;
-    case 3: text = "Random Chaotic"; break;
-    default: break;
-    }
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
-    return false;
-}
+    const int value = (num == 1 ? exec_settings.monster_rando : exec_settings.item_rando);
 
-static int AdvOptDrawItemRando(int num, menudata_t *data)
-{
-    const char *text = "\xF9<unchanged>";
-    switch (exec_settings.item_rando)
+    switch (value)
     {
     case 0: text = "Off"; break;
     case 1: text = "Shuffle"; break;
-    case 2: text = "Random Balanced"; break;
+    case 2: text = "Same Type"; break;
+    case 3: text = "Balanced"; break;
+    case 4: text = "Chaotic"; break;
     default: break;
     }
     DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
@@ -714,8 +703,8 @@ static int AdvOptDrawDeathLink(int num, menudata_t *data)
 
 static const menutarget_t AdvancedOptsTargets[] = {
     {40, 120, "Skill",                AdvOptDrawSkill},
-    {40, 140, "Random Monsters",      AdvOptDrawMonsterRando},
-    {40, 160, "Random Pickups",       AdvOptDrawItemRando},
+    {40, 140, "Random Monsters",      AdvOptDrawMapThingRando},
+    {40, 160, "Random Pickups",       AdvOptDrawMapThingRando},
     {40, 180, "Random Music",         AdvOptDrawMusicRando},
     {40, 200, "Flip Levels",          AdvOptDrawFlipLevels},
     {40, 220, "Reset Level on Death", AdvOptDrawResetLevel},
@@ -731,8 +720,8 @@ struct {
     int range_max;
 } AdvOptValues[] = {
     {&exec_settings.skill,         1, 5},
-    {&exec_settings.monster_rando, 0, 3},
-    {&exec_settings.item_rando,    0, 2},
+    {&exec_settings.monster_rando, 0, 4},
+    {&exec_settings.item_rando,    0, 4},
     {&exec_settings.music_rando,   0, 2},
     {&exec_settings.flip_levels,   0, 2},
     {&exec_settings.reset_level,   0, 1},

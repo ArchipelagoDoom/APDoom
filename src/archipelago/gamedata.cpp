@@ -1,13 +1,24 @@
 //
-// This source file is copyright (C) 2024 Kay "Kaito" Sinclaire,
-// released under the terms of the GNU General Public License, version 2 or later.
+// Copyright(C) 2025 Kay "Kaito" Sinclaire
 //
-// This code reads AP Doom information from a Json blob,
-// replacing hardcoded C headers which previously accomplished this task.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+
+//
+// Functions to handle reading game information from Json blobs.
+// Replaces auto-generated C headers included at compile time.
 //
 
 #include "apdoom.h"
-#include "apdoom_pwad.hpp"
+#include "local.hpp"
 
 #include <vector>
 #include <set>
@@ -60,6 +71,49 @@ static ap_level_index_t ap_get_index_from_map_name(const char *lump_name)
 // Base game info - Stuff like weapon and ammo names, etc
 // (json: "game_info")
 // ============================================================================
+
+const struct {
+	rando_group_t group;
+	const char *str;
+} rgroup_types[NUM_RGROUPS + 1] = {
+	{RGROUP_SMALL, "small"},
+	{RGROUP_MEDIUM, "medium"},
+	{RGROUP_BIG, "big"},
+	{RGROUP_BOSS, "boss"},
+	{NUM_RGROUPS}
+};
+
+ap_itemrando_t *json_parse_itemrando(const Json::Value& json)
+{
+	int size = 1;
+	for (int i = 0; rgroup_types[i].group != NUM_RGROUPS; ++i)
+	{
+		if (!json.isObject() || !json.isMember(rgroup_types[i].str))
+			continue;
+		size += json[rgroup_types[i].str].size();
+	}
+
+	ap_itemrando_t *output = new ap_itemrando_t[size];
+	int elem = 0;
+
+	for (int i = 0; rgroup_types[i].group != NUM_RGROUPS; ++i)
+	{
+		if (!json.isObject() || !json.isMember(rgroup_types[i].str))
+			continue;
+		for (auto &element : json[rgroup_types[i].str])
+		{
+			output[elem].doom_type = element.asInt();
+			output[elem].group = rgroup_types[i].group;
+			++elem;
+		}
+	}
+
+	// Write terminator.
+	output[elem].doom_type = -1;
+	output[elem].group = NUM_RGROUPS;
+
+	return output;
+}
 
 int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output)
 {
@@ -118,6 +172,9 @@ int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output)
 
 	output.start_health = json.get("starting_health", 100).asInt();
 	output.start_armor = json.get("starting_armor", 0).asInt();
+
+	output.rand_monster_types = json_parse_itemrando(json["monsters"]);
+	output.rand_pickup_types = json_parse_itemrando(json["pickups"]);
 
 	output.pausepic = NULL;
 	if (json["pausepic"].isString())

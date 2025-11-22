@@ -188,6 +188,30 @@ typedef struct
 
 // ===== PWAD version specific structures =====================================
 // Info on basic game data
+typedef enum
+{
+    RGROUP_SMALL,
+    RGROUP_MEDIUM,
+    RGROUP_BIG,
+    RGROUP_BOSS,
+    NUM_RGROUPS
+} rando_group_t;
+
+typedef enum
+{
+    RLEVEL_NONE,
+    RLEVEL_SHUFFLE,
+    RLEVEL_SAMETYPE,
+    RLEVEL_BALANCED,
+    RLEVEL_CHAOTIC
+} rando_level_t;
+
+typedef struct
+{
+    int doom_type;
+    rando_group_t group;
+} ap_itemrando_t;
+
 typedef struct {
     const char *name;
     int max_ammo;
@@ -205,6 +229,9 @@ typedef struct {
 
     int named_ammo_count;
     int named_weapon_count;
+
+    ap_itemrando_t *rand_monster_types;
+    ap_itemrando_t *rand_pickup_types;
 
     int start_health;
     int start_armor;
@@ -355,9 +382,13 @@ ap_maptweak_t *ap_get_map_tweaks();
 int ap_preload_defs_for_game(const char *game_name);
 int ap_is_location_type(int doom_type);
 
+ap_level_index_t *ap_get_all_levels(void);
+ap_level_index_t *ap_get_available_levels(void);
+
 // ===== RANDOMNESS ===========================================================
 void ap_srand(int hash);
 unsigned int ap_rand(void);
+void ap_shuffle(int *arr, int len);
 
 // =====
 
