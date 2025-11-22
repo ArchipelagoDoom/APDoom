@@ -34,38 +34,43 @@ gamesettings_t exec_settings = {
 
 // ============================================================================
 
-static const char *arglist[64] = {NULL};
+// One additional to guarantee NULL.
+static const char *arglist[65] = {NULL};
 static unsigned char argquote[64];
-static int argv = 0;
+static int argcount = 0;
 
 static inline void SetupArgs(const char *program)
 {
     memset(argquote, 0, sizeof(argquote));
     argquote[0] = true;
     arglist[0] = program;
-    argv = 1;
+    arglist[1] = NULL;
+    argcount = 1;
 }
 
 static inline void AddArg(const char *str)
 {
-    arglist[argv++] = str;
+    arglist[argcount++] = str;
+    arglist[argcount] = NULL;
 }
 
 static inline void AddArgParam(const char *param, const char *value)
 {
-    arglist[argv++] = param;
-    argquote[argv] = true;
-    arglist[argv++] = value;
+    arglist[argcount++] = param;
+    argquote[argcount] = true;
+    arglist[argcount++] = value;
+    arglist[argcount] = NULL;
 }
 
 static inline void AddMultipleArgs(char *str)
 {
     char *token = strtok(str, " ");
-    while (token && argv < 64)
+    while (token && argcount < 64)
     {
-        arglist[argv++] = token;
+        arglist[argcount++] = token;
         token = strtok(NULL, " ");
     }
+    arglist[argcount] = NULL;
 }
 
 static const char *GetBaseProgram(const char *iwad)
@@ -87,7 +92,7 @@ static int strslotused = 0;
 static void FreeExecStrings(void)
 {
     for (int i = 0; i < strslotused; ++i)
-        free(strslots[strslotused]);
+        free(strslots[i]);
     strslotused = 0;
 }
 
@@ -290,7 +295,7 @@ static wchar_t *BuildCommandLine(void)
     // Length of each argument, plus space, plus two quote characters if needed.
     // Overestimates a bit because of exe_path, which we later trim, but whatever
     path_len = wcslen(exe_path);
-    for (int i = 0; i < argv; ++i)
+    for (int i = 0; i < argcount; ++i)
         path_len += strlen(arglist[i]) + (argquote[i] ? 3 : 1);
 
     wchar_t* command_path = calloc(path_len, sizeof(wchar_t));
@@ -304,7 +309,7 @@ static wchar_t *BuildCommandLine(void)
     ConcatWCString(command_path, arglist[0]);
     wcscat(command_path, L"\"");
 
-    for (int i = 1; i < argv; ++i)
+    for (int i = 1; i < argcount; ++i)
     {
         wcscat(command_path, L" ");
         if (argquote[i]) wcscat(command_path, L"\"");
