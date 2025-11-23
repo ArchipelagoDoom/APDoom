@@ -392,7 +392,8 @@ static inline int cht_CheckCheatSP (cheatseq_t *cht, char key)
 	}
 	else
 	{
-		if (!crispy->singleplayer)
+		// [AP] Restrict cheats in race mode
+		if (ap_race_mode || !crispy->singleplayer)
 		{
 			plyr->message = "Cheater!";
 			return false;
@@ -885,7 +886,8 @@ ST_Responder (event_t* ev)
 	plyr->message = DEH_String(STSTR_CHOPPERS);
       }
       // 'mypos' for player position
-      else if (cht_CheckCheat(&cheat_mypos, ev->data2))
+      // [AP] disallow in race mode
+      else if (cht_CheckCheatSP(&cheat_mypos, ev->data2))
       {
 /*
         static char buf[ST_MSGWIDTH];
@@ -1288,7 +1290,8 @@ ST_Responder (event_t* ev)
 	return isdigit(buf[0]);
     }
 #endif
-	if (!netgame && cht_CheckCheat(&cheat_key[1], ev->data2) && !menuactive)
+    // [AP] IDKEY cheat for single key toggling
+	if (!netgame && cht_CheckCheatSP(&cheat_key[1], ev->data2) && !menuactive)
 	{
 		ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
 		char buf[2];
@@ -1373,12 +1376,11 @@ int ST_calcPainOffset(void)
     return lastcalc;
 }
 
-static int faceindex;
 
-void do_evil_grin(void)
+boolean doevilgrin = false;
+void ST_evilGrin(void)
 {
-	st_facecount = ST_EVILGRINCOUNT;
-	faceindex = ST_EVILGRINOFFSET;
+	doevilgrin = true;
 }
 
 
@@ -1389,6 +1391,7 @@ void do_evil_grin(void)
 //  dead > evil grin > turned head > straight ahead
 //
 // [crispy] fix status bar face hysteresis
+static int faceindex;
 void ST_updateFaceWidget(void)
 {
     int		i;
@@ -1396,7 +1399,9 @@ void ST_updateFaceWidget(void)
     angle_t	diffang;
     static int	lastattackdown = -1;
     static int	priority = 0;
+#if 0 // [AP] moved to global for ST_evilGrin
     boolean	doevilgrin;
+#endif
 
     // [crispy] fix status bar face hysteresis
     int		painoffset;
@@ -1419,6 +1424,15 @@ void ST_updateFaceWidget(void)
 
     if (priority < 9)
     {
+#if 1 // [AP] more "sensible" evil grin for our use cases -- on picking up progression
+	if (doevilgrin && !invul)
+	{
+		priority = 8;
+		st_facecount = ST_EVILGRINCOUNT;
+		faceindex = ST_EVILGRINOFFSET;
+	}
+	doevilgrin = false;
+#else
 	if (plyr->bonuscount)
 	{
 	    // picking up bonus
@@ -1441,6 +1455,7 @@ void ST_updateFaceWidget(void)
 		faceindex = ST_EVILGRINOFFSET;
 	    }
 	}
+#endif
 
     }
   

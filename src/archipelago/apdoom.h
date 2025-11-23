@@ -340,7 +340,8 @@ typedef struct
 extern ap_state_t ap_state;
 extern int ap_is_in_game; // Don't give items when in menu (Or when dead on the ground).
 extern int ap_episode_count;
-extern int ap_practice_mode; // Offline testing mode
+extern int ap_race_mode; // Read from server. Used to disable cheats
+extern int ap_practice_mode; // Offline testing mode.
 extern int ap_force_disable_behaviors; // Demo compatibility, disable most apdoom stuff
 
 

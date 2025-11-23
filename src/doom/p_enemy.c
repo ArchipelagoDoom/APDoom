@@ -1717,6 +1717,7 @@ static boolean CheckBossEnd(mobjtype_t motype)
                 return (metamap /* gamemap */ == 6 && motype == MT_CYBORG)
                     || (metamap /* gamemap */ == 8 && motype == MT_SPIDER);
 
+#if 0 // [AP] Dead code, auto sideloading isn't possible
             // [crispy] no trigger for auto-loaded Sigil E5
             case 5:
                 return (metamap /* gamemap */ == 8 && !critical->havesigil);
@@ -1724,6 +1725,7 @@ static boolean CheckBossEnd(mobjtype_t motype)
             // [crispy] no trigger for auto-loaded Sigil II E6
             case 6:
                 return (metamap /* gamemap */ == 8 && !critical->havesigil2);
+#endif
 
             default:
                 return metamap /* gamemap */ == 8;

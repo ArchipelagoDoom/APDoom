@@ -279,7 +279,6 @@ P_GiveBody
     return true;
 }
 
-void do_evil_grin(void);
 
 
 //
@@ -738,11 +737,13 @@ P_TouchSpecialThing
 	player->message = DEH_String(BETA_BONUS4);
 	break;
 
-	case SPR_APJI:
 	case SPR_APPI:
+		extern void ST_evilGrin(void);
+		ST_evilGrin();
+		// fall through
+	case SPR_APJI:
 	{
 		apdoom_check_location(ap_make_level_index(gameepisode, gamemap), special->index);
-		do_evil_grin();
 		break;
 	}
 

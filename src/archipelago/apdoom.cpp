@@ -79,7 +79,8 @@ ap_state_t ap_state;
 int ap_is_in_game = 0;
 int ap_episode_count = -1;
 
-int ap_practice_mode = false; // Not connected to a server.
+int ap_race_mode = false; // Server reports this is a race, not casual.
+int ap_practice_mode = false; // Not connected to a server, simulate play.
 int ap_force_disable_behaviors = false; // For demo compatibility.
 
 static bool detected_old_apworld = false;
@@ -100,6 +101,8 @@ static bool ap_initialized = false;
 static std::vector<std::string> ap_cached_messages;
 static std::string ap_seed_string;
 static std::vector<ap_notification_icon_t> ap_notification_icons;
+
+static AP_GetServerDataRequest race_mode_request; // Required to fetch from server
 
 static std::filesystem::path ap_save_path;
 
@@ -688,6 +691,13 @@ int apdoom_init(ap_settings_t* settings)
 				recalc_max_ammo();
 
 				load_state();
+
+				// Ask the server for race mode state.
+				race_mode_request.key = "_read_race_mode";
+				race_mode_request.type = AP_DataType::Int;
+				race_mode_request.value = &ap_race_mode;
+				AP_GetServerData(&race_mode_request);
+
 				should_break = true;
 				break;
 			}

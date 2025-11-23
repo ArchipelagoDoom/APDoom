@@ -77,6 +77,7 @@ void F_StartFinale(void)
             finaletext = DEH_String(E4TEXT);
             break;
         case 5:
+        default: // temporary hack if E6 levels enabled
             finaleflat = DEH_String("FLOOR08");
             finaletext = DEH_String(E5TEXT);
             break;

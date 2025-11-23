@@ -1409,7 +1409,8 @@ static boolean HandleCheats(byte key)
 //
 //--------------------------------------------------------------------------
 
-#define NIGHTMARE_NETGAME_CHECK if(netgame||gameskill==sk_nightmare){return;}
+// [AP] also disable cheats in race mode
+#define NIGHTMARE_NETGAME_CHECK if(ap_race_mode||netgame||gameskill==sk_nightmare){return;}
 #define NETGAME_CHECK if(netgame){return;}
 
 static void CheatGodFunc(player_t * player, Cheat_t * cheat)
