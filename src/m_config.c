@@ -1769,6 +1769,12 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_KEY(key_menu_help),
 
     //!
+    // Keyboard shortcut to show goal information.
+    //
+
+    CONFIG_VARIABLE_KEY(key_menu_showgoal),
+
+    //!
     // Keyboard shortcut to bring up the save game menu.
     //
 

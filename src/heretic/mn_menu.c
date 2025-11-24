@@ -66,6 +66,7 @@ typedef enum
     ITT_SETMENU,
     ITT_LRFUNC2, // [crispy] LR non-slider item
     ITT_NUMFUNC, // [crispy] numeric entry
+    ITT_HIJACK, // [AP] hijack all input
     ITT_INERT
 } ItemType_t;
 
@@ -81,6 +82,7 @@ typedef enum
     MENU_LOAD,
     MENU_SAVE,
     MENU_MOUSE,
+    MENU_SHOWGOALS, // [AP]
     MENU_CRISPNESS1,
     MENU_CRISPNESS2,
     MENU_CRISPNESS3,
@@ -230,9 +232,14 @@ static int numeric_entry;
 static char numeric_entry_str[NUMERIC_ENTRY_NUMDIGITS + 1];
 static int numeric_entry_index;
 
+// [AP] Menu for showing goal status
+#define AP_INC_HERETIC
+#include "inc_mgoals.c"
+
 static MenuItem_t MainItems[] = {
     {ITT_EFUNC, "PLAY", SCLevelSelect, 0, MENU_NONE},
     {ITT_SETMENU, "OPTIONS", NULL, 0, MENU_OPTIONS},
+    {ITT_SETMENU, "GOALS", NULL, 0, MENU_SHOWGOALS},
     {ITT_EFUNC, "INFO", SCInfo, 0, MENU_NONE},
     {ITT_EFUNC, "QUIT GAME", SCQuitGame, 0, MENU_NONE}
 };
@@ -240,13 +247,14 @@ static MenuItem_t MainItems[] = {
 static Menu_t MainMenu = {
     110, 56,
     DrawMainMenu,
-    4, MainItems,
+    5, MainItems,
     0,
     MENU_NONE
 };
 
 static MenuItem_t InGameItems[] = {
     {ITT_SETMENU, "OPTIONS", NULL, 0, MENU_OPTIONS},
+    {ITT_SETMENU, "GOALS", NULL, 0, MENU_SHOWGOALS},
     {ITT_EFUNC, "RESET LEVEL", SCKill, 0, MENU_NONE},
     {ITT_EFUNC, "QUIT GAME", SCQuitGame, 0, MENU_NONE}
 };
@@ -254,7 +262,7 @@ static MenuItem_t InGameItems[] = {
 static Menu_t InGameMenu = {
     110, 56,
     DrawInGameMenu,
-    3, InGameItems,
+    4, InGameItems,
     0,
     MENU_NONE
 };
@@ -629,6 +637,7 @@ static Menu_t *Menus[] = {
     &LoadMenu,
     &SaveMenu,
     &MouseMenu,
+    &ShowGoalsMenu,
     &Crispness1Menu,
     &Crispness2Menu,
     &Crispness3Menu,
@@ -1070,6 +1079,11 @@ void MN_Drawer(void)
         if (CurrentMenu->drawFunc != NULL)
         {
             CurrentMenu->drawFunc();
+        }
+        // [AP] hackish workaround for menus we don't want normal options drawn in
+        if (CurrentMenu->y == -666)
+        {
+            return;
         }
         x = CurrentMenu->x;
         y = CurrentMenu->y;
@@ -2658,6 +2672,18 @@ boolean MN_Responder(event_t * event)
             MenuActive = true;
             return (true);
         }
+        else if (key == key_menu_showgoal)       // [AP] New F2 (show goal)
+        {
+            MenuActive = true;
+            if (!netgame && !demoplayback)
+                paused = true;
+            MenuTime = 0;
+            CurrentMenu = &ShowGoalsMenu;
+            CurrentItPos = 0;
+            ShowGoals_Init();
+            S_StartSound(NULL, sfx_dorcls);
+            return (true);
+        }
         else if (key == key_menu_save)           // F2 (save game)
         {
 #if 0 // [AP] Not allowed
@@ -2864,6 +2890,13 @@ boolean MN_Responder(event_t * event)
     if (!FileMenuKeySteal && !numeric_enter)
     {
         item = &CurrentMenu->items[CurrentItPos];
+
+        // [AP] hijack type hijacks entire menu
+        if (item->type == ITT_HIJACK && item->func != NULL)
+        {
+            item->func(key);
+            return (true);
+        }
 
         if (key == key_menu_down || key == key_down || key == key_alt_down)            // Next menu item
         {
@@ -3306,6 +3339,8 @@ static void SetMenu(MenuType_t menu)
     // [AP] Force any attempts to go to Main menu while ingame, to InGame menu instead
     if (gamestate != GS_DEMOSCREEN && menu == MENU_MAIN)
         menu = MENU_INGAME;
+    if (menu == MENU_SHOWGOALS)
+        ShowGoals_Init();
 
     CurrentMenu->oldItPos = CurrentItPos;
     CurrentMenu = Menus[menu];

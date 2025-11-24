@@ -283,7 +283,9 @@ static void M_DrawCrispness2(void);
 static void M_DrawCrispness3(void);
 static void M_DrawCrispness4(void);
 
-
+// [AP] Menu for showing goal status
+#define AP_INC_DOOM
+#include "inc_mgoals.c"
 
 //
 // DOOM MENU
@@ -292,6 +294,7 @@ enum
 {
     mopt_play = 0,
     options,
+    showgoals,
     readthis,
     quitdoom,
     main_end
@@ -301,6 +304,7 @@ menuitem_t MainMenu[]=
 {
     {1,"M_PLAY",M_APPlay,'l'},
     {1,"M_OPTION",M_Options,'o'},
+    {1,"M_GOAL",M_ShowGoals,'g'},
     // Another hickup with Special edition.
     {1,"M_RDTHIS",M_ReadThis,'r'},
     {1,"M_QUITG",M_QuitDOOM,'q'}
@@ -323,6 +327,7 @@ menu_t  MainDef =
 enum
 {
     ingamemenu_options,
+    ingamemenu_showgoals,
     ingamemenu_kill,
     ingamemenu_quitdoom,
     ingamemenu_end
@@ -331,6 +336,7 @@ enum
 menuitem_t InGameMenu[]=
 {
     {1,"M_OPTION",M_Options,'o'},
+    {1,"M_GOAL",M_ShowGoals,'g'},
     {1,"M_KILL",M_Kill,'r'},
     // Another hickup with Special edition.
     {1,"M_QUITG",M_QuitDOOM,'q'}
@@ -2905,6 +2911,13 @@ boolean M_Responder (event_t* ev)
 	    S_StartSoundOptional(NULL, sfx_mnusli, sfx_stnmov); // [NS] Optional menu sounds.
 	    return true;
 	}
+        else if (key == key_menu_showgoal) // [AP] Show goal hotkey
+        {
+        M_StartControlPanel();
+        M_SetupNextMenu(&ShowGoalDef);
+        S_StartSoundOptional(NULL, sfx_mnuopn, sfx_swtchn); // [NS] Optional menu sounds.
+        return true;
+        }
         else if (key == key_menu_help)     // Help key
         {
 	    M_StartControlPanel ();
@@ -3055,6 +3068,14 @@ boolean M_Responder (event_t* ev)
 	    return true;
 	}
 	return false;
+    }
+
+    // [AP] status 5 option, hijacks entire menu
+    if (currentMenu->menuitems[itemOn].routine &&
+        currentMenu->menuitems[itemOn].status == 5)
+    {
+        currentMenu->menuitems[itemOn].routine(key);
+        return true;
     }
 
     // Keys usable within menu
@@ -3418,6 +3439,10 @@ void M_Drawer (void)
     }
     if (currentMenu->routine)
 	currentMenu->routine();         // call Draw routine
+
+    // [AP] hackish workaround for menus we don't want normal options drawn in
+    if (currentMenu->y == -666)
+        return;
     
     // DRAW MENU
     x = currentMenu->x;
@@ -3496,6 +3521,8 @@ void M_SetupNextMenu(menu_t *menudef)
     // [AP] Force any attempts to go to MainDef while ingame, to InGameMenuDef instead
     if (currentMenu == &MainDef && gamestate != GS_DEMOSCREEN)
         currentMenu = &InGameMenuDef;
+    if (currentMenu == &ShowGoalDef)
+        ShowGoals_Init();
 
     itemOn = currentMenu->lastOn;
 }

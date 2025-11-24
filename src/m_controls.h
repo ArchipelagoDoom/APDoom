@@ -138,6 +138,7 @@ extern int key_menu_messages;
 extern int key_menu_qload;
 extern int key_menu_quit;
 extern int key_menu_gamma;
+extern int key_menu_showgoal;
 
 extern int key_menu_incscreen;
 extern int key_menu_decscreen;

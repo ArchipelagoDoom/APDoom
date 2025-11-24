@@ -192,16 +192,19 @@ int key_menu_confirm   = 'y';
 int key_menu_abort     = 'n';
 
 int key_menu_help      = KEY_F1;
-int key_menu_save      = KEY_F2;
-int key_menu_load      = KEY_F3;
+int key_menu_showgoal  = KEY_F2;
 int key_menu_volume    = KEY_F4;
 int key_menu_detail    = KEY_F5;
-int key_menu_qsave     = KEY_F6;
 int key_menu_endgame   = KEY_F7;
 int key_menu_messages  = KEY_F8;
-int key_menu_qload     = KEY_F9;
-int key_menu_quit      = KEY_F10;
 int key_menu_gamma     = KEY_F11;
+
+// [AP] dead menu keys zeroed out
+int key_menu_save      = 0;
+int key_menu_load      = 0;
+int key_menu_qsave     = 0;
+int key_menu_qload     = 0;
+int key_menu_quit      = 0;
 
 int key_menu_incscreen = KEY_EQUALS;
 int key_menu_decscreen = KEY_MINUS;
@@ -472,6 +475,7 @@ void M_BindMenuControls(void)
     M_BindIntVariable("key_menu_qload",     &key_menu_qload);
     M_BindIntVariable("key_menu_quit",      &key_menu_quit);
     M_BindIntVariable("key_menu_gamma",     &key_menu_gamma);
+    M_BindIntVariable("key_menu_showgoal",  &key_menu_showgoal); // [AP]
 
     M_BindIntVariable("key_menu_incscreen", &key_menu_incscreen);
     M_BindIntVariable("key_menu_decscreen", &key_menu_decscreen);

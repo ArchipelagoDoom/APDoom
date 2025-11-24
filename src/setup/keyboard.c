@@ -70,6 +70,7 @@ static int *shortcuts[] = { &key_menu_help, &key_menu_save, &key_menu_load,
                             &key_menu_nextlevel, &key_menu_reloadlevel,
                             &key_menu_incscreen, &key_menu_decscreen, 
                             &key_menu_screenshot, &key_menu_cleanscreenshot,
+                            &key_menu_showgoal,
                             &key_message_refresh, &key_multi_msg,
                             &key_multi_msgplayer[0], &key_multi_msgplayer[1],
                             &key_multi_msgplayer[2], &key_multi_msgplayer[3], NULL };
@@ -364,20 +365,24 @@ static void OtherKeysDialog(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(unused))
     AddSectionLabel(table, "Shortcut keys", true);
 
     AddKeyControl(table, "Pause game",            &key_pause);
+    AddKeyControl(table, "Show goal info",        &key_menu_showgoal);
     AddKeyControl(table, "Help screen",           &key_menu_help);
-    AddKeyControl(table, "Save game",             &key_menu_save);
-    AddKeyControl(table, "Load game",             &key_menu_load);
     AddKeyControl(table, "Sound volume",          &key_menu_volume);
     AddKeyControl(table, "Toggle detail",         &key_menu_detail);
-    AddKeyControl(table, "Quick save",            &key_menu_qsave);
-    AddKeyControl(table, "End game",              &key_menu_endgame);
     AddKeyControl(table, "Toggle messages",       &key_menu_messages);
-    AddKeyControl(table, "Quick load",            &key_menu_qload);
-    AddKeyControl(table, "Quit game",             &key_menu_quit);
     AddKeyControl(table, "Toggle gamma",          &key_menu_gamma);
     AddKeyControl(table, "Multiplayer spy",       &key_spy);
+
+#if 0 // [AP] Dead keys
+    AddKeyControl(table, "Save game",             &key_menu_save);
+    AddKeyControl(table, "Load game",             &key_menu_load);
+    AddKeyControl(table, "Quick save",            &key_menu_qsave);
+    AddKeyControl(table, "End game",              &key_menu_endgame);
+    AddKeyControl(table, "Quick load",            &key_menu_qload);
+    AddKeyControl(table, "Quit game",             &key_menu_quit);
     AddKeyControl(table, "Go to next level",      &key_menu_nextlevel);
     AddKeyControl(table, "Restart level/demo",    &key_menu_reloadlevel);
+#endif
 
     AddKeyControl(table, "Increase screen size",  &key_menu_incscreen);
     AddKeyControl(table, "Decrease screen size",  &key_menu_decscreen);
