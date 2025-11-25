@@ -176,14 +176,21 @@ int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output)
 	output.rand_monster_types = json_parse_itemrando(json["monsters"]);
 	output.rand_pickup_types = json_parse_itemrando(json["pickups"]);
 
-	output.pausepic = NULL;
+	output.pause_pic = NULL;
 	if (json["pausepic"].isString())
 	{
 		std::string pausepic = json["pausepic"].asString();
 		if (!pausepic.empty())
-			output.pausepic = string_to_const_char_ptr(pausepic);
+			output.pause_pic = string_to_const_char_ptr(pausepic);
 	}
 
+	output.goal_menu_flat = NULL;
+	if (json["goalmenuflat"].isString())
+	{
+		std::string goalmenuflat = json["goalmenuflat"].asString();
+		if (!goalmenuflat.empty())
+			output.goal_menu_flat = string_to_const_char_ptr(goalmenuflat);
+	}
 
 	return 1;
 }

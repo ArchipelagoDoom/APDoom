@@ -18,9 +18,6 @@
 static HandlerReturnType ShowGoals_Handler(int key);
 static void ShowGoals_Drawer(void);
 
-// Temporary? Depends on if I want a different background or not.
-static void M_DrawCrispnessBackground(void);
-
 enum
 {
     effect_none,
@@ -113,7 +110,17 @@ void ShowGoals_Drawer(void)
 
     int h = MenuRef->x;
 
-    M_DrawCrispnessBackground();
+    if (ap_game_info.goal_menu_flat)
+    { // Draw background
+		pixel_t *dest = I_VideoBuffer;
+    	const byte *src = W_CacheLumpName(ap_game_info.goal_menu_flat, PU_CACHE);
+
+		V_FillFlat(0, SCREENHEIGHT, 0, SCREENWIDTH, src, dest);
+
+#ifdef AP_INC_DOOM
+		inhelpscreens = true;
+#endif
+    }
 
     for (int i = 0; i < 20; ++i, ++h)
     {

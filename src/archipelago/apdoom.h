@@ -236,7 +236,8 @@ typedef struct {
     int start_health;
     int start_armor;
 
-    const char *pausepic;
+    const char *pause_pic;
+    const char *goal_menu_flat;
 } ap_gameinfo_t;
 
 // All info for a single map on the level select screen
