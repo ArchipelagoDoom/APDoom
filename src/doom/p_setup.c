@@ -674,7 +674,7 @@ void P_LoadThings (int lump)
 
     // [AP] The number of items we attempted to spawn should match the true check count
     // If it doesn't then the level mismatched by having too few things
-    if (num_ap_items != curlvlinfo->true_check_count)
+    if (!ap_force_disable_behaviors && num_ap_items != curlvlinfo->true_check_count)
         I_Error("P_LoadThings: Archipelago item mismatch.\n\n"
                 "Your version of this map isn't compatible with the map used to generate the logic for this game.");
 
