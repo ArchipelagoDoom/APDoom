@@ -276,6 +276,7 @@ typedef struct mobj_s
 
     // Additional info record for player avatars only.
     // Only valid if type == MT_PLAYER
+    // [AP] or type == MT_FAKEPLAYER (for voodoo doll behavior)
     struct player_s*	player;
 
     // Player number last looked for.

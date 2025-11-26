@@ -397,6 +397,16 @@ P_TouchSpecialThing
     sound = sfx_itemup;	
     player = toucher->player;
 
+    // [AP] transfer voodoo doll special touch to real player
+    if (toucher->type == MT_FAKEPLAYER)
+    {
+      if (special->sprite == SPR_LVST)
+        return; // Voodoo dolls can't exit to hub
+      if (!player->mo || player->mo->health <= 0)
+        return; // Actual player is dead, ignore contact
+      toucher = player->mo;
+    }
+
     // Dead thing touching.
     // Can happen with a sliding player corpse.
     if (toucher->health <= 0)
@@ -1091,6 +1101,14 @@ P_DamageMobj
 	target->momy += FixedMul (thrust, finesine[ang]);
     }
     
+    // [AP] transfer voodoo doll damage to real player
+    if (player && target->type == MT_FAKEPLAYER)
+    {
+      if (!player->mo || player->mo->health <= 0)
+        return; // Actual player is dead, don't kill them further
+      target = player->mo;
+    }
+
     // player specific
     if (player)
     {

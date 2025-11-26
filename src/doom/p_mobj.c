@@ -1002,6 +1002,17 @@ void P_SpawnMapThing (mapthing_t* mthing, int index)
     // check for players specially
     if (mthing->type <= 4)
     {
+	// [AP] if a previously spawned player object exists, turn it into a fake one
+	if (!deathmatch && playerstartsingame[mthing->type-1])
+	{
+		player_t *p = &players[mthing->type-1];
+		if (p->mo)
+		{
+			p->mo->type = MT_FAKEPLAYER;
+			p->mo->info = &mobjinfo[MT_FAKEPLAYER];
+		}
+	}
+
 	// save spots for respawning in network games
 	playerstarts[mthing->type-1] = *mthing;
 	playerstartsingame[mthing->type-1] = true;
