@@ -278,7 +278,6 @@ static registry_value_t root_path_keys[] =
 
 static char *root_path_subdirs[] =
 {
-    ".", // [crispy] moved to top, so reworked IWADs will be found before the legacy DOS ones
     "Doom2",
     "Final Doom",
     "Ultimate Doom",
@@ -287,6 +286,10 @@ static char *root_path_subdirs[] =
     "base\\wads",
     "dos\\base\\heretic",
     "dos\\base\\hexen",
+
+    // [crispy] moved to top, so reworked IWADs will be found before the legacy DOS ones
+    // [AP] moved back down, prefer the DOS IWADs
+    ".",
 };
 
 // Location where Steam is installed
@@ -302,34 +305,34 @@ static registry_value_t steam_install_location =
 
 static char *steam_install_subdirs[] =
 {
+    // Doom + Doom 2
+    "steamapps\\common\\ultimate doom\\base",
+    "steamapps\\common\\ultimate doom\\base\\doom2",
+    "steamapps\\common\\ultimate doom\\base\\plutonia",
+    "steamapps\\common\\ultimate doom\\base\\tnt",
+
+    // Doom + Doom 2 (not vanilla compatible, used as a fallback for e.g. nerve.wad)
+    "steamapps\\common\\ultimate doom\\rerelease",
+
+    // Heretic + Hexen
+    "steamapps\\common\\Heretic + Hexen\\dos\\base\\heretic",
+    "steamapps\\common\\Heretic + Hexen\\dos\\base\\hexen",
+
+    // Heretic + Hexen (rerelease, used as a fallback)
+    "steamapps\\common\\Heretic + Hexen",
+
+    // Legacy paths
     "steamapps\\common\\doom 2\\base",
     "steamapps\\common\\doom 2\\finaldoombase",
     "steamapps\\common\\final doom\\base",
-    "steamapps\\common\\ultimate doom\\base",
     "steamapps\\common\\heretic shadow of the serpent riders\\base",
     "steamapps\\common\\hexen\\base",
     "steamapps\\common\\hexen deathkings of the dark citadel\\base",
 
-    // From Doom 3: BFG Edition:
-
+    // Doom 3: BFG Edition
     "steamapps\\common\\DOOM 3 BFG Edition\\base\\wads",
 
-    // [crispy] Doom 1 + Doom 2 (not Chocolate Doom compatible):
-
-    "steamapps\\common\\Doom 2\\rerelease\\DOOM II_Data\\StreamingAssets",
-    "steamapps\\common\\Ultimate Doom\\rerelease",
-    "steamapps\\common\\Ultimate Doom\\rerelease\\DOOM_Data\\StreamingAssets",
-
-    // From Heretic + Hexen Rerelease:
-
-    "steamapps\\common\\Heretic + Hexen",
-    "steamapps\\common\\Heretic + Hexen\\base\\heretic",
-    "steamapps\\common\\Heretic + Hexen\\base\\hexen",
-    "steamapps\\common\\Heretic + Hexen\\dos\\base\\heretic",
-    "steamapps\\common\\Heretic + Hexen\\dos\\base\\hexen",
-
-    // From Strife: Veteran Edition:
-
+    // Strife: Veteran Edition
     "steamapps\\common\\Strife",
 };
 
@@ -767,21 +770,36 @@ static void AddSteamDirs(void)
     }
     steampath = M_StringJoin(homedir, "/.steam/root/steamapps/common", NULL);
 
+    // Doom + Doom 2
+    AddIWADPath(steampath, "/Ultimate Doom/base");
+    AddIWADPath(steampath, "/Ultimate Doom/base/doom2");
+    AddIWADPath(steampath, "/Ultimate Doom/base/plutonia");
+    AddIWADPath(steampath, "/Ultimate Doom/base/tnt");
+
+    // Doom + Doom 2 (not vanilla compatible, used as a fallback for e.g. nerve.wad)
+    AddIWADPath(steampath, "/Ultimate Doom/rerelease");
+
+    // Heretic + Hexen
+    AddIWADPath(steampath, "/Heretic + Hexen/dos/base/heretic");
+    AddIWADPath(steampath, "/Heretic + Hexen/dos/base/hexen");
+
+    // Heretic + Hexen (rerelease, used as a fallback)
+    AddIWADPath(steampath, "/Heretic + Hexen");
+
+    // Legacy paths
     AddIWADPath(steampath, "/Doom 2/base");
     AddIWADPath(steampath, "/Doom 2/finaldoombase");
-    AddIWADPath(steampath, "/Master Levels of Doom/doom2");
-    AddIWADPath(steampath, "/Ultimate Doom/base");
     AddIWADPath(steampath, "/Final Doom/base");
-    AddIWADPath(steampath, "/DOOM 3 BFG Edition/base/wads");
     AddIWADPath(steampath, "/Heretic Shadow of the Serpent Riders/base");
     AddIWADPath(steampath, "/Hexen/base");
     AddIWADPath(steampath, "/Hexen Deathkings of the Dark Citadel/base");
-    AddIWADPath(steampath, "/Heretic + Hexen");
-    AddIWADPath(steampath, "/Heretic + Hexen/base/heretic");
-    AddIWADPath(steampath, "/Heretic + Hexen/base/hexen");
-    AddIWADPath(steampath, "/Heretic + Hexen/dos/base/heretic");
-    AddIWADPath(steampath, "/Heretic + Hexen/dos/base/hexen");
+
+    // Doom 3: BFG Edition
+    AddIWADPath(steampath, "/DOOM 3 BFG Edition/base/wads");
+
+    // Strife: Veteran Edition
     AddIWADPath(steampath, "/Strife");
+
     free(steampath);
 }
 #endif // __MACOSX__
