@@ -16,7 +16,7 @@ set(PACKAGE_NAME "${PROJECT_NAME}")
 set(PACKAGE_TARNAME "archipelago-doom")
 set(PACKAGE_VERSION "${PROJECT_VERSION}${VERSION_SUFFIX}")
 set(PACKAGE_STRING "${PROJECT_NAME} ${PROJECT_VERSION}${VERSION_SUFFIX}")
-set(PACKAGE_BUGREPORT "https://github.com/Daivuk/apdoom/issues")
+set(PACKAGE_BUGREPORT "https://github.com/ArchipelagoDoom/APDoom/issues")
 
 string(REGEX REPLACE " Doom$" "" PACKAGE_SHORTNAME "${PACKAGE_NAME}")
 set(PACKAGE_COPYRIGHT "Copyright (C) 1993-2025")
