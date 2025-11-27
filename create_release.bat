@@ -1,47 +1,53 @@
-REM Compiling crispy-doom
-MSBUILD "build\Crispy Doom.sln" /t:crispy-doom /p:Configuration="Release" /p:Platform="Win32"
-COPY build\bin\Release\crispy-doom.exe Release\crispy-apdoom.exe
+@ECHO off
 
-REM Compiling crispy-heretic
-MSBUILD "build\Crispy Doom.sln" /t:crispy-heretic /p:Configuration="Release" /p:Platform="Win32"
-COPY build\bin\Release\crispy-heretic.exe Release\crispy-apheretic.exe
+SET "DEP_MISS=0"
+if not exist "Release\libfluidsynth-3.dll"  ECHO Missing dependency: libfluidsynth-3.dll & SET "DEP_MISS=1"
+if not exist "Release\libgcc_s_sjlj-1.dll"  ECHO Missing dependency: libgcc-s_sjlj-1.dll & SET "DEP_MISS=1"
+if not exist "Release\libglib-2.0-0.dll"    ECHO Missing dependency: libglib-2.0-0.dll & SET "DEP_MISS=1"
+if not exist "Release\libgobject-2.0-0.dll" ECHO Missing dependency: libgobject-2.0-0.dll & SET "DEP_MISS=1"
+if not exist "Release\libgomp-1.dll"        ECHO Missing dependency: libgomp-1.dll & SET "DEP_MISS=1"
+if not exist "Release\libgthread-2.0-0.dll" ECHO Missing dependency: libgthread-2.0-0.dll & SET "DEP_MISS=1"
+if not exist "Release\libinstpatch-2.dll"   ECHO Missing dependency: libinstpatch-2.dll & SET "DEP_MISS=1"
+if not exist "Release\libintl-8.dll"        ECHO Missing dependency: libintl-8.dll & SET "DEP_MISS=1"
+if not exist "Release\libsndfile-1.dll"     ECHO Missing dependency: libsndfile-1.dll & SET "DEP_MISS=1"
+if not exist "Release\libstdc++-6.dll"      ECHO Missing dependency: libstdc++-6.dll & SET "DEP_MISS=1"
+if not exist "Release\libwinpthread-1.dll"  ECHO Missing dependency: libwinpthread-1.dll & SET "DEP_MISS=1"
+if not exist "Release\samplerate.dll"       ECHO Missing dependency: samplerate.dll & SET "DEP_MISS=1"
+if not exist "Release\SDL2.dll"             ECHO Missing dependency: SDL2.dll & SET "DEP_MISS=1"
+if not exist "Release\SDL2_mixer.dll"       ECHO Missing dependency: SDL2_mixer.dll & SET "DEP_MISS=1"
+if not exist "Release\zlib1.dll"            ECHO Missing dependency: zlib1.dll & SET "DEP_MISS=1"
 
-REM Compiling crispy-setup
-MSBUILD "build\Crispy Doom.sln" /t:crispy-setup /p:Configuration="Release" /p:Platform="Win32"
-COPY build\bin\Release\crispy-setup.exe Release\crispy-setup.exe
+if %DEP_MISS% neq 0 ECHO Please place the above missing dependencies into "Release\" and then retry. & EXIT /b 1
 
-REM Copy over APcpp DLL
-COPY build\bin\Release\APCpp.dll Release\APCpp.dll
+@ECHO Updating...
+git pull
+git submodule update --recursive
 
-REM REM Compiling launcher
-MSBUILD Launcher\APDoomLauncher\APDoomLauncher.sln /t:APDoomLauncher /p:Configuration="Release"
-COPY Launcher\APDoomLauncher\bin\Release\APDoomLauncher.exe Release\apdoom-launcher.exe
+@ECHO Compiling archipelago-doom...
+MSBUILD /v:m "build\Archipelago Doom.sln" /t:archipelago-doom /p:Configuration="Release" /p:Platform="x64" || EXIT /b %errorlevel%
+COPY "build\bin\Release\archipelago-doom.exe" "Release\"
 
-REM REM Archiving apworlds
-DEL /F /Q ..\Archipelago\worlds\doom_1993\__pycache__
-winrar a -afzip -ep1 -r Release\doom_1993.apworld ..\Archipelago\worlds\doom_1993
+@ECHO Compiling archipelago-heretic...
+MSBUILD /v:m "build\Archipelago Doom.sln" /t:archipelago-heretic /p:Configuration="Release" /p:Platform="x64" || EXIT /b %errorlevel%
+COPY "build\bin\Release\archipelago-heretic.exe" "Release\"
 
-DEL /F /Q ..\Archipelago\worlds\doom_ii\__pycache__
-winrar a -afzip -ep1 -r Release\doom_ii.apworld ..\Archipelago\worlds\doom_ii
+@ECHO Compiling apdoom-setup...
+MSBUILD /v:m "build\Archipelago Doom.sln" /t:apdoom-setup /p:Configuration="Release" /p:Platform="x64" || EXIT /b %errorlevel%
+COPY "build\bin\Release\apdoom-setup.exe" "Release\"
 
-DEL /F /Q ..\Archipelago\worlds\heretic\__pycache__
-winrar a -afzip -ep1 -r Release\heretic.apworld ..\Archipelago\worlds\heretic
+@ECHO Compiling apdoom-launcher...
+MSBUILD /v:m "build\Archipelago Doom.sln" /t:apdoom-launcher /p:Configuration="Release" /p:Platform="x64" || EXIT /b %errorlevel%
+COPY "build\bin\Release\apdoom-launcher.exe" "Release\"
 
-REM Generating default yamls
-python3 ..\Archipelago\Launcher.py "Generate Template Settings"
-COPY "..\Archipelago\Players\Templates\DOOM 1993.yaml" "Release\DOOM 1993.yaml"
-COPY "..\Archipelago\Players\Templates\DOOM II.yaml" "Release\DOOM II.yaml"
-COPY "..\Archipelago\Players\Templates\Heretic.yaml" "Release\Heretic.yaml"
+@ECHO Copying other files...
+COPY "build\bin\Release\APCpp.dll" "Release\"
+COPY "CREDITS" "Release\credits.txt"
+COPY "COPYING.md" "Release\license.txt"
 
-REM Credits
-COPY credits-doom-1993.txt Release\credits-doom-1993.txt
-COPY credits-doom-ii.txt Release\credits-doom-ii.txt
-COPY credits-heretic.txt Release\credits-heretic.txt
-COPY credits-chex.txt Release\credits-chex.txt
+@ECHO Archiving...
+CD "Release"
+7z a "../apdoom-Win-x64.zip" *.* || EXIT /b %errorlevel%
+CD ".."
 
-REM Copy WADs
-COPY APDOOM.WAD Release\APDOOM.WAD
-COPY APHERETIC.WAD Release\APHERETIC.WAD
-
-REM Archiving release
-winrar a -afzip -ep1 -r Release\APDOOM_x_x_x.zip @release.lst
+MOVE "apdoom-Win-x64.zip" "K:\"
+@ECHO apdoom-Win-x64.zip placed in shared folder drive_k.
