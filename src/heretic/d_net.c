@@ -65,8 +65,6 @@ static void PlayerQuitGame(player_t *player)
     }
 }
 
-extern int wings_timeout;
-
 static void RunTic(ticcmd_t *cmds, boolean *ingame)
 {
     unsigned int i;
@@ -90,10 +88,6 @@ static void RunTic(ticcmd_t *cmds, boolean *ingame)
         D_DoAdvanceDemo ();
 
     G_Ticker ();
-
-	// Wings usage timeout
-	if (wings_timeout > 0)
-		--wings_timeout;
 }
 
 static loop_interface_t doom_loop_interface = {

@@ -1495,6 +1495,8 @@ void G_PrepTiccmd (void)
 
 void set_ap_player_states();
 
+extern int wings_timeout;
+
 void G_Ticker(void)
 {
     int i, buf;
@@ -1704,6 +1706,10 @@ void G_Ticker(void)
             TickLevelSelect();
             break;
     }
+
+    // Wings usage timeout
+    if (ap_is_in_game && wings_timeout > 0)
+        --wings_timeout;
 }
 
 

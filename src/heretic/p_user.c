@@ -1073,11 +1073,11 @@ boolean P_UseArtifact(player_t * player, artitype_t arti)
         case arti_fly:
             if (wings_timeout > 0)
                 return (false);
-            wings_timeout = TICRATE * 60 * 2; // 2mins cooldown
             if (!P_GivePower(player, pw_flight))
             {
                 return (false);
             }
+            wings_timeout = TICRATE * 60 * 2; // 2mins cooldown
             break;
         case arti_teleport:
             P_ArtiTele(player);
