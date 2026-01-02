@@ -63,32 +63,43 @@ static boolean PIT_TestFit(line_t* ld)
     if (tfheight > tfceil - tffloor)
         return false; // can't fit in opening
 
-    // We could potentially check lowfloor too, but I feel it's not worth bothering;
-    // most monsters can escape a little overhang and it doesn't cause things to break.
+    // Testing overhangs with lowfloor has proved problematic, don't bother
     return true;
 }
 
-int P_TestFit(mapthing_t *mt, mobjinfo_t *minfo)
+int P_TestFit(mapthing_t *mt, mobjinfo_t *oldinfo, mobjinfo_t *newinfo)
 {
+    // Trivially accept old type == new type
+    if (oldinfo == newinfo)
+        return true;
+
+    // If the old enemy floats and the new one doesn't, always run fit tests
+    if (!(oldinfo->flags & (MF_DROPOFF|MF_FLOAT)) || (newinfo->flags & (MF_DROPOFF|MF_FLOAT)))
+    {
+        // Trivially accept an enemy that fits in the vanilla enemy's bounding boxes
+        if (newinfo->radius <= oldinfo->radius && newinfo->height <= oldinfo->height)
+            return true;    
+    }
+
     fixed_t x = mt->x << FRACBITS;
     fixed_t y = mt->y << FRACBITS;
 
-    // Trivial rejection if doesn't meet height of sector it's in
+    // Trivially reject if new type doesn't meet height of sector it's in
     subsector_t *ss = R_PointInSubsector(x, y);
 
     tffloor = ss->sector->floorheight;
     tfceil = ss->sector->ceilingheight;
-    tfheight = minfo->height;
+    tfheight = newinfo->height;
     if (tfheight > tfceil - tffloor)
         return false;
 
     // Now check lines to see if any intersections create problems.
     tmx = x;
     tmy = y;
-    tmbbox[BOXTOP] = y + minfo->radius;
-    tmbbox[BOXBOTTOM] = y - minfo->radius;
-    tmbbox[BOXRIGHT] = x + minfo->radius;
-    tmbbox[BOXLEFT] = x - minfo->radius;
+    tmbbox[BOXTOP] = y + newinfo->radius;
+    tmbbox[BOXBOTTOM] = y - newinfo->radius;
+    tmbbox[BOXRIGHT] = x + newinfo->radius;
+    tmbbox[BOXLEFT] = x - newinfo->radius;
     ++validcount;
 
     const int xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
@@ -122,7 +133,7 @@ typedef struct
 {
     // Callback that should return nonzero if an object with that mobjinfo
     // is allowed to be placed at that mapthing. Can be NULL.
-    int (*placement_callback)(mapthing_t *mt, mobjinfo_t *info);
+    int (*placement_callback)(mapthing_t *mt, mobjinfo_t *oldinfo, mobjinfo_t *newinfo);
 
     int group_start[NUM_RGROUPS];
     int group_length[NUM_RGROUPS];
@@ -378,19 +389,6 @@ void P_MTRando_Run(mapthing_t *mts, int numthings, short *out_list)
         randoitem_t *item = RDef_GetItem(active_rdef, mt->type);
         if (item)
         {
-            // Except if the vanilla item placement would fail placement tests.
-            // If so, don't waste time shuffling. This is usually for trapped, inaccessible monsters
-            if (active_rdef->placement_callback && !active_rdef->placement_callback(mt, item->info))
-            {
-#ifdef MTRAND_DEBUG
-                printf("Vanilla mt[%i] fails placement tests! Type %i, location (%i, %i)\n",
-                    i,
-                    mts[i].type,
-                    mts[i].x,
-                    mts[i].y);
-#endif
-                continue;
-            }
             ritem_list[item_count] = item;
             index_list[item_count] = i;
             ++item_count;
@@ -438,14 +436,17 @@ void P_MTRando_Run(mapthing_t *mts, int numthings, short *out_list)
         {
             for (int i = 0; i < item_count; ++i)
             {
-                if (active_rdef->placement_callback(&mts[index_list[i]], ritem_list[i]->info))
+                mapthing_t *mt = &mts[index_list[i]];
+                randoitem_t *mtitem = RDef_GetItem(active_rdef, mts[index_list[i]].type);
+
+                if (active_rdef->placement_callback(mt, mtitem->info, ritem_list[i]->info))
                     continue; // Test passed
 
 #ifdef MTRAND_DEBUG
                 printf("Problematic placement found. Type %i, location (%i, %i)\n",
                     ritem_list[i]->doom_type,
-                    mts[index_list[i]].x,
-                    mts[index_list[i]].y);
+                    mt->x,
+                    mt->y);
 #endif
 
                 if (shuffle)
@@ -455,52 +456,54 @@ void P_MTRando_Run(mapthing_t *mts, int numthings, short *out_list)
                     int other_i = ap_rand() % item_count;
                     for (int j = 0; j < item_count; ++j)
                     {
-                        if (i != other_i  // Don't try a self-swap
-                            && ritem_list[i] != ritem_list[other_i]  // Don't try swapping identical monsters
-                            && active_rdef->placement_callback(&mts[index_list[i]], ritem_list[other_i]->info)
-                            && active_rdef->placement_callback(&mts[index_list[other_i]], ritem_list[i]->info))
-                        {
-                            int temp = index_list[other_i];
-                            index_list[other_i] = index_list[i];
-                            index_list[i] = temp;
+                        // Don't swap with ourselves, or an entry with an identical monster
+                        if (i == other_i || ritem_list[i] == ritem_list[other_i])
+                            goto no_swap;
 
+                        mapthing_t *othermt = &mts[index_list[other_i]];
+                        randoitem_t *othermtitem = RDef_GetItem(active_rdef, mts[index_list[other_i]].type);
+
+                        if (active_rdef->placement_callback(mt, mtitem->info, ritem_list[other_i]->info)
+                            && active_rdef->placement_callback(othermt, othermtitem->info, ritem_list[i]->info))
+                        {
 #ifdef MTRAND_DEBUG
                             printf(" -> Swap candidate found. Type %i, location (%i, %i)\n",
                                 ritem_list[other_i]->doom_type,
-                                mts[index_list[i]].x,
-                                mts[index_list[i]].y);
+                                othermt->x,
+                                othermt->y);
 #endif
 
-                            other_i = -9999;
-                            break;
+                            int temp = index_list[other_i];
+                            index_list[other_i] = index_list[i];
+                            index_list[i] = temp;
+                            goto placement_resolved;
                         }
 
+                    no_swap:
                         if (++other_i >= item_count)
                             other_i = 0;
                     }
-                    if (other_i < 0)
-                        continue;
                 }
 
                 // Reroll until either success or we give up.
-                int tries = 0;
-                for (; tries < 64; ++tries)
+                for (int tries = 0; tries < 64; ++tries)
                 {
                     ritem_list[i] = RDef_ReplaceLikeItem(active_rdef, ritem_list[i]);
-                    if (active_rdef->placement_callback(&mts[index_list[i]], ritem_list[i]->info))
+                    if (active_rdef->placement_callback(mt, mtitem->info, ritem_list[i]->info))
                     {
 #ifdef MTRAND_DEBUG
                         printf(" -> Rerolled to new type %i.\n",
                             ritem_list[i]->doom_type);
 #endif
-                        break; // Test passed
+                        goto placement_resolved;
                     }
                 }
 
 #ifdef MTRAND_DEBUG
-                if (tries == 64)
-                    printf(" -> Failed to resolve.\n");
+                printf(" -> Failed to resolve.\n");
 #endif
+            placement_resolved:
+                ; // double loop escape point
             }
         }
 
