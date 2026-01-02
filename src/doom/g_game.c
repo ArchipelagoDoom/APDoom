@@ -1774,7 +1774,7 @@ void G_Ticker (void)
 	ST_Ticker (); 
 	AM_Ticker (); 
 	HU_Ticker ();
-        ap_is_in_game = (players[consoleplayer].playerstate == PST_LIVE && !paused) ? 1 : 0;
+        ap_is_in_game = (players[consoleplayer].playerstate == PST_LIVE && !(menuactive || paused));
 
         if (ap_is_in_game)
         {
@@ -1783,6 +1783,7 @@ void G_Ticker (void)
             {
                 HU_AddAPMessage(reason);
                 P_KillMobj_Real(NULL, players[consoleplayer].mo, false);
+                ap_is_in_game = 0;
             }
         }
 	break; 
