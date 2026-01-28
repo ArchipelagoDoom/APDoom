@@ -1823,7 +1823,7 @@ void M_Kill(int choice)
 {
     if (ap_state.ep == 0 && ap_state.map == 0)
         M_StartMessage("you aren't in a level!\n\n" PRESSKEY, NULL, false);
-    else if (!ap_is_in_game || !players[consoleplayer].mo)
+    else if (!(players[consoleplayer].mo && players[consoleplayer].playerstate == PST_LIVE && !paused))
         M_StartMessage("you can't reset the level right now.\n\n" PRESSKEY, NULL, false);
     else
         M_StartMessage("are you sure you want to die and\nreset the level?\n\n" PRESSYN, M_KillResponse, true);
