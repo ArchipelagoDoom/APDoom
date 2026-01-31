@@ -236,7 +236,7 @@ HandlerReturnType ShowGoals_Handler(int key)
         S_StartSoundOptional(NULL, sfx_mnucls, sfx_swtchx);
 #elif defined(AP_INC_HERETIC)
         MN_DeactivateMenu();
-        S_StartSound(NULL, sfx_dorcls);
+        //S_StartSound(NULL, sfx_dorcls);
         return 0;        
 #endif
     }
