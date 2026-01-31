@@ -26,18 +26,15 @@
 
 #include "apdoom.h"
 
-gamesettings_t exec_settings = {
-    "", "archipelago.gg:", "", false,
-    -1, -1, -1, -1, -1, -1, -1,
-    ""
-};
+static const ap_savesettings_t *exec_settings;
 
 // ============================================================================
+#define MAXARG 100
 
 // One additional to guarantee NULL.
-static const char *arglist[65] = {NULL};
-static unsigned char argquote[64];
-static int argcount = 0;
+static const char   *arglist[MAXARG+1] = {NULL};
+static unsigned char argquote[MAXARG];
+static int           argcount = 0;
 
 static inline void SetupArgs(const char *program)
 {
@@ -50,12 +47,16 @@ static inline void SetupArgs(const char *program)
 
 static inline void AddArg(const char *str)
 {
+    if (argcount >= MAXARG)
+        return;
     arglist[argcount++] = str;
     arglist[argcount] = NULL;
 }
 
 static inline void AddArgParam(const char *param, const char *value)
 {
+    if (argcount+1 >= MAXARG)
+        return;
     arglist[argcount++] = param;
     argquote[argcount] = true;
     arglist[argcount++] = value;
@@ -65,7 +66,7 @@ static inline void AddArgParam(const char *param, const char *value)
 static inline void AddMultipleArgs(char *str)
 {
     char *token = strtok(str, " ");
-    while (token && argcount < 64)
+    while (token && argcount < MAXARG)
     {
         arglist[argcount++] = token;
         token = strtok(NULL, " ");
@@ -213,7 +214,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
         error_reason = LN_allocsprintf(
             "Couldn't connect to the Archipelago server at \xF2%s\xF0.\n"
             "\n"
-            "Check the address and port for typos, and then try again.", exec_settings.address);
+            "Check the address and port for typos, and then try again.", exec_settings->address);
     }
     else if (!strcmp(init_result, "InvalidSlot"))
     {
@@ -221,7 +222,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
             "The server reports that the slot name \xF2%s\xF0 "
             "does not match any players in the MultiWorld.\n"
             "\n"
-            "Check the slot name for typos, and then try again.", exec_settings.slot_name);
+            "Check the slot name for typos, and then try again.", exec_settings->slot_name);
     }
     else if (!strcmp(init_result, "InvalidGame"))
     {
@@ -229,7 +230,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
             "The server reports that the slot name \xF2%s\xF0 "
             "is not playing the game that you attempted to connect with.\n"
             "\n"
-            "Make sure you are connecting to the correct MultiWorld and/or slot.", exec_settings.slot_name);
+            "Make sure you are connecting to the correct MultiWorld and/or slot.", exec_settings->slot_name);
     }
     else if (!strcmp(init_result, "IncompatibleVersion"))
     {
@@ -433,10 +434,12 @@ static char *GetProgram(const char *iwad)
 // Public Functions
 // ============================================================================
 
-void LN_ExecuteWorld(const ap_worldinfo_t *world)
+void LN_ExecuteGame(const ap_savesettings_t *settings)
 {
-    char *program = GetProgram(world->iwad);
+    if (!settings || !settings->world)
+        return;
 
+    char *program = GetProgram(settings->world->iwad);
     char *tmpfilebase = LN_allocsprintf(".apdoom-init-%08x.tmp", rand());
     tmp_initfile = M_TempFile(tmpfilebase);
     free(tmpfilebase);
@@ -446,41 +449,45 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
 
     printf("Temp file: %s\n", tmp_initfile);
 
+    exec_settings = settings;
     SetupArgs(program);
     AddArgParam("-apinitfile", tmp_initfile);
-    AddArgParam("-game", world->shortname);
+    AddArgParam("-game", settings->world->shortname);
 
-    if (exec_settings.practice_mode)
+    if (exec_settings->practice_mode)
     {
         AddArg("-practice");
     }
     else
     {
-        AddArgParam("-applayerhex", MakeHexString(exec_settings.slot_name));
-        AddArgParam("-apserver", exec_settings.address);
+        AddArgParam("-applayerhex", MakeHexString(exec_settings->slot_name));
+        AddArgParam("-apserver", exec_settings->address);
 
-        if (exec_settings.password[0])
-            AddArgParam("-password", exec_settings.password);
+        if (exec_settings->password[0])
+            AddArgParam("-password", exec_settings->password);
 
-        if (exec_settings.no_deathlink > 0)
+        if (exec_settings->no_deathlink > 0)
             AddArg("-apdeathlinkoff");
     }
 
-    if (exec_settings.skill >= 0)
-        AddArgParam("-skill", MakeIntString(exec_settings.skill));
-    if (exec_settings.monster_rando >= 0)
-        AddArgParam("-apmonsterrando", MakeIntString(exec_settings.monster_rando));
-    if (exec_settings.item_rando >= 0)
-        AddArgParam("-apitemrando", MakeIntString(exec_settings.item_rando));
-    if (exec_settings.music_rando >= 0)
-        AddArgParam("-apmusicrando", MakeIntString(exec_settings.music_rando));
-    if (exec_settings.flip_levels >= 0)
-        AddArgParam("-apfliplevels", MakeIntString(exec_settings.flip_levels));
-    if (exec_settings.reset_level >= 0)
-        AddArgParam("-apresetlevelondeath", MakeIntString(exec_settings.reset_level));
+    if (exec_settings->skill >= 0)
+        AddArgParam("-skill", MakeIntString(exec_settings->skill));
+    if (exec_settings->monster_rando >= 0)
+        AddArgParam("-apmonsterrando", MakeIntString(exec_settings->monster_rando));
+    if (exec_settings->item_rando >= 0)
+        AddArgParam("-apitemrando", MakeIntString(exec_settings->item_rando));
+    if (exec_settings->music_rando >= 0)
+        AddArgParam("-apmusicrando", MakeIntString(exec_settings->music_rando));
+    if (exec_settings->flip_levels >= 0)
+        AddArgParam("-apfliplevels", MakeIntString(exec_settings->flip_levels));
+    if (exec_settings->reset_level >= 0)
+        AddArgParam("-apresetlevelondeath", MakeIntString(exec_settings->reset_level));
 
-    if (exec_settings.extra_cmdline[0])
-        AddMultipleArgs(MakeDupString(exec_settings.extra_cmdline));
+    if (exec_settings->extra_cmdline[0])
+    {
+        AddArg("-apextraargs");
+        AddMultipleArgs(MakeDupString(exec_settings->extra_cmdline));
+    }
 
     int code = DoExecute(true);
     switch (code)
@@ -500,7 +507,7 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
                 "\n"
                 "Please check your installation of APDoom for missing files, "
                 "and make sure the program is not blocked from executing by "
-                "the Operating System, an antivirus, or some other program.", GetBaseProgram(world->iwad));
+                "the Operating System, an antivirus, or some other program.", GetBaseProgram(settings->world->iwad));
             LN_OpenDialog(DIALOG_OK, "Error", reason);
             free(reason);
         }
@@ -519,7 +526,7 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
                 "the Operating System, an antivirus, or some other program.\n"
                 "\n"
                 "The terminal may have more information about the exact nature "
-                "of the error.", GetBaseProgram(world->iwad));
+                "of the error.", GetBaseProgram(settings->world->iwad));
             LN_OpenDialog(DIALOG_OK, "Error", reason);
             free(reason);
         }
@@ -529,6 +536,11 @@ void LN_ExecuteWorld(const ap_worldinfo_t *world)
     if (M_FileExists(tmp_initfile))
         M_remove(tmp_initfile);
 
+    if (!dialog_open)
+    {
+        extern bool invalidate_savegame_cache;
+        invalidate_savegame_cache = true;
+    }
     while (dialog_open)
     {
         LI_HandleEvents();

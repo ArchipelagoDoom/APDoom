@@ -28,6 +28,7 @@ typedef struct {
 
     unsigned char primary;
     unsigned char secondary;
+    int wheel;
 } mouse_t;
 
 extern navigation_t nav;

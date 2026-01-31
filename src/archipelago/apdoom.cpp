@@ -82,6 +82,7 @@ int ap_episode_count = -1;
 int ap_race_mode = false; // Server reports this is a race, not casual.
 int ap_practice_mode = false; // Not connected to a server, simulate play.
 int ap_force_disable_behaviors = false; // For demo compatibility.
+long int initial_timestamp = 0; // Time that the seed was started.
 
 static bool detected_old_apworld = false;
 
@@ -690,6 +691,7 @@ int apdoom_init(ap_settings_t* settings)
 				// Make sure that ammo starts at correct base values no matter what
 				recalc_max_ammo();
 
+				initial_timestamp = (long int)time(NULL);
 				load_state();
 
 				// Ask the server for race mode state.
@@ -964,8 +966,22 @@ void load_state()
 		return; // Could be no state yet, that's fine
 	}
 	Json::Value json;
-	f >> json;
+	try
+	{
+		f >> json;
+	}
+	catch (...)
+	{
+		f.close();
+		printf("  Error loading state.\n");
+		return;
+	}
+
 	f.close();
+
+	initial_timestamp = json.get("launcher_data", Json::objectValue).get("_initial_timestamp", 0).asInt64();
+	if (!initial_timestamp)
+		initial_timestamp = (long int)time(NULL);
 
 	// Player state
 	json_get_int(json["player"]["health"], ap_state.player_state.health);
@@ -1121,18 +1137,46 @@ std::vector<ap_level_index_t> get_level_indices()
 
 void save_state()
 {
-	std::ofstream f(ap_save_path / "apstate.json");
-	if (!f.is_open())
+	if (ap_practice_mode)
+		return;
+
+	Json::Value json;
+
+	// Connection info
+	if (!ap_practice_mode)
 	{
-		printf("Failed to save AP state.\n");
-#if WIN32
-		MessageBoxA(nullptr, "Failed to save player state. That's bad.", "Error", MB_OK);
-#endif
-		return; // Ok that's bad. we won't save player state
+		Json::Value json_launchdata;
+		json_launchdata["_last_timestamp"] = (long int)time(NULL);
+		json_launchdata["_initial_timestamp"] = initial_timestamp;
+
+		json_launchdata["game"] = ap_settings.game;
+		json_launchdata["address"] = ap_settings.ip;
+		json_launchdata["slot_name"] = ap_settings.player_name;
+		json_launchdata["server_pass"] = ap_settings.passwd;
+		if (ap_settings.extra_args)
+			json_launchdata["extra_args"] = ap_settings.extra_args;
+
+		Json::Value json_override(Json::objectValue);
+		if (ap_settings.override_skill)
+			json_override["skill"] = ap_settings.skill;
+		if (ap_settings.override_monster_rando)
+			json_override["monster_rando"] = ap_settings.monster_rando;
+		if (ap_settings.override_item_rando)
+			json_override["item_rando"] = ap_settings.item_rando;
+		if (ap_settings.override_music_rando)
+			json_override["music_rando"] = ap_settings.music_rando;
+		if (ap_settings.override_flip_levels)
+			json_override["flip_levels"] = ap_settings.flip_levels;
+		if (ap_settings.override_reset_level_on_death)
+			json_override["reset_level_on_death"] = ap_settings.reset_level_on_death;
+		if (ap_settings.force_deathlink_off)
+			json_override["no_deathlink"] = 1;
+		json_launchdata["overrides"] = json_override;
+
+		json["launcher_data"] = json_launchdata;
 	}
 
 	// Player state
-	Json::Value json;
 	Json::Value json_player;
 	json_player["health"] = ap_state.player_state.health;
 	json_player["armor_points"] = ap_state.player_state.armor_points;
@@ -1213,6 +1257,15 @@ void save_state()
 
 	json["version"] = APDOOM_VERSION_FULL_TEXT;
 
+	std::ofstream f(ap_save_path / "apstate.json");
+	if (!f.is_open())
+	{
+		printf("Failed to save AP state.\n");
+#if WIN32
+		MessageBoxA(nullptr, "Failed to save player state. That's bad.", "Error", MB_OK);
+#endif
+		return; // Ok that's bad. we won't save player state
+	}
 	f << json;
 }
 
@@ -2038,4 +2091,98 @@ const char *APDOOM_ReceiveDeath()
 	if (AP_DeathLinkPending())
 		return deathlink_message.c_str();
 	return NULL;
+}
+
+// ----------------------------------------------------------------------------
+// Save file reading (for launcher)
+static std::vector<ap_savesettings_t> savedata_cache;
+
+const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
+{
+	ap_savesettings_t tmp_savedata;
+	bool insert;
+
+	savedata_cache.clear();
+
+	const std::filesystem::path save_dir(std::filesystem::current_path() / "save");
+	if (std::filesystem::is_directory(save_dir))
+	{
+		const ap_worldinfo_t **games_list = ap_list_worlds();
+		for (int i = 0; games_list[i]; ++i)
+		{
+			const std::filesystem::path game_save_dir(save_dir / games_list[i]->shortname);
+			if (!std::filesystem::is_directory(game_save_dir))
+				continue;
+
+			tmp_savedata.world = games_list[i];
+			for (auto const &entry : std::filesystem::directory_iterator(game_save_dir))
+			{
+				if (!entry.is_directory())
+					continue; // Not a directory?
+
+				std::ifstream f(entry.path() / "apstate.json");
+				if (!f.is_open())
+					continue; // State json is missing or not openable
+
+				insert = false;
+				try
+				{
+					Json::Value json;
+					f >> json;
+
+					if (json["launcher_data"].isObject())
+					{
+						json = json["launcher_data"];
+
+						tmp_savedata.practice_mode = false;
+						tmp_savedata.last_timestamp = json["_last_timestamp"].asInt64();
+						tmp_savedata.initial_timestamp = json["_initial_timestamp"].asInt64();
+						snprintf(tmp_savedata.slot_name, 16 + 1, "%s", json["slot_name"].asCString());
+						snprintf(tmp_savedata.address, 128 + 1, "%s", json["address"].asCString());
+						snprintf(tmp_savedata.password, 128 + 1, "%s", json["server_pass"].asCString());
+						snprintf(tmp_savedata.extra_cmdline, 256 + 1, "%s", json.get("extra_args", "").asCString());
+
+						json = json.get("overrides", Json::objectValue);
+						tmp_savedata.skill = json.get("skill", -1).asInt();
+						tmp_savedata.monster_rando = json.get("monster_rando", -1).asInt();
+						tmp_savedata.item_rando = json.get("item_rando", -1).asInt();
+						tmp_savedata.music_rando = json.get("music_rando", -1).asInt();
+						tmp_savedata.flip_levels = json.get("flip_levels", -1).asInt();
+						tmp_savedata.reset_level = json.get("reset_level_on_death", -1).asInt();
+						tmp_savedata.no_deathlink = json.get("no_deathlink", -1).asInt();
+
+						insert = true;
+					}
+				}
+				catch (...) {} // Don't include this save game.
+				f.close();
+
+				if (!insert)
+					continue;
+
+				char memo[64 + 1];
+				memset(memo, 0, 64 + 1);
+
+				f = std::ifstream(entry.path() / "memo.txt");
+				if (f.is_open())
+				{
+					f.read(memo, 64);
+					f.close();
+				}
+
+				if (!memo[0])
+					strftime(memo, 64 + 1, "%b %d %Y", localtime((time_t*)&tmp_savedata.initial_timestamp));
+
+				snprintf(tmp_savedata.description, 64 + 1, "%s; %s", tmp_savedata.slot_name, memo);
+				savedata_cache.emplace_back(tmp_savedata);
+			}
+		}
+	}
+
+	std::sort(savedata_cache.begin(), savedata_cache.end(),
+		[](const ap_savesettings_t& a, const ap_savesettings_t& b) { return a.initial_timestamp > b.initial_timestamp; });
+
+	*save_count = savedata_cache.size();
+	savedata_cache.emplace_back(ap_savesettings_t{}).world = NULL;
+	return savedata_cache.data();
 }

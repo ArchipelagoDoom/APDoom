@@ -134,6 +134,7 @@ typedef struct
 typedef struct
 {
     const char* temp_init_file; // Used for launcher
+    const char* extra_args; // Stored in save file
 
     const char* ip;
     const char* game;
@@ -438,6 +439,36 @@ void APDOOM_ClearDeath();
 
 void APDOOM_ObitTags_Clear(void);
 void APDOOM_ObitTags_Add(const char *fmt, ...);
+
+// ===== SAVE DATA ============================================================
+
+typedef struct {
+    char slot_name[16 + 1]; // -applayerhex <s>
+    char address[128 + 1]; // -apserver <s>
+    char password[128 + 1]; // -password <s>
+
+    int practice_mode; // -practice
+
+    // Overrides of server options
+    int skill; // -skill <n>
+    int monster_rando; // -apmonsterrando <n>
+    int item_rando; // -apitemrando <n>
+    int music_rando; // -apmusicrando <n>
+    int flip_levels; // -apfliplevels <n>
+    int reset_level; // -apresetlevelondeath <n>
+    int no_deathlink; // -apdeathlinkoff
+
+    char extra_cmdline[256 + 1];
+
+    // ------------------------------------------------------------------------
+
+    const ap_worldinfo_t *world;
+    char description[64 + 1];
+    long int initial_timestamp;
+    long int last_timestamp;
+} ap_savesettings_t;
+
+const ap_savesettings_t *APDOOM_FindSaves(int *save_count);
 
 #ifdef __cplusplus
 }

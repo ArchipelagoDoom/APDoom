@@ -40,6 +40,7 @@ void LV_EnterMinimalMode(int (*unminimize_callback)(void));
 // 9 - Grayscale Dark
 void LV_SetPalette(int palnum);
 int LV_GetPalette(void);
+void LV_SetAlpha(int alpha);
 
 void LV_OutlineRect(layer_t *layer, int x, int y, int w, int h, int size, unsigned int c);
 void LV_FillRect(layer_t *layer, int x, int y, int w, int h, unsigned int c);

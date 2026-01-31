@@ -42,6 +42,7 @@ layer_t* LV_MakeLayer(void)
 static uint32_t palette[10][256];
 static uint32_t *active_palette = palette[0];
 static int active_palette_num = 0;
+static uint32_t active_alpha = 0xFF000000;
 
 static void LV_InitPalette(void)
 {
@@ -54,7 +55,7 @@ static void LV_InitPalette(void)
             const byte r = playpal[idx];
             const byte g = playpal[idx+1];
             const byte b = playpal[idx+2];
-            palette[pnum][c] = 0xFF000000 | (r << 16) | (g << 8) | (b);
+            palette[pnum][c] = (r << 16) | (g << 8) | (b);
         }        
     }
     active_palette = palette[0];
@@ -70,6 +71,11 @@ void LV_SetPalette(int palnum)
 int LV_GetPalette(void)
 {
     return active_palette_num;
+}
+
+void LV_SetAlpha(int alpha)
+{
+    active_alpha = ((unsigned)alpha<<24);
 }
 
 // ------------------------------------------------------------------------------------
@@ -322,7 +328,7 @@ void LV_DrawPatch(layer_t *layer, int x, int y, patch_t *patch)
             while (count--)
             {
                 if (top++ >= 0)
-                    *dest_p = active_palette[*source_p++];
+                    *dest_p = active_alpha | active_palette[*source_p++];
                 dest_p += SCREEN_WIDTH;
             }
             column = (column_t *)((byte *)column + column->length + 4);

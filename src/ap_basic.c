@@ -67,6 +67,28 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     else
         ap_settings->temp_init_file = NULL;
 
+    //!
+    // @category archipelago, launcher
+    //
+    // Marker for where extra arguments added by the user in the launcher begin.
+    // Used to store them in save data.
+    //
+    if ((p = M_CheckParmWithArgs("-apextraargs", 1)) != 0)
+    {
+        char *argstr = malloc(256+1);
+        argstr[0] = 0;
+
+        M_StringConcat(argstr, myargv[++p], 256+1);
+        while (p + 1 < myargc)
+        {
+            M_StringConcat(argstr, " ", 256+1);
+            M_StringConcat(argstr, myargv[++p], 256+1);
+        }
+        ap_settings->extra_args = argstr;
+    }
+    else
+        ap_settings->extra_args = NULL;
+
     // If certain arguments are set don't attempt to initialize Archipelago.
     if (M_CheckParmWithArgs ("-playdemo", 1) || M_CheckParmWithArgs ("-timedemo", 1)
         || M_CheckParm("-testcontrols"))

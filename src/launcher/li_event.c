@@ -130,6 +130,7 @@ void LI_SetTextInput(char *buffer, int size)
 void LI_HandleEvents(void)
 {
     mouse.primary = mouse.secondary = false;
+    mouse.wheel = 0;
 
     SDL_Event ev;
     while (SDL_PollEvent(&ev))
@@ -193,6 +194,13 @@ void LI_HandleEvents(void)
             // Scale mouse coordinates down to match render coords
             mouse.x = ev.motion.x >> 1;
             mouse.y = ev.motion.y >> 1;
+            break;
+        case SDL_MOUSEWHEEL:
+            mouse.active = true;
+            if (ev.wheel.y != 0)
+                mouse.wheel = ev.wheel.y;
+            if (ev.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+                mouse.wheel *= -1;
             break;
         case SDL_QUIT:
             I_Quit();
