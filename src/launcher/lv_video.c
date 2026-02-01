@@ -18,7 +18,7 @@ static SDL_Renderer *renderer;
 layer_t layertop;
 layer_t *layerbot = NULL;
 
-layer_t* LV_MakeLayer(void)
+layer_t* LV_MakeLayer(bool active)
 {
     if (!layerbot)
         I_Error("LV_MakeLayer: never initialized video");
@@ -28,6 +28,7 @@ layer_t* LV_MakeLayer(void)
     layernew->tex = SDL_CreateTexture(renderer, PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
     layernew->brightness = layernew->_old_brightness = 255;
     layernew->_next = NULL;
+    layernew->active = active;
 
     if (!layernew->surf || !layernew->tex)
         I_Error("LV_MakeLayer: couldn't make new layer");
@@ -225,6 +226,8 @@ void LV_RenderFrame(void)
 
     for (layer_t *layercur = layertop._next; layercur; layercur = layercur->_next)
     {
+        if (!layercur->active)
+            continue;
         if (layercur->brightness != layercur->_old_brightness)
         {
             const int ofs = layercur->brightness - layercur->_old_brightness;
@@ -245,11 +248,19 @@ void LV_RenderFrame(void)
     SDL_RenderClear(renderer);
 
     for (layer_t *layercur = layertop._next; layercur; layercur = layercur->_next)
-        SDL_RenderCopy(renderer, layercur->tex, NULL, NULL);
+    {
+        if (layercur->active)
+            SDL_RenderCopy(renderer, layercur->tex, NULL, NULL);
+    }
 
     SDL_RenderPresent(renderer);
 
     LV_Delay();
+}
+
+void LV_SetLayerActive(layer_t *layer, bool active)
+{
+    layer->active = active;
 }
 
 void LV_ClearLayer(layer_t *layer)

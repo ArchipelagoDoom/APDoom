@@ -12,7 +12,7 @@
 // ----------------------------------------------------------------------------
 
 extern layer_t *l_primary;
-extern layer_t *l_background;
+extern layer_t *l_bg_primary;
 extern layer_t *l_dialog;
 extern font_t large_font;
 extern font_t small_font;
@@ -31,8 +31,9 @@ void LN_OpenDialog(int type, const char *header, const char *msg)
     dialog_type = type;
 
     LV_ClearLayer(l_dialog);
+    LV_SetLayerActive(l_dialog, true);
     LV_SetBrightness(l_primary, 100, 12);
-    LV_SetBrightness(l_background, 100, 12);
+    LV_SetBrightness(l_bg_primary, 100, 12);
 
     int center_header = LV_TextWidth(&large_font, header) / 2;
     LV_FillRect(l_dialog, (SCREEN_WIDTH/2) - 180, 50, 360, 20, 0xC0300000);
@@ -89,9 +90,9 @@ void LN_OpenDialog(int type, const char *header, const char *msg)
 
 void LN_CloseDialog(void)
 {
-    LV_ClearLayer(l_dialog);
+    LV_SetLayerActive(l_dialog, false);
     LV_SetBrightness(l_primary, 255, 8);
-    LV_SetBrightness(l_background, 255, 8);
+    LV_SetBrightness(l_bg_primary, 255, 8);
     dialog_open = false;
     dialog_responder = NULL;
 }

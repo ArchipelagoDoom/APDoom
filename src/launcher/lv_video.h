@@ -14,6 +14,8 @@ typedef struct layer_s {
     SDL_Surface *surf;
     SDL_Texture *tex;
 
+    bool active;
+
     byte brightness;
     byte _old_brightness;
     char _bspeed;
@@ -23,7 +25,8 @@ typedef struct layer_s {
 
 void LV_InitVideo(void);
 void LV_RenderFrame(void);
-layer_t *LV_MakeLayer(void);
+layer_t *LV_MakeLayer(bool active);
+void LV_SetLayerActive(layer_t *layer, bool active);
 
 void LV_EnterMinimalMode(int (*unminimize_callback)(void));
 

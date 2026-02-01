@@ -21,8 +21,8 @@
 
 #include <time.h> // strftime
 
+layer_t *l_bg_primary;
 layer_t *l_primary;
-layer_t *l_background;
 layer_t *l_dialog;
 
 font_t large_font;
@@ -1094,9 +1094,9 @@ void D_DoomMain(void)
     }
 
     LV_InitVideo();
-    l_background = LV_MakeLayer();
-    l_primary = LV_MakeLayer();
-    l_dialog = LV_MakeLayer();
+    l_bg_primary = LV_MakeLayer(true);
+    l_primary = LV_MakeLayer(true);
+    l_dialog = LV_MakeLayer(false);
     LI_Init();
 
     LV_LoadFont(&small_font, "F_SML", 4, 8);
@@ -1106,11 +1106,11 @@ void D_DoomMain(void)
     menus[MENU_MAIN].initfunc(&menus[MENU_MAIN].data);
     anim_step = 0;
 
-    LV_SetBrightness(l_background, 0, 0);
-    LV_SetBrightness(l_background, 255, 4);
+    LV_SetBrightness(l_bg_primary, 0, 0);
+    LV_SetBrightness(l_bg_primary, 255, 4);
 
     // Temporary...
-    LV_DrawPatch(l_background, 94+160, 10, W_CacheLumpName("LN_DOOM1", PU_CACHE));
+    LV_DrawPatch(l_bg_primary, 94+160, 10, W_CacheLumpName("LN_DOOM1", PU_CACHE));
 
     while (true)
     {
