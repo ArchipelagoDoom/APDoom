@@ -463,12 +463,16 @@ typedef struct {
     // ------------------------------------------------------------------------
 
     const ap_worldinfo_t *world;
+    char path[256 + 1];
     char description[64 + 1];
     long int initial_timestamp;
     long int last_timestamp;
 } ap_savesettings_t;
 
 const ap_savesettings_t *APDOOM_FindSaves(int *save_count);
+const char *APDOOM_GetSaveMemo(const ap_savesettings_t *save);
+int APDOOM_SetSaveMemo(const ap_savesettings_t *save, const char *str);
+int APDOOM_DeleteSave(const ap_savesettings_t *save);
 
 #ifdef __cplusplus
 }

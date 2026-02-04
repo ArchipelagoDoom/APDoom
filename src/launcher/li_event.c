@@ -32,7 +32,7 @@ static void SetNavKey(SDL_Keycode key, char state)
     case SDLK_RIGHT:     held_nav[NAV_RIGHT] = state;     break;
     case SDLK_RETURN:    held_nav[NAV_PRIMARY] = state;   break;
     case SDLK_SPACE:     held_nav[NAV_SECONDARY] = state; break;
-    case SDLK_o:         held_nav[NAV_OPTIONS] = state;   break;
+    case SDLK_TAB:       held_nav[NAV_OPTIONS] = state;   break;
     case SDLK_ESCAPE:    held_nav[NAV_BACK] = state;      break;
     case SDLK_BACKSPACE: held_nav[NAV_BACKSPACE] = state; break;
     default: return;

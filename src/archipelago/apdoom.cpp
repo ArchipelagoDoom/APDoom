@@ -1158,7 +1158,7 @@ void save_state()
 
 		Json::Value json_override(Json::objectValue);
 		if (ap_settings.override_skill)
-			json_override["skill"] = ap_settings.skill;
+			json_override["skill"] = ap_settings.skill + 1; // This matches the -skill parameter.
 		if (ap_settings.override_monster_rando)
 			json_override["monster_rando"] = ap_settings.monster_rando;
 		if (ap_settings.override_item_rando)
@@ -2096,6 +2096,7 @@ const char *APDOOM_ReceiveDeath()
 // ----------------------------------------------------------------------------
 // Save file reading (for launcher)
 static std::vector<ap_savesettings_t> savedata_cache;
+char memo_buffer[64 + 1];
 
 const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
 {
@@ -2103,6 +2104,7 @@ const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
 	bool insert;
 
 	savedata_cache.clear();
+	savedata_cache.reserve(16);
 
 	const std::filesystem::path save_dir(std::filesystem::current_path() / "save");
 	if (std::filesystem::is_directory(save_dir))
@@ -2160,20 +2162,14 @@ const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
 				if (!insert)
 					continue;
 
-				char memo[64 + 1];
-				memset(memo, 0, 64 + 1);
+				std::string path_from_cwd = std::filesystem::relative(entry.path()).string();
+				snprintf(tmp_savedata.path, 256 + 1, "%s", path_from_cwd.c_str());
 
-				f = std::ifstream(entry.path() / "memo.txt");
-				if (f.is_open())
-				{
-					f.read(memo, 64);
-					f.close();
-				}
+				APDOOM_GetSaveMemo(&tmp_savedata);
+				if (!memo_buffer[0])
+					strftime(memo_buffer, 64 + 1, "%b %d %Y", localtime((time_t*)&tmp_savedata.initial_timestamp));
 
-				if (!memo[0])
-					strftime(memo, 64 + 1, "%b %d %Y", localtime((time_t*)&tmp_savedata.initial_timestamp));
-
-				snprintf(tmp_savedata.description, 64 + 1, "%s; %s", tmp_savedata.slot_name, memo);
+				snprintf(tmp_savedata.description, 64 + 1, "%s; %s", tmp_savedata.slot_name, memo_buffer);
 				savedata_cache.emplace_back(tmp_savedata);
 			}
 		}
@@ -2185,4 +2181,50 @@ const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
 	*save_count = savedata_cache.size();
 	savedata_cache.emplace_back(ap_savesettings_t{}).world = NULL;
 	return savedata_cache.data();
+}
+
+const char *APDOOM_GetSaveMemo(const ap_savesettings_t *save)
+{
+	memset(memo_buffer, 0, sizeof(memo_buffer));
+
+	std::ifstream f(std::filesystem::current_path() / save->path / "memo.txt");
+	if (f.is_open())
+		f.read(memo_buffer, 64);
+	for (char *c = memo_buffer; *c; ++c)
+		*c = (*c == '\n' ? ' ' : *c);
+	return memo_buffer;
+}
+
+int APDOOM_SetSaveMemo(const ap_savesettings_t *save, const char *str)
+{
+	std::ofstream f(std::filesystem::current_path() / save->path / "memo.txt");
+	if (!f.is_open())
+		return 0;
+	f << str;
+	return 1;
+}
+
+int APDOOM_DeleteSave(const ap_savesettings_t *save)
+{
+	std::ifstream f(std::filesystem::current_path() / save->path / "apstate.json");
+	if (!f.is_open())
+		return 0;
+
+	// Make completely sure we're deleting the right save.
+	int confirm = 0;
+	try
+	{
+		Json::Value json;
+		f >> json;
+
+		if (json["launcher_data"].isObject() &&
+			json["launcher_data"]["_initial_timestamp"].asInt64() == save->initial_timestamp)
+		{ confirm = 1; }
+	}
+	catch (...) { confirm = 0; }
+
+	f.close();
+	if (confirm)
+		std::filesystem::remove_all(std::filesystem::current_path() / save->path);
+	return confirm;
 }

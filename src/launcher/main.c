@@ -23,6 +23,8 @@
 
 layer_t *l_bg_primary;
 layer_t *l_primary;
+layer_t *l_bg_secondary;
+layer_t *l_secondary;
 layer_t *l_dialog;
 
 font_t large_font;
@@ -50,6 +52,9 @@ const ap_savesettings_t *settings_to_execute = NULL;
 // Set to true to refresh save games.
 // Can be done manually, or gets auto set when a game is executed.
 bool invalidate_savegame_cache = false;
+
+// We're editing connection info for an already present save, which limits what we can do.
+static bool editing_savegame = false;
 
 // ============================================================================
 // Game / World Functionality Testing
@@ -179,9 +184,10 @@ typedef enum {
     MENU_MAIN,
     MENU_SELECT_GAME,
     MENU_CONNECT,
-    MENU_LOAD_SAVED_GAME,
     MENU_PRACTICE,
     MENU_ADVANCED_OPTIONS,
+    MENU_LOAD_SAVED_GAME,
+    MENU_LOAD_OPTIONS,
     NUM_MENUS
 } menulist_t;
 
@@ -212,6 +218,8 @@ typedef struct menudata_s {
     int target_count;
     const menutarget_t *target_list;
 
+    layer_t *layer; // The layer the menu is drawn on.
+
     struct {
         // If scrolling is enabled for this menu. Nothing here applies if false.
         bool enable;
@@ -238,10 +246,6 @@ static void Connect_Init(menudata_t *data);
 static void Connect_Draw(menudata_t *data);
 static void Connect_Input(menudata_t *data);
 
-static void LoadSavedGame_Init(menudata_t *data);
-static void LoadSavedGame_Draw(menudata_t *data);
-static void LoadSavedGame_Input(menudata_t *data);
-
 static void Practice_Init(menudata_t *data);
 static void Practice_Draw(menudata_t *data);
 static void Practice_Input(menudata_t *data);
@@ -249,6 +253,14 @@ static void Practice_Input(menudata_t *data);
 static void AdvancedOptions_Init(menudata_t *data);
 static void AdvancedOptions_Draw(menudata_t *data);
 static void AdvancedOptions_Input(menudata_t *data);
+
+static void LoadSavedGame_Init(menudata_t *data);
+static void LoadSavedGame_Draw(menudata_t *data);
+static void LoadSavedGame_Input(menudata_t *data);
+
+static void LoadOptions_Init(menudata_t *data);
+static void LoadOptions_Draw(menudata_t *data);
+static void LoadOptions_Input(menudata_t *data);
 
 struct {
     void (*initfunc)(menudata_t *data);
@@ -261,9 +273,10 @@ struct {
     {Main_Init, Main_Draw, Main_Input},
     {SelectGame_Init, SelectGame_Draw, SelectGame_Input},
     {Connect_Init, Connect_Draw, Connect_Input},
-    {LoadSavedGame_Init, LoadSavedGame_Draw, LoadSavedGame_Input},
     {Practice_Init, Practice_Draw, Practice_Input},
     {AdvancedOptions_Init, AdvancedOptions_Draw, AdvancedOptions_Input},
+    {LoadSavedGame_Init, LoadSavedGame_Draw, LoadSavedGame_Input},
+    {LoadOptions_Init, LoadOptions_Draw, LoadOptions_Input},
 };
 
 static int menu_stack_pos = 0;
@@ -287,15 +300,15 @@ static void RunMenuScroll(menudata_t *data)
 
 // ----------------------------------------------------------------------------
 
-static void DrawHeader(int y, const char *txt)
+static void DrawHeader(layer_t *layer, int y, const char *txt)
 {
     const int center_header = LV_TextWidth(&large_font, txt) / 2;
     LV_SetPalette(2);
-    LV_PrintText(l_primary, (SCREEN_WIDTH/2)-center_header, y, &large_font, txt);
+    LV_PrintText(layer, (SCREEN_WIDTH/2)-center_header, y, &large_font, txt);
     LV_SetPalette(0);
 }
 
-static void DrawMenuItem(int x, int y, int selected, const char *fmt, ...)
+static void DrawMenuItem(layer_t *layer, int x, int y, int selected, const char *fmt, ...)
 {
     if (selected)
         x += anim_text_move[anim_step];
@@ -306,12 +319,12 @@ static void DrawMenuItem(int x, int y, int selected, const char *fmt, ...)
     char *str = LN_allocvsprintf(fmt, args);
     va_end(args);
 
-    LV_PrintText(l_primary, x, y, &large_font, str);
+    LV_PrintText(layer, x, y, &large_font, str);
 
     free(str);
 }
 
-static void DrawLabel(int x, int y, const char *fmt, ...)
+static void DrawLabel(layer_t *layer, int x, int y, const char *fmt, ...)
 {
     va_list args;
 
@@ -320,7 +333,7 @@ static void DrawLabel(int x, int y, const char *fmt, ...)
     va_end(args);
 
     const int width = LV_TextWidth(&large_font, str);
-    LV_PrintText(l_primary, (SCREEN_WIDTH-x)-width, y, &large_font, str);
+    LV_PrintText(layer, (SCREEN_WIDTH-x)-width, y, &large_font, str);
 
     free(str);
 }
@@ -348,13 +361,13 @@ void StandardMenuDraw(menudata_t *data)
             const int h = anim_bg_fade[anim_step];
             uint32_t color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
 
-            LV_FillRect(l_primary, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 0x60000000 | color);
-            LV_OutlineRect(l_primary, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 1, 0x40000000 | color);
+            LV_FillRect(data->layer, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 0x60000000 | color);
+            LV_OutlineRect(data->layer, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 1, 0x40000000 | color);
         }
 
         if (target->draw_handler && target->draw_handler(i, data, target->arg))
             continue;
-        DrawMenuItem(target->x, y, data->cursor == i, target->text);
+        DrawMenuItem(data->layer, target->x, y, data->cursor == i, target->text);
         LV_SetPalette(pal); // Restore palette, as draw handler may change it
     }
     if (data->scroll.enable)
@@ -487,16 +500,18 @@ static int TextInputDrawer(int num, menudata_t *data, void *arg)
     if (data->cursor == num)
         border_color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
 
-    LV_FillRect(l_primary, SCREEN_WIDTH/2 - 2, data->target_list[num].y, (SCREEN_WIDTH/2) - 32, 10, 0xA0000000);
-    LV_OutlineRect(l_primary, SCREEN_WIDTH/2 - 4, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 28, 12, 1, 0x80000000 | border_color);
-    LV_OutlineRect(l_primary, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 2, (SCREEN_WIDTH/2) - 30, 14, 1, 0x80000000 | border_color);
-    LV_OutlineRect(l_primary, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 30, 12, 1, 0xA0000000 | border_color);
+    LV_FillRect(data->layer, SCREEN_WIDTH/2 - 2, data->target_list[num].y, (SCREEN_WIDTH/2) - 32, 10, 0xA0000000);
+    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 4, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 28, 12, 1, 0x80000000 | border_color);
+    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 2, (SCREEN_WIDTH/2) - 30, 14, 1, 0x80000000 | border_color);
+    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 30, 12, 1, 0xA0000000 | border_color);
 
-    LV_PrintText(l_primary, SCREEN_WIDTH/2, data->target_list[num].y + 3, &small_font, text);
-    if (data->cursor == num && SDL_GetTicks() % 500 > 250)
+    LV_PrintText(data->layer, SCREEN_WIDTH/2, data->target_list[num].y + 3, &small_font, text);
+    if (editing_savegame && text == game_settings.slot_name)
+        LV_SetPalette(9); // Slot name input isn't allowed when editing.
+    else if (data->cursor == num && SDL_GetTicks() % 500 > 250)
     {
         const int width = LV_TextWidth(&small_font, text);
-        LV_PrintText(l_primary, SCREEN_WIDTH/2 + width, data->target_list[num].y + 3, &small_font, "_");
+        LV_PrintText(data->layer, SCREEN_WIDTH/2 + width, data->target_list[num].y + 3, &small_font, "_");
     }
     return false;
 }
@@ -519,8 +534,8 @@ static void Main_Init(menudata_t *data)
 
 static void Main_Draw(menudata_t *data)
 {
-    DrawMenuItem(40, 100, false, "\xF2" "Archipelago");
-    DrawMenuItem(40, 180, false, "\xF2" "Offline");
+    DrawMenuItem(data->layer, 40, 100, false, "\xF2" "Archipelago");
+    DrawMenuItem(data->layer, 40, 180, false, "\xF2" "Offline");
 }
 
 static void Main_Input(menudata_t *data)
@@ -542,6 +557,7 @@ static void Main_Input(menudata_t *data)
 menutarget_t *lsg_targets = NULL;
 const ap_savesettings_t *lsg_savegame_cache = NULL;
 int lsg_num_saves = 0;
+char lsg_lastpath[256+1] = ""; // Used to maintain cursor position after refresh/invalidation
 
 static void CreateSaveCache(void)
 {
@@ -549,13 +565,18 @@ static void CreateSaveCache(void)
 
     if (lsg_targets)
         free(lsg_targets);
-    lsg_targets = calloc(lsg_num_saves, sizeof(menutarget_t));
-
-    for (int i = 0; i < lsg_num_saves; ++i)
+    if (lsg_num_saves <= 0)
+        lsg_targets = NULL;
+    else
     {
-        lsg_targets[i].x = 40;
-        lsg_targets[i].y = 120 + (i * 20);
-        lsg_targets[i].text = lsg_savegame_cache[i].description;
+        lsg_targets = calloc(lsg_num_saves, sizeof(menutarget_t));
+
+        for (int i = 0; i < lsg_num_saves; ++i)
+        {
+            lsg_targets[i].x = 40;
+            lsg_targets[i].y = 120 + (i * 20);
+            lsg_targets[i].text = lsg_savegame_cache[i].description;
+        }
     }
 
     invalidate_savegame_cache = false;
@@ -578,53 +599,107 @@ static void LoadSavedGame_Init(menudata_t *data)
     data->scroll.max = (lsg_num_saves * 20) - 220;
     data->scroll.enable = (data->scroll.min < data->scroll.max);
 
+    if (lsg_lastpath[0])
+    {
+        for (int i = 0; i < lsg_num_saves; ++i)
+        {
+            if (!strncmp(lsg_lastpath, lsg_savegame_cache[i].path, 256))
+            {
+                data->scroll.dest = (i * 20) - 80; // Show current world fifth if possible.
+                data->cursor = i;
+                break;
+            }
+        }
+        if (data->scroll.dest < data->scroll.min)
+            data->scroll.dest = data->scroll.min;
+        else if (data->scroll.dest > data->scroll.max)
+            data->scroll.dest = data->scroll.max;
+
+        lsg_lastpath[0] = 0;
+    }
+
     sidebar_id = -1;
 }
 
 static void LoadSavedGame_Draw(menudata_t *data)
 {
-    DrawHeader(100, "Load Previous Game");
+    DrawHeader(data->layer, 100, "Load Previous Game");
 
-    if (sidebar_id != data->cursor)
+    const uint32_t border_color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
+    LV_FillRect(l_primary, (SCREEN_WIDTH/4)*3 - 2, 118, (SCREEN_WIDTH/4) + 5, 214, 0xA0000000);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0x80000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0x80000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
+
+    if (!lsg_targets)
     {
-        char initdt[48], lastdt[48];
+        const char *info_txt = "No saved games found.";
+        const int center_header = LV_TextWidth(&large_font, info_txt) / 2;
+        LV_SetPalette(9);
+        LV_PrintText(l_primary, (SCREEN_WIDTH/2)-center_header, 140, &large_font, info_txt);
+        LV_SetPalette(0);
+    }
+    else
+    {
+        if (sidebar_id != data->cursor)
+        {
+            char initdt[48], lastdt[48];
+            if (sidebar_text)
+                free(sidebar_text);
+
+            sidebar_id = data->cursor;
+            strftime(initdt, 48, "%B %d, %Y\n  %r", localtime((time_t*)&lsg_savegame_cache[sidebar_id].initial_timestamp));
+            strftime(lastdt, 48, "%B %d, %Y\n  %r", localtime((time_t*)&lsg_savegame_cache[sidebar_id].last_timestamp));
+
+            sidebar_text = LN_allocsprintf(
+                "Game:\n"        "  \xF4%s\xF0\n\n"
+                "Server:\n"      "  \xF2%s\xF0\n\n"
+                "Slot Name:\n"   "  \xF2%s\xF0\n\n"
+                "Started:\n"     "  %s\n\n"
+                "Last Played:\n" "  %s\n\n",
+                lsg_savegame_cache[sidebar_id].world->fullname,
+                lsg_savegame_cache[sidebar_id].address,
+                lsg_savegame_cache[sidebar_id].slot_name,
+                initdt,
+                lastdt);
+        }
+
         if (sidebar_text)
-            free(sidebar_text);
-
-        sidebar_id = data->cursor;
-        strftime(initdt, 48, "%B %d, %Y\n  %r", localtime((time_t*)&lsg_savegame_cache[sidebar_id].initial_timestamp));
-        strftime(lastdt, 48, "%B %d, %Y\n  %r", localtime((time_t*)&lsg_savegame_cache[sidebar_id].last_timestamp));
-
-        sidebar_text = LN_allocsprintf(
-            "Game:\n"        "  \xF4%s\xF0\n\n"
-            "Server:\n"      "  \xF2%s\xF0\n\n"
-            "Slot Name:\n"   "  \xF2%s\xF0\n\n"
-            "Started:\n"     "  %s\n\n"
-            "Last Played:\n" "  %s",
-            lsg_savegame_cache[sidebar_id].world->fullname,
-            lsg_savegame_cache[sidebar_id].address,
-            lsg_savegame_cache[sidebar_id].slot_name,
-            initdt,
-            lastdt);
+            LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3, 120, &small_font, sidebar_text);
     }
-    if (sidebar_text)
-    {
-        const uint32_t border_color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
-        LV_FillRect(l_primary, (SCREEN_WIDTH/4)*3 - 2, 118, (SCREEN_WIDTH/4) + 5, 214, 0xA0000000);
-        LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0x80000000 | border_color);
-        LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0x80000000 | border_color);
-        LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
 
-        LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3, 120, &small_font, sidebar_text);
-    }
+    LV_FormatText(l_primary, (SCREEN_WIDTH/4)*3, 325, &small_font, "%d of %d", data->cursor + 1, data->target_count);
+    LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3, 325-32, &small_font, "\xF9(tab)\n(esc)");
+    LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3 + 32, 325-32, &small_font, "More Options\nBack");
 }
 
 static void LoadSavedGame_Input(menudata_t *data)
 {
-    if (nav[NAV_SECONDARY])
+    if (!lsg_targets)
+    {
+        // No saves found, the only valid moves are refresh and back.
+        if (nav[NAV_SECONDARY])
+        {
+            invalidate_savegame_cache = true;
+            next_menu = MENUSPEC_REINIT;
+        }
+        else if (nav[NAV_BACK])
+            next_menu = MENUSPEC_BACK;
+        return;
+    }
+
+    if (nav[NAV_OPTIONS])
+    {
+        next_menu = MENU_LOAD_OPTIONS;
+        return;
+    }
+    if (nav[NAV_SECONDARY]) // Refresh
         invalidate_savegame_cache = true;
+
     if (invalidate_savegame_cache)
     {
+        // Refresh can also be triggered by other events
+        memcpy(lsg_lastpath, lsg_savegame_cache[data->cursor].path, sizeof(lsg_lastpath));
         next_menu = MENUSPEC_REINIT;
         return;
     }
@@ -636,6 +711,114 @@ static void LoadSavedGame_Input(menudata_t *data)
     next_menu = MENUSPEC_EXECUTE_GAME;
     if (next_menu == MENUSPEC_EXECUTE_GAME)
         settings_to_execute = &lsg_savegame_cache[data->cursor];
+}
+
+// ----- Load Saved Game - Options Submenu ------------------------------------
+
+const char *current_memo;
+char editable_memo_buffer[64 + 1];
+
+static const menutarget_t LoadOptionsTargets[] = {
+    {40, 220, "Change Connection Info"},
+    {40, 240, "Slot Memo", TextInputDrawer, &editable_memo_buffer},
+    {40, 260, "Delete"},
+    {40, 300, "Back"},
+};
+
+static void DeleteGameResponder(int result)
+{
+    if (!result)
+        return;
+
+    const int save_cursor = menus[MENU_LOAD_SAVED_GAME].data.cursor;
+    APDOOM_DeleteSave(&lsg_savegame_cache[save_cursor]);
+    invalidate_savegame_cache = true;
+}
+
+static void LoadOptions_Init(menudata_t *data)
+{
+    const int save_cursor = menus[MENU_LOAD_SAVED_GAME].data.cursor;
+    current_memo = APDOOM_GetSaveMemo(&lsg_savegame_cache[save_cursor]);
+    strncpy(editable_memo_buffer, current_memo, 64);
+    editable_memo_buffer[64] = 0;
+
+    data->target_count = 4;
+    data->target_list = LoadOptionsTargets;
+    data->layer = l_secondary;
+
+    LV_SetBrightness(l_primary, 100, 12);
+
+    LV_SetLayerActive(l_secondary, true);
+    LV_SetBrightness(l_secondary, 128, 0);
+    LV_SetBrightness(l_secondary, 255, 16);
+
+    LV_SetLayerActive(l_bg_secondary, true);
+    LV_ClearLayer(l_bg_secondary);
+    LV_FillRect(l_bg_secondary, 0, 210, SCREEN_WIDTH, 110, 0xA0000000);
+    LV_OutlineRect(l_bg_secondary, 0 - 2, 210 - 2, SCREEN_WIDTH + 2, 110 + 4, 2, 0x80000000);
+    LV_OutlineRect(l_bg_secondary, 0 - 2, 210 - 4, SCREEN_WIDTH + 2, 110 + 8, 2, 0x60000000);
+    LV_OutlineRect(l_bg_secondary, 0 - 2, 210 - 6, SCREEN_WIDTH + 2, 110 + 12, 2, 0x40000000);
+}
+
+static void LoadOptions_Draw(menudata_t *data)
+{
+    if (next_menu != MENU_NONE)
+    {
+        LV_SetLayerActive(l_bg_secondary, false);
+        LV_SetLayerActive(l_secondary, false);
+        return;
+    }
+
+}
+
+static void LoadOptions_Input(menudata_t *data)
+{
+    const int save_cursor = menus[MENU_LOAD_SAVED_GAME].data.cursor;
+
+    int result = -1;
+    LI_SetTextInput((data->cursor == 1 ? editable_memo_buffer : NULL), 64 + 1);
+    result = StandardMenuInput(data, NULL);
+
+    if (nav[NAV_OPTIONS]) // Pressing options/TAB again goes back.
+    {
+        next_menu = MENUSPEC_BACK;
+        LI_SetTextInput(NULL, 0);
+    }
+
+    switch (result)
+    {
+    default: break;
+    case 0:
+    {
+        memcpy(&game_settings, &lsg_savegame_cache[save_cursor], sizeof(ap_savesettings_t));
+        next_menu = MENU_CONNECT;
+        break;
+    }
+    case 2:
+    {
+        char *warn_msg = LN_allocsprintf(
+            "Are you sure you want to delete the save game \xF2%s\xF0?\n\n"
+            "\xF1This operation cannot be undone!",
+            lsg_savegame_cache[save_cursor].path
+        );
+        LN_DialogResponder(DeleteGameResponder);
+        LN_OpenDialog(DIALOG_YES_NO, "Warning", warn_msg);
+        free(warn_msg);
+        next_menu = MENUSPEC_BACK;
+        break;
+    }
+    case 3:
+        next_menu = MENUSPEC_BACK;
+        break;
+    }
+
+    if (next_menu && strncmp(editable_memo_buffer, current_memo, 64))
+    {
+        APDOOM_SetSaveMemo(&lsg_savegame_cache[save_cursor], editable_memo_buffer);
+        invalidate_savegame_cache = true;
+    }
+    if (next_menu > MENU_NONE)
+        --menu_stack_pos; // Don't back up to this sub menu.
 }
 
 // ----- Select Game ----------------------------------------------------------
@@ -688,7 +871,15 @@ static void SelectGame_Init(menudata_t *data)
 
 static void SelectGame_Draw(menudata_t *data)
 {
-    DrawHeader(100, "Select a Game");
+    DrawHeader(data->layer, 100, "Select a Game");
+
+    const uint32_t border_color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
+    LV_FillRect(l_primary, (SCREEN_WIDTH/4)*3 - 2, 118, (SCREEN_WIDTH/4) + 5, 214, 0xA0000000);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0x80000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0x80000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
+
+    LV_FormatText(l_primary, (SCREEN_WIDTH/4)*3, 325, &small_font, "%d of %d", data->cursor + 1, data->target_count);
 }
 
 static void SelectGame_Input(menudata_t *data)
@@ -711,9 +902,13 @@ static void SelectGame_Input(menudata_t *data)
 static int DrawGameName(int num, menudata_t *data, void *arg)
 {
     (void)arg;
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, "%c%s",
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, "%c%s",
         (game_settings.world ? 0xF4 : 0xF9),
         (game_settings.world ? game_settings.world->fullname : "<no game selected>"));
+
+    // Selection disabled if previous menu is the save game menu. Can't change game.
+    if (editing_savegame)
+        LV_SetPalette(9);
     return false;
 }
 
@@ -745,11 +940,13 @@ static void Practice_Init(menudata_t *data)
     game_settings.music_rando = 0;
     game_settings.flip_levels = 0;
     game_settings.reset_level = 0;
+
+    editing_savegame = false;
 }
 
 static void Practice_Draw(menudata_t *data)
 {
-    DrawHeader(100, "Setup Practice Game");
+    DrawHeader(data->layer, 100, "Setup Practice Game");
 }
 
 static void Practice_Input(menudata_t *data)
@@ -805,25 +1002,35 @@ static void Connect_Init(menudata_t *data)
 
     game_settings.practice_mode = false;
 
-    game_settings.skill = -1;
-    game_settings.monster_rando = -1;
-    game_settings.item_rando = -1;
-    game_settings.music_rando = -1;
-    game_settings.flip_levels = -1;
-    game_settings.reset_level = -1;
-    game_settings.no_deathlink = -1;
+    editing_savegame = (menu_stack[menu_stack_pos-1] == MENU_LOAD_SAVED_GAME);
+    if (editing_savegame)
+    {
+        // Don't set defaults, we just had them copied in from the save.
+        data->cursor = 4;
+    }
+    else
+    {
+        // Set overrides to unchanged.
+        game_settings.skill = -1;
+        game_settings.monster_rando = -1;
+        game_settings.item_rando = -1;
+        game_settings.music_rando = -1;
+        game_settings.flip_levels = -1;
+        game_settings.reset_level = -1;
+        game_settings.no_deathlink = -1;
+    }
 }
 
 static void Connect_Draw(menudata_t *data)
 {
-    DrawHeader(100, "Connect to Game");
+    DrawHeader(data->layer, 100, "Connect to Game");
 }
 
 static void Connect_Input(menudata_t *data)
 {
     switch (data->cursor)
     {
-    case 1:  LI_SetTextInput(game_settings.slot_name, 16 + 1); break;
+    case 1:  if (!editing_savegame) { LI_SetTextInput(game_settings.slot_name, 16 + 1); } break;
     case 2:  LI_SetTextInput(game_settings.address, 128 + 1); break;
     case 3:  LI_SetTextInput(game_settings.password, 128 + 1); break;
     default: LI_SetTextInput(NULL, 0); break;
@@ -836,7 +1043,7 @@ static void Connect_Input(menudata_t *data)
     switch (result)
     {
     default: break;
-    case 0: next_menu = MENU_SELECT_GAME; break;
+    case 0: if (!editing_savegame) { next_menu = MENU_SELECT_GAME; } break;
     case 4: next_menu = MENUSPEC_EXECUTE_GAME; break;
     case 5: next_menu = MENU_ADVANCED_OPTIONS; break;
     case 6: next_menu = MENUSPEC_BACK; break;
@@ -862,7 +1069,7 @@ static int AdvOptDrawSkill(int num, menudata_t *data, void *arg)
     case 5: text = "Nightmare"; break;
     default: break;
     }
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);
     return false;
 }
 
@@ -880,7 +1087,7 @@ static int AdvOptDrawMapThingRando(int num, menudata_t *data, void *arg)
     case 4: text = "Chaotic"; break;
     default: break;
     }
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);
     return false;
 }
 
@@ -894,7 +1101,7 @@ static int AdvOptDrawMusicRando(int num, menudata_t *data, void *arg)
     case 2: text = "Shuffle Game"; break;
     default: break;
     }
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);
     return false;
 }
 
@@ -913,7 +1120,7 @@ static int AdvOptDrawFlipLevels(int num, menudata_t *data, void *arg)
     case 2: text = "Random Mix"; break;
     default: break;
     }
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);
     return false;
 }
 
@@ -926,7 +1133,7 @@ static int AdvOptDrawResetLevel(int num, menudata_t *data, void *arg)
     case 1: text = "On"; break;
     default: break;
     }
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);
     return false;
 }
 
@@ -940,7 +1147,7 @@ static int AdvOptDrawDeathLink(int num, menudata_t *data, void *arg)
     }
     else if (game_settings.no_deathlink > 0)
         text = "Force Off";
-    DrawLabel(data->target_list[num].x, data->target_list[num].y, text);
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);
     return false;
 }
 
@@ -979,7 +1186,7 @@ static void AdvancedOptions_Init(menudata_t *data)
 
 static void AdvancedOptions_Draw(menudata_t *data)
 {
-    DrawHeader(100, "Option Overrides");
+    DrawHeader(data->layer, 100, "Option Overrides");
 }
 
 static void AdvancedOptions_Input(menudata_t *data)
@@ -1096,11 +1303,16 @@ void D_DoomMain(void)
     LV_InitVideo();
     l_bg_primary = LV_MakeLayer(true);
     l_primary = LV_MakeLayer(true);
+    l_bg_secondary = LV_MakeLayer(false);
+    l_secondary = LV_MakeLayer(false);
     l_dialog = LV_MakeLayer(false);
     LI_Init();
 
     LV_LoadFont(&small_font, "F_SML", 4, 8);
     LV_LoadFont(&large_font, "F_LRG", 7, 16);
+
+    for (int i = MENU_MAIN; i < NUM_MENUS; ++i)
+        menus[i].data.layer = l_primary;
 
     menus[MENU_MAIN].data.cursor = 0;
     menus[MENU_MAIN].initfunc(&menus[MENU_MAIN].data);
@@ -1119,7 +1331,7 @@ void D_DoomMain(void)
         pulsating_color = 16 + (finesine[(int)((SDL_GetTicks() % 1000) * 8.200200020002f)] >> 12);
 
         LI_HandleEvents();
-        LV_ClearLayer(l_primary);
+        LV_ClearLayer(menus[cur_menu].data.layer);
 
         if (dialog_open)
             LN_HandleDialog();
@@ -1173,8 +1385,8 @@ void D_DoomMain(void)
         reinit:
             menus[next_menu].data.cursor = 0;
             menus[next_menu].initfunc(&menus[next_menu].data);
-            LV_SetBrightness(l_primary, 128, 0);
-            LV_SetBrightness(l_primary, 255, 16);
+            LV_SetBrightness(menus[next_menu].data.layer, 128, 0);
+            LV_SetBrightness(menus[next_menu].data.layer, 255, 16);
             anim_step = 0;
 
             // Set scrolling positions to equal destination from start
