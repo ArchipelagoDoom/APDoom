@@ -102,6 +102,7 @@ static bool ap_initialized = false;
 static std::vector<std::string> ap_cached_messages;
 static std::string ap_seed_string;
 static std::vector<ap_notification_icon_t> ap_notification_icons;
+static bool ap_items_synced = false;
 
 static AP_GetServerDataRequest race_mode_request; // Required to fetch from server
 
@@ -999,9 +1000,10 @@ void load_state()
 	{
 		json_get_int(json["player"]["ammo"][i], ap_state.player_state.ammo[i]);
 
-		// This will get overwritten later,
-		// but it must be saved if the player is in game before all their items have been re-received.
-		json_get_int(json["player"]["max_ammo"][i], ap_state.player_state.max_ammo[i]);		
+		// Only load max ammos from save if we haven't synced our items yet!
+		// Otherwise we may be overwriting more up-to-date data.
+		if (!ap_items_synced)
+			json_get_int(json["player"]["max_ammo"][i], ap_state.player_state.max_ammo[i]);		
 	}
 	for (int i = 0; i < ap_inventory_count; ++i)
 	{
@@ -1393,6 +1395,9 @@ static void process_received_item(int64_t item_id)
 
 void f_itemrecv(int64_t item_id, bool notify_player)
 {
+	if (!notify_player) // Notify is only false upon receiving a sync packet.
+		ap_items_synced = true;
+
 	const auto& item_type_table = get_item_type_table();
 	auto it = item_type_table.find(item_id);
 	if (it == item_type_table.end())
