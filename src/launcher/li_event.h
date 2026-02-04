@@ -38,6 +38,7 @@ void LI_Init(void);
 void LI_Reset(void);
 void LI_HandleEvents(void);
 
+int LI_HasTextInput(const char *buffer);
 void LI_SetTextInput(char *buffer, int size);
 
 #endif

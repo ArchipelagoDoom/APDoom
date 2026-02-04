@@ -121,6 +121,11 @@ void LI_Init(void)
     }
 }
 
+int LI_HasTextInput(const char *buffer)
+{
+    return (const char *)text_input_buffer == buffer;
+}
+
 void LI_SetTextInput(char *buffer, int size)
 {
     text_input_buffer = buffer;

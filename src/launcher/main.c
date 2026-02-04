@@ -506,13 +506,14 @@ static int TextInputDrawer(int num, menudata_t *data, void *arg)
     LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 30, 12, 1, 0xA0000000 | border_color);
 
     LV_PrintText(data->layer, SCREEN_WIDTH/2, data->target_list[num].y + 3, &small_font, text);
-    if (editing_savegame && text == game_settings.slot_name)
-        LV_SetPalette(9); // Slot name input isn't allowed when editing.
-    else if (data->cursor == num && SDL_GetTicks() % 500 > 250)
+    if (LI_HasTextInput(text) && SDL_GetTicks() % 500 > 250)
     {
         const int width = LV_TextWidth(&small_font, text);
         LV_PrintText(data->layer, SCREEN_WIDTH/2 + width, data->target_list[num].y + 3, &small_font, "_");
     }
+
+    if (editing_savegame && text == game_settings.slot_name) // Kinda hacky...
+        LV_SetPalette(9); // Slot name input isn't allowed when editing.
     return false;
 }
 
@@ -774,16 +775,12 @@ static void LoadOptions_Draw(menudata_t *data)
 static void LoadOptions_Input(menudata_t *data)
 {
     const int save_cursor = menus[MENU_LOAD_SAVED_GAME].data.cursor;
+    int result = StandardMenuInput(data, NULL);
 
-    int result = -1;
     LI_SetTextInput((data->cursor == 1 ? editable_memo_buffer : NULL), 64 + 1);
-    result = StandardMenuInput(data, NULL);
 
     if (nav[NAV_OPTIONS]) // Pressing options/TAB again goes back.
-    {
         next_menu = MENUSPEC_BACK;
-        LI_SetTextInput(NULL, 0);
-    }
 
     switch (result)
     {
@@ -812,13 +809,16 @@ static void LoadOptions_Input(menudata_t *data)
         break;
     }
 
-    if (next_menu && strncmp(editable_memo_buffer, current_memo, 64))
+    if (next_menu)
     {
-        APDOOM_SetSaveMemo(&lsg_savegame_cache[save_cursor], editable_memo_buffer);
-        invalidate_savegame_cache = true;
+        if (strncmp(editable_memo_buffer, current_memo, 64))
+        {
+            APDOOM_SetSaveMemo(&lsg_savegame_cache[save_cursor], editable_memo_buffer);
+            invalidate_savegame_cache = true;
+        }
+        if (next_menu > MENU_NONE)
+            --menu_stack_pos; // Don't back up to this sub menu.
     }
-    if (next_menu > MENU_NONE)
-        --menu_stack_pos; // Don't back up to this sub menu.
 }
 
 // ----- Select Game ----------------------------------------------------------
@@ -1028,15 +1028,21 @@ static void Connect_Draw(menudata_t *data)
 
 static void Connect_Input(menudata_t *data)
 {
+    int result = StandardMenuInput(data, NULL);
+
     switch (data->cursor)
     {
-    case 1:  if (!editing_savegame) { LI_SetTextInput(game_settings.slot_name, 16 + 1); } break;
+    case 1:
+        if (!editing_savegame) 
+            LI_SetTextInput(game_settings.slot_name, 16 + 1);
+        else
+            LI_SetTextInput(NULL, 0);
+        break;
     case 2:  LI_SetTextInput(game_settings.address, 128 + 1); break;
     case 3:  LI_SetTextInput(game_settings.password, 128 + 1); break;
     default: LI_SetTextInput(NULL, 0); break;
     }
 
-    int result = StandardMenuInput(data, NULL);
     if (result < 0)
         return;
 
@@ -1191,9 +1197,11 @@ static void AdvancedOptions_Draw(menudata_t *data)
 
 static void AdvancedOptions_Input(menudata_t *data)
 {
-    LI_SetTextInput((data->cursor == 7 ? game_settings.extra_cmdline : NULL), 256 + 1);
     int interaction_type;
     int result = StandardMenuInput(data, &interaction_type);
+
+    LI_SetTextInput((data->cursor == 7 ? game_settings.extra_cmdline : NULL), 256 + 1);
+
     if (result < 0)
         return;
 
@@ -1350,6 +1358,9 @@ void D_DoomMain(void)
 
         if (dialog_open)
             continue;
+
+        if (next_menu) // Disable text input on any menu switch.
+            LI_SetTextInput(NULL, 0);
 
         switch (next_menu)
         {
