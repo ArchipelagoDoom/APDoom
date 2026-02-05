@@ -649,8 +649,10 @@ static void LoadSavedGame_Draw(menudata_t *data)
                 free(sidebar_text);
 
             sidebar_id = data->cursor;
-            strftime(initdt, 48, "%B %d, %Y\n  %r", localtime((time_t*)&lsg_savegame_cache[sidebar_id].initial_timestamp));
-            strftime(lastdt, 48, "%B %d, %Y\n  %r", localtime((time_t*)&lsg_savegame_cache[sidebar_id].last_timestamp));
+            time_t init_timestamp = (time_t)lsg_savegame_cache[sidebar_id].initial_timestamp;
+            time_t last_timestamp = (time_t)lsg_savegame_cache[sidebar_id].last_timestamp;
+            strftime(initdt, 48, "%B %d, %Y\n  %r", localtime(&init_timestamp));
+            strftime(lastdt, 48, "%B %d, %Y\n  %r", localtime(&last_timestamp));
 
             sidebar_text = LN_allocsprintf(
                 "Game:\n"        "  \xF4%s\xF0\n\n"
@@ -684,7 +686,9 @@ static void LoadSavedGame_Input(menudata_t *data)
             invalidate_savegame_cache = true;
             next_menu = MENUSPEC_REINIT;
         }
-        else if (nav[NAV_BACK])
+        else if (mouse.active && mouse.secondary)
+            next_menu = MENUSPEC_BACK;
+        else if (!mouse.active && nav[NAV_BACK])
             next_menu = MENUSPEC_BACK;
         return;
     }
