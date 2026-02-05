@@ -2,7 +2,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 cmake_minimum_required(VERSION 3.7.2)
 project("Archipelago Doom" VERSION 2.0.0 LANGUAGES C CXX)
-set(VERSION_SUFFIX "-BETA1")
+set(VERSION_SUFFIX "-BETA2")
 set(UPSTREAM_STRING "Crispy Doom 7.1.0")
 
 set(CMAKE_C_STANDARD 99)
