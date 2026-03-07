@@ -86,7 +86,6 @@ void play_level(int ep, int lvl)
         // We load
         extern char savename[256];
         snprintf(savename, 256, "%s", filename);
-        ap_state.player_state.powers[pw_strength] = 0;
         gameaction = ga_loadgame;
         //G_DoLoadGame();
     }
@@ -308,6 +307,10 @@ void ShowLevelSelect()
 {
     LS_Start();
     HU_ClearAPMessages();
+
+    // Level Select removes Berserk power from the player.
+    ap_state.player_state.powers[pw_strength] = 0;
+    players[consoleplayer].powers[pw_strength] = 0;
 
     // If in a level, save current level
     if (gamestate == GS_LEVEL)

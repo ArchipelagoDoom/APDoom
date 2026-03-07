@@ -1589,7 +1589,6 @@ void G_Ticker (void)
 	    G_ReadGameParms();
 	    G_DoNewGame (); 
         set_ap_player_states();
-        players[consoleplayer].powers[pw_strength] = 0; // Bezerk doesn't cross maps. It's infinite. (Lasts 4 years)
 	    break; 
 	  case ga_loadgame: 
 	    // [crispy] re-read game parameters from command line
