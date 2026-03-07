@@ -332,7 +332,7 @@ set(LAUNCHER_FILES
     w_file_posix.c
     w_file_win32.c
     w_merge.c           w_merge.h
-    z_zone.c            z_zone.h)
+    z_native.c          z_zone.h)
 
 if(WIN32)
     list(APPEND LAUNCHER_FILES
