@@ -141,8 +141,8 @@ typedef struct
     const char* player_name;
     const char* passwd;
     void (*message_callback)(const char*);
-    void (*give_item_callback)(int doom_type, int ep, int map);
-    void (*victory_callback)();
+    void (*victory_callback)(void);
+    int (*give_item_callback)(int doom_type, int ep, int map);
 
     const char* save_dir;
 
@@ -172,7 +172,7 @@ typedef struct
     int x, y;
     float xf, yf;
     float velx, vely;
-    char text[260];
+    char text[40];
     int t;
     int state;
     int disabled;
@@ -478,6 +478,25 @@ const ap_savesettings_t *APDOOM_FindSaves(int *save_count);
 const char *APDOOM_GetSaveMemo(const ap_savesettings_t *save);
 int APDOOM_SetSaveMemo(const ap_savesettings_t *save, const char *str);
 int APDOOM_DeleteSave(const ap_savesettings_t *save);
+
+// ===== ENERGYLINK ===========================================================
+
+#define AP_ENERGYLINK_RATIO          1000000LL // Joules per base displayed "point"
+#define AP_ENERGYLINK_MAX   1000000000000000LL // Maximum energy we track
+
+#define AP_ENERGYLINK_COST(value)        ((value) * AP_ENERGYLINK_RATIO)
+#define AP_ENERGYLINK_HEALTH_COST(point) ((AP_ENERGYLINK_COST(point) * 4) / 5) // 0.8 per 1 health
+#define AP_ENERGYLINK_ARMOR_COST(point)  ((AP_ENERGYLINK_COST(point)    )    ) // 1 per 1 armor
+#define AP_ENERGYLINK_AMMO_COST(pickup)  ((AP_ENERGYLINK_COST(pickup)* 5)    ) // 5 per large pickup
+
+int APDOOM_EnergyLink_Enabled(void);
+
+void APDOOM_EnergyLink_GiveEnergy(int64_t energy);
+int APDOOM_EnergyLink_TakeEnergyForItem(int64_t energy, int item);
+int APDOOM_EnergyLink_DisplayEnergy(void);
+
+// Returns a zero-terminated list of items that should be available in the shop.
+int* APDOOM_EnergyLink_ShopItemList(void);
 
 #ifdef __cplusplus
 }

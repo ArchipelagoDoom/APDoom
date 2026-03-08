@@ -136,6 +136,8 @@ typedef std::map<std::string, std::vector<remap_entry_t>>
     rename_lumps_storage_t;
 typedef std::vector<obituary_t>
     obituary_storage_t;
+typedef std::vector<int>
+    energylink_shop_storage_t;
 
 int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output);
 int json_parse_level_select(const Json::Value& json, level_select_storage_t &output);
@@ -147,5 +149,6 @@ int json_parse_type_sprites(const Json::Value& json, type_sprites_storage_t &out
 int json_parse_level_info(const Json::Value& json, level_info_storage_t &output);
 int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &output);
 int json_parse_obituaries(const Json::Value& json, obituary_storage_t &output);
+int json_parse_energylink_shop(const Json::Value& json, energylink_shop_storage_t &output);
 
 #endif // __ARCHIPELAGO_LOCAL_HPP__

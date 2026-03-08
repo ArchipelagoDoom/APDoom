@@ -56,6 +56,7 @@
 #include "apdoom.h"
 #include "ap_msg.h"
 #include "ap_notif.h"
+#include "ap_spec.h"
 
 #define CT_KEY_GREEN    'g'
 #define CT_KEY_YELLOW   'y'
@@ -97,220 +98,6 @@ void D_PageDrawer(void);
 void D_AdvanceDemo(void);
 boolean F_Responder(event_t * ev);
 
-
-void tick_sticky_msgs()
-{
-    HU_TickAPMessages();
-}
-
-
-void on_ap_message(const char* text) // This string is cached for several seconds
-{
-    //if (strncmp(text, "Now that you are connected", strlen("Now that you are connected")) == 0) return; // Ignore that message. It fills the screen
-    HU_AddAPMessage(text);
-    S_StartSound(NULL, sfx_chat);
-}
-
-
-void on_ap_victory()
-{
-    F_StartFinale();
-}
-
-boolean is_in_level(int ep, int map)
-{
-    ap_level_index_t idx = { ep - 1, map - 1 };
-    return gameepisode == ap_index_to_ep(idx) && gamemap == ap_index_to_map(idx);
-}
-
-
-// Kind of a copy of P_TouchSpecialThing
-void on_ap_give_item(int doom_type, int ep, int map)
-{
-    player_t* player = &players[consoleplayer];
-    int sound = sfx_itemup;
-    // unused in heretic, no skull keys
-    //ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
-
-    switch (doom_type)
-    {
-        // Level specifics
-        case 79:
-            if (is_in_level(ep, map))
-            {
-                if (!player->keys[key_blue])
-                {
-                    player->keys[key_blue] = true;
-                    P_SetMessage(player, DEH_String(TXT_GOTBLUEKEY), false);
-                    sound = sfx_keyup;
-                }
-            }
-            break;
-        case 80:
-            if (is_in_level(ep, map))
-            {
-                if (!player->keys[key_yellow])
-                {
-                    player->keys[key_yellow] = true;
-                    P_SetMessage(player, DEH_String(TXT_GOTYELLOWKEY), false);
-                    sound = sfx_keyup;
-                }
-            }
-            break;
-        case 73:
-            if (is_in_level(ep, map))
-            {
-                if (!player->keys[key_green])
-                {
-                    player->keys[key_green] = true;
-	                P_SetMessage(player, DEH_String(TXT_GOTGREENKEY), false);
-                    sound = sfx_keyup;
-                }
-            }
-            break;
-        case 35: // Map
-            if (is_in_level(ep, map))
-            {
-	            if (P_GivePower(player, pw_allmap))
-                {
-                    P_SetMessage(player, DEH_String(TXT_ITEMSUPERMAP), false);
-                }
-            }
-            break;
-
-        case 8: // Bag of Holding
-            P_SetMessage(player, DEH_String(TXT_ITEMBAGOFHOLDING), false);
-            // fall through
-        case 65001: // Wand crystal capacity
-        case 65002: // Ethereal arrow capacity
-        case 65003: // Claw orb capacity
-        case 65004: // Rune capacity
-        case 65005: // Flame orb capacity
-        case 65006: // Mace sphere capacity
-            // update max ammo with newly recalced values
-            for (int i = 0; i < NUMAMMO; i++)
-                player->maxammo[i] = ap_state.player_state.max_ammo[i];
-            break;
-
-        // Weapons
-        case 2005:
-            P_GiveWeapon(player, wp_gauntlets);
-	        P_SetMessage(player, DEH_String(TXT_WPNGAUNTLETS), false);
-	        sound = sfx_wpnup;	
-            break;
-        case 2001:
-            P_GiveWeapon(player, wp_crossbow);
-	        P_SetMessage(player, DEH_String(TXT_WPNCROSSBOW), false);
-	        sound = sfx_wpnup;	
-            break;
-        case 53:
-            P_GiveWeapon(player, wp_blaster);
-	        P_SetMessage(player, DEH_String(TXT_WPNBLASTER), false);
-	        sound = sfx_wpnup;	
-            break;
-        case 2003:
-            P_GiveWeapon(player, wp_phoenixrod);
-	        P_SetMessage(player, DEH_String(TXT_WPNPHOENIXROD), false);
-	        sound = sfx_wpnup;	
-            break;
-        case 2002:
-            P_GiveWeapon(player, wp_mace);
-	        P_SetMessage(player, DEH_String(TXT_WPNMACE), false);
-	        sound = sfx_wpnup;	
-            break;
-        case 2004:
-            P_GiveWeapon(player, wp_skullrod);
-	        P_SetMessage(player, DEH_String(TXT_WPNSKULLROD), false);
-	        sound = sfx_wpnup;	
-            break;
-
-        // Powerups
-        case 85:
-	        P_GiveArmor (player, 1);
-            P_SetMessage(player, DEH_String(TXT_ITEMSHIELD1), false);
-            break;
-        case 31:
-	        P_GiveArmor (player, 2);
-            P_SetMessage(player, DEH_String(TXT_ITEMSHIELD2), false);
-            break;
-
-        // Artifacts
-        case 36: // Chaos Device
-            P_GiveArtifact(player, arti_teleport, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTITELEPORT), false);
-            break;
-        case 30: // Morph Ovum
-            P_GiveArtifact(player, arti_egg, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTIEGG), false);
-            break;
-        case 32: // Mystic Urn
-            P_GiveArtifact(player, arti_superhealth, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTISUPERHEALTH), false);
-            break;
-        case 82: // Quartz Flask
-            P_GiveArtifact(player, arti_health, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTIHEALTH), false);
-            break;
-        case 84: // Ring of Invincibility
-            P_GiveArtifact(player, arti_invulnerability, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTIINVULNERABILITY), false);
-            break;
-        case 75: // Shadowsphere
-            P_GiveArtifact(player, arti_invisibility, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTIINVISIBILITY), false);
-            break;
-        case 34: // Timebomb of the Ancients
-            P_GiveArtifact(player, arti_firebomb, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTIFIREBOMB), false);
-            break;
-        case 86: // Tome of Power
-            P_GiveArtifact(player, arti_tomeofpower, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTITOMEOFPOWER), false);
-            break;
-        case 83: // Wings of Wrath
-            P_GiveArtifact(player, arti_fly, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTIFLY), false);
-            break;
-        case 33: // Torch
-            P_GiveArtifact(player, arti_torch, 0);
-            P_SetMessage(player, DEH_String(TXT_ARTITORCH), false);
-            break;
-
-        // Junk
-        case 12: // Crystal Geode
-            if (!P_GiveAmmo(player, am_goldwand, AMMO_GWND_HEFTY))
-                return;
-            P_SetMessage(player, DEH_String(TXT_AMMOGOLDWAND2), false);
-            break;
-        case 55: // Energy Orb
-            if (!P_GiveAmmo(player, am_blaster, AMMO_BLSR_HEFTY))
-                return;
-            P_SetMessage(player, DEH_String(TXT_AMMOBLASTER2), false);
-            break;
-        case 21: // Greater Runes
-            if (!P_GiveAmmo(player, am_skullrod, AMMO_SKRD_HEFTY))
-                return;
-            P_SetMessage(player, DEH_String(TXT_AMMOSKULLROD2), false);
-            break;
-        case 23: // Inferno Orb
-            if (!P_GiveAmmo(player, am_phoenixrod, AMMO_PHRD_HEFTY))
-                return;
-            P_SetMessage(player, DEH_String(TXT_AMMOPHOENIXROD2), false);
-            break;
-        case 16: // Pile of Mace Spheres
-            if (!P_GiveAmmo(player, am_mace, AMMO_MACE_HEFTY))
-                return;
-            P_SetMessage(player, DEH_String(TXT_AMMOMACE2), false);
-            break;
-        case 19: // Quiver of Ethereal Arrows
-            if (!P_GiveAmmo(player, am_crossbow, AMMO_CBOW_HEFTY))
-                return;
-            P_SetMessage(player, DEH_String(TXT_AMMOCROSSBOW2), false);
-            break;
-    }
-
-	S_StartSound(NULL, sound); // [NS] Fallback to itemup.
-}
 
 //---------------------------------------------------------------------------
 //
@@ -1381,9 +1168,9 @@ void D_DoomMain(void)
     Z_Init();
 
     // Initialize AP
-    ap_settings.message_callback = on_ap_message;
-    ap_settings.give_item_callback = on_ap_give_item;
-    ap_settings.victory_callback = on_ap_victory;
+    ap_settings.message_callback = APC_OnMessage;
+    ap_settings.give_item_callback = APC_OnGiveItem;
+    ap_settings.victory_callback = APC_OnVictory;
     if (!apdoom_init(&ap_settings))
     {
         if (ap_settings.temp_init_file)

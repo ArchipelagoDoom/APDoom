@@ -1,6 +1,7 @@
 add_library(heretic STATIC
             level_select.c      level_select.h
             ap_msg.c            ap_msg.h
+            ap_spec.c           ap_spec.h
 
             am_data.h
             am_map.c            am_map.h

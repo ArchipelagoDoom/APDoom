@@ -187,9 +187,13 @@ void f_itemrecv(int64_t item_id, bool notify_player);
 void f_locrecv(int64_t loc_id);
 void f_locinfo(std::vector<AP_NetworkItem> loc_infos);
 void f_deathlink(std::string source, std::string cause);
+void f_energylink(std::string json_blob);
 void load_state();
 void save_state();
 void APSend(std::string msg);
+
+static void ap_fake_item_msg(int item_id, const char *sender);
+static void ap_energylink_pool_update(void);
 
 // ===== PWAD SUPPORT =========================================================
 // All of these are loaded from json on game startup.
@@ -205,6 +209,7 @@ static item_table_storage_t preloaded_item_table; // <int64_t ap_id, ap_item_t>
 static type_sprites_storage_t preloaded_type_sprites; // <int doomednum, std::string sprite_lump_name>
 static rename_lumps_storage_t lump_remap_list; // <std::string file, std::vector<remap_entry_t>>
 static obituary_storage_t obituary_list; // std::vector<obituary_t>
+static energylink_shop_storage_t energylink_shop_items; // std::vector<int>
 
 // All valid level index structures, for easier iteration.
 static std::vector<ap_level_index_t> idx_all_levels;
@@ -268,6 +273,7 @@ int ap_preload_defs_for_game(const char *game_name)
 		|| !json_parse_map_tweaks(defs_json["map_tweaks"], map_tweak_list)
 		|| !json_parse_level_select(defs_json["level_select"], level_select_screens)
 		|| !json_parse_rename_lumps(defs_json["rename_lumps"], lump_remap_list)
+		|| !json_parse_energylink_shop(defs_json["energy_link_shop"], energylink_shop_items)
 		|| !json_parse_game_info(defs_json["game_info"], ap_game_info)
 		|| !json_parse_obituaries(defs_json["game_info"]["obituaries"], obituary_list)
 	)
@@ -634,6 +640,7 @@ int apdoom_init(ap_settings_t* settings)
 	AP_RegisterSlotDataRawCallback("episodes", f_episodes);
 	AP_RegisterSlotDataRawCallback("ammo_start", f_ammo_start);
 	AP_RegisterSlotDataRawCallback("ammo_add", f_ammo_add);
+	AP_RegisterSlotDataRawCallback("energy_link", f_energylink);
 	if (ap_base_game != ap_game_t::heretic)
 		AP_RegisterSlotDataIntCallback("flip_levels", f_flip_levels);
     AP_Start();
@@ -1354,16 +1361,6 @@ static void process_received_item(int64_t item_id)
 	ap_item_t item = it->second;
 	std::string notif_text;
 
-	if (ap_practice_mode)
-	{
-		// We have no AP server to give us item messages, so let's pretend we got one.
-		std::string msg = std::string("Received ") + item.name + " from Player";
-		printf("APDOOM: %s\n", msg.c_str());
-
-		std::string colored_msg = std::string("~2Received ~9") + item.name + "~2 from ~4Player";
-		ap_settings.message_callback(colored_msg.c_str());
-	}
-
 	// If the item has an associated episode/map, note that
 	if (item.ep != -1)
 	{
@@ -1374,7 +1371,7 @@ static void process_received_item(int64_t item_id)
 	}
 
 	// Give item to in-game player
-	ap_settings.give_item_callback(item.doom_type, item.ep, item.map);
+	int given = ap_settings.give_item_callback(item.doom_type, item.ep, item.map);
 
 	// Add notification icon
 	const char *sprite = ap_get_sprite(item.doom_type);
@@ -1386,7 +1383,7 @@ static void process_received_item(int64_t item_id)
 		notif.text[0] = '\0'; // For now
 		if (notif_text != "")
 		{
-			snprintf(notif.text, 260, "%s", notif_text.c_str());
+			snprintf(notif.text, 40, "%s", notif_text.c_str());
 		}
 		notif.xf = AP_NOTIF_SIZE / 2 + AP_NOTIF_PADDING;
 		notif.yf = -200.0f + AP_NOTIF_SIZE / 2;
@@ -1395,7 +1392,7 @@ static void process_received_item(int64_t item_id)
 		notif.vely = 0.0f;
 		notif.x = (int)notif.xf;
 		notif.y = (int)notif.yf;
-		notif.disabled = false;
+		notif.disabled = !given;
 		ap_notification_icons.push_back(notif);
 	}
 }
@@ -1588,6 +1585,7 @@ void apdoom_check_location(ap_level_index_t idx, int index)
 		// Send the item to ourselves as if we were playing.
 		if (item_type_table.count(item_id))
 		{
+			ap_fake_item_msg(item_id, "Player");
 			f_itemrecv(item_id, true);
 		}
 		return;
@@ -1914,6 +1912,8 @@ void apdoom_update()
 
 		++it;
 	}
+
+	ap_energylink_pool_update();
 }
 
 // Remote data per slot
@@ -1932,6 +1932,20 @@ void ap_remote_set(const char *key, int per_slot, int value)
 	rq.want_reply = false;
 
 	AP_SetServerData(&rq);
+}
+
+static void ap_fake_item_msg(int item_id, const char *sender)
+{
+	const auto& item_type_table = get_item_type_table();
+	auto it = item_type_table.find(item_id);
+	if (it == item_type_table.end())
+		return;
+
+	std::string msg = std::string("Received ") + it->second.name + " from " + sender;
+	printf("APDOOM: %s\n", msg.c_str());
+
+	std::string colored_msg = std::string("~2Received ~9") + it->second.name + "~2 from ~4" + sender;
+	ap_settings.message_callback(colored_msg.c_str());
 }
 
 // ----------------------------------------------------------------------------
@@ -2242,4 +2256,173 @@ int APDOOM_DeleteSave(const ap_savesettings_t *save)
 	if (confirm)
 		std::filesystem::remove_all(std::filesystem::current_path() / save->path);
 	return confirm;
+}
+
+// ----------------------------------------------------------------------------
+// EnergyLink support
+static bool energylink_enabled = false;
+static bool energylink_pause_takes = false;
+static std::string energylink_pool = "";
+
+static int64_t energylink_available = 0; // Total energy in pool.
+static int64_t energylink_unsent_adds = 0; // Positive energy adjustment not sent to server yet
+static int64_t energylink_unsent_takes = 0; // Negative energy adjustment not sent to server yet
+static int64_t energylink_pending_item = 0;
+
+static int energylink_send_period = 8 * 35;
+
+void f_setreply(const AP_SetReply& setreply)
+{
+	if (!energylink_enabled || setreply.key != energylink_pool)
+		return;
+	std::string valuestr = (*(std::string*)setreply.value);
+
+	if (valuestr[0] == '-')
+	{
+		energylink_available = 0;
+	}
+	else if (valuestr.find_first_of('e') != std::string::npos)
+	{
+		// The Json library does an automatic conversion to double, but we don't care;
+		// if the value would be high enough to reach that point, we're over our max anyway.
+		energylink_available = AP_ENERGYLINK_MAX;
+	}
+	else try
+	{
+		energylink_available = (int64_t)std::min(stoull(valuestr), (long long unsigned int)AP_ENERGYLINK_MAX);
+	}
+	catch (std::out_of_range &)
+	{
+		energylink_available = AP_ENERGYLINK_MAX;
+	}
+	catch (...)
+	{
+		energylink_available = 0;
+	}
+
+	//printf("EnergyLink updated, new energy credit total: %d\n", APDOOM_EnergyLink_DisplayEnergy());
+	energylink_pause_takes = false;
+
+	// If this is an EnergyLink message for sending an item, then catch that and "give" the item.
+	if (!setreply.extra_data.empty()
+		&& setreply.slot == AP_GetPlayerID() && setreply.uuid == std::to_string(AP_GetUUID()))
+	{
+		Json::Value json = AP_ReadJson(setreply.extra_data);
+		int item_id = json.get("item", 0).asInt();
+
+		if (item_id)
+		{
+			ap_fake_item_msg(item_id, "EnergyLink");
+			f_itemrecv(item_id, true);
+		}
+	}
+}
+
+void f_energylink(std::string json_blob)
+{
+	Json::Value json = AP_ReadJson(json_blob);
+	if (json.isObject())
+	{
+		energylink_enabled = json.get("enabled", false).asBool();
+		energylink_pool = "EnergyLink" + std::to_string(AP_GetPlayerTeam());
+
+		std::string custom_pool = json.get("pool", "").asString();
+		if (!custom_pool.empty())
+			energylink_pool += "(" + custom_pool + ")";
+	}
+
+	if (energylink_enabled)
+	{
+		AP_RegisterSetReplyCallback(f_setreply);
+
+		// APCpp would try to set the default to {} (an object) if we asked it to. That's *bad*.
+		AP_SetNotify(energylink_pool, AP_DataType::Raw, false);
+
+		// So we need to do it ourself.
+		std::string zero = "0";
+
+		AP_SetServerDataRequest rq;
+		rq.key = energylink_pool;
+		rq.default_value = &zero;
+		rq.type = AP_DataType::Raw;
+		rq.want_reply = true;
+		rq.operations = { {"default", &zero} };
+		AP_SetServerData(&rq);
+
+		printf("APDOOM: EnergyLink initialized. Pool: %s\n", energylink_pool.c_str());
+	}
+}
+
+static void ap_energylink_pool_update(void)
+{
+	// Only send updates about once every 8 seconds, unless a Take occurs.
+	if (!energylink_enabled || --energylink_send_period >= 0)
+		return;
+
+	energylink_send_period = 8*35; // Next update in 8 seconds from now
+	if (!energylink_unsent_adds && !energylink_unsent_takes)
+		return;
+
+	std::string addstr;
+	std::string takestr;
+	std::string zero = "0";
+
+	AP_SetServerDataRequest rq;
+	rq.key = energylink_pool;
+	rq.default_value = &zero;
+	rq.type = AP_DataType::Raw;
+	rq.want_reply = true;
+
+	if (energylink_unsent_adds)
+	{
+		addstr = std::to_string(energylink_unsent_adds);
+		rq.operations.push_back(AP_DataStorageOperation{"add", &addstr});
+	}
+	if (energylink_unsent_takes)
+	{
+		takestr = std::to_string(energylink_unsent_takes * -1);
+		rq.operations.push_back(AP_DataStorageOperation{"add", &takestr});
+	}
+	if (energylink_pending_item)
+	{
+		// Since this is so simple, let's not waste time with the Json library
+		rq.extra_data = "{\"item\": " + std::to_string(energylink_pending_item) + "}";
+	}
+	energylink_unsent_adds = energylink_unsent_takes = energylink_pending_item = 0;
+
+	rq.operations.push_back(AP_DataStorageOperation{"max", &zero});
+	AP_SetServerData(&rq);
+}
+
+int APDOOM_EnergyLink_Enabled(void)
+{
+	return (int)energylink_enabled;
+}
+
+void APDOOM_EnergyLink_GiveEnergy(int64_t energy)
+{
+	if (energylink_enabled)
+		energylink_unsent_adds += energy;
+}
+
+int APDOOM_EnergyLink_TakeEnergyForItem(int64_t energy, int item)
+{
+	if (!energylink_enabled || energylink_pause_takes || energy > energylink_available)
+		return 0;
+
+	energylink_unsent_takes += energy;
+	energylink_pending_item = item;
+	energylink_send_period = 0; // Force an instant update
+	energylink_pause_takes = true;
+	return 1;
+}
+
+int APDOOM_EnergyLink_DisplayEnergy(void)
+{
+	return (int)(energylink_available / AP_ENERGYLINK_RATIO);
+}
+
+int* APDOOM_EnergyLink_ShopItemList(void)
+{
+	return energylink_shop_items.data();
 }

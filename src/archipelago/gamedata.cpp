@@ -682,6 +682,23 @@ int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &out
 
 
 // ============================================================================
+// Energy Link Shop: AP items that can be bought with EnergyLink energy
+// (json: "energy_link_shop")
+// ============================================================================
+
+int json_parse_energylink_shop(const Json::Value& json, energylink_shop_storage_t &output)
+{
+	if (!json.isNull())
+	{
+		for (auto &itemnum : json)
+			output.push_back(itemnum.asInt());
+	}
+	output.push_back(0); // Zero terminator
+	return 1;
+}
+
+
+// ============================================================================
 // Obituaries: Death messages for DeathLink
 // (json: "game_info" -> "obituaries")
 // ============================================================================

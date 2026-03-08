@@ -432,7 +432,11 @@ P_TouchSpecialThing
       case SPR_BON1:
 	player->health++;		// can go over 100%
 	if (player->health > deh_max_health)
+	{
+	    // [AP] Convert unused health/armor bonus to EnergyLink
+	    APDOOM_EnergyLink_GiveEnergy(AP_ENERGYLINK_HEALTH_COST(player->health - deh_max_health));
 	    player->health = deh_max_health;
+	}
 	player->mo->health = player->health;
 	player->message = DEH_String(GOTHTHBONUS);
 	break;
@@ -440,7 +444,11 @@ P_TouchSpecialThing
       case SPR_BON2:
 	player->armorpoints++;		// can go over 100%
 	if (player->armorpoints > deh_max_armor && gameversion > exe_doom_1_2)
+	{
+	    // [AP] Convert unused health/armor bonus to EnergyLink
+	    APDOOM_EnergyLink_GiveEnergy(AP_ENERGYLINK_ARMOR_COST(player->armorpoints - deh_max_armor));
 	    player->armorpoints = deh_max_armor;
+	}
         // deh_green_armor_class only applies to the green armor shirt;
         // for the armor helmets, armortype 1 is always used.
 	if (!player->armortype)

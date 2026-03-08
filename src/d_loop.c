@@ -674,7 +674,7 @@ static void SinglePlayerClear(ticcmd_set_t *set)
     }
 }
 
-void tick_sticky_msgs();
+void tick_sticky_msgs(void);
 
 //
 // TryRunTics
