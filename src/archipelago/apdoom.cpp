@@ -367,11 +367,6 @@ static const std::map<int /* ep */, std::map<int /* map */, std::map<int /* inde
 	return preloaded_location_table;
 }
 
-static const std::map<int, std::string>& get_sprites()
-{
-	return preloaded_type_sprites;
-}
-
 const char* get_weapon_name(int weapon)
 {
 	return (weapon >= 0 && weapon < ap_weapon_count) ? ap_game_info.weapons[weapon].name : "UNKNOWN";
@@ -380,6 +375,18 @@ const char* get_weapon_name(int weapon)
 const char* get_ammo_name(int weapon)
 {
 	return (weapon >= 0 && weapon < ap_ammo_count) ? ap_game_info.ammo_types[weapon].name : "UNKNOWN";
+}
+
+const ap_item_t* ap_get_item(int item_id)
+{
+	const auto& item_it = preloaded_item_table.find(item_id);
+	return (item_it != preloaded_item_table.end() ? &item_it->second : NULL);
+}
+
+const char* ap_get_sprite(int doom_type)
+{
+	const auto& sprite_it = preloaded_type_sprites.find(doom_type);
+	return (sprite_it != preloaded_type_sprites.end() ? sprite_it->second.c_str() : NULL);
 }
 
 // ============================================================================
@@ -1370,12 +1377,11 @@ static void process_received_item(int64_t item_id)
 	ap_settings.give_item_callback(item.doom_type, item.ep, item.map);
 
 	// Add notification icon
-	const auto& sprite_map = get_sprites();
-	auto sprite_it = sprite_map.find(item.doom_type);
-	if (sprite_it != sprite_map.end())
+	const char *sprite = ap_get_sprite(item.doom_type);
+	if (sprite)
 	{
 		ap_notification_icon_t notif;
-		snprintf(notif.sprite, 9, "%s", sprite_it->second.c_str());
+		snprintf(notif.sprite, 9, "%s", sprite);
 		notif.t = 0;
 		notif.text[0] = '\0'; // For now
 		if (notif_text != "")
@@ -1389,6 +1395,7 @@ static void process_received_item(int64_t item_id)
 		notif.vely = 0.0f;
 		notif.x = (int)notif.xf;
 		notif.y = (int)notif.yf;
+		notif.disabled = false;
 		ap_notification_icons.push_back(notif);
 	}
 }

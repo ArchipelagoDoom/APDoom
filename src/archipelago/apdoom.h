@@ -163,6 +163,7 @@ typedef struct
 #define AP_NOTIF_STATE_HIDING 2
 #define AP_NOTIF_SIZE 30
 #define AP_NOTIF_PADDING 2
+#define AP_NOTIF_ICONSIZE (AP_NOTIF_SIZE-(AP_NOTIF_PADDING*2))
 
 
 typedef struct
@@ -174,6 +175,7 @@ typedef struct
     char text[260];
     int t;
     int state;
+    int disabled;
 } ap_notification_icon_t;
 
 
@@ -387,6 +389,9 @@ int ap_is_location_type(int doom_type);
 
 ap_level_index_t *ap_get_all_levels(void);
 ap_level_index_t *ap_get_available_levels(void);
+
+const ap_item_t* ap_get_item(int item_id);
+const char* ap_get_sprite(int doom_type);
 
 // ===== RANDOMNESS ===========================================================
 void ap_srand(int hash);

@@ -1,6 +1,5 @@
 add_library(doom STATIC
             level_select.c  level_select.h
-            ap_notif.c      ap_notif.h
             
             am_map.c        am_map.h
             deh_ammo.c

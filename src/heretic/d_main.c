@@ -577,7 +577,7 @@ void D_Display(void)
     MN_Drawer();
     if (gamestate != GS_FINALE)
     {
-        ap_notif_draw();
+        APC_DrawNotifs(MN_DrTextA);
         HU_DrawAPMessages();   // [AP] Sticky messages on top of everything
     }
 

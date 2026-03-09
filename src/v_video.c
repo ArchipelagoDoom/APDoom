@@ -815,6 +815,9 @@ void V_DrawScaledBlock(int x, int y, int width, int height, byte *src)
     pixel_t *dest;
     int i, j;
 
+    // [AP] allow translation of scaled blocks.
+    drawpatchpx_t *const drawpx = drawpatchpx_a[1][!dp_translation];
+
     x += WIDESCREENDELTA; // [crispy] horizontal widescreen offset
 
     const int rx = x << crispy->hires;
@@ -866,11 +869,7 @@ void V_DrawScaledBlock(int x, int y, int width, int height, byte *src)
         for (j = 0; j < dw; ++j)
         {
             const int src_x = (j + xoff) >> crispy->hires;
-#ifndef CRISPY_TRUECOLOR
-            dest[i * SCREENWIDTH + j] = src_row[src_x];
-#else
-            dest[i * SCREENWIDTH + j] = pal_color[src_row[src_x]];
-#endif
+            dest[i * SCREENWIDTH + j] = drawpx(0, src_row[src_x]);
         }
     }
 }
@@ -880,6 +879,9 @@ void V_DrawScaledBlockTransparency(int x, int y, int width, int height, byte *sr
 {
     pixel_t *dest;
     int i, j;
+
+    // [AP] allow translation of scaled blocks.
+    drawpatchpx_t *const drawpx = drawpatchpx_a[1][!dp_translation];
 
     x += WIDESCREENDELTA; // [crispy] horizontal widescreen offset
 
@@ -919,11 +921,7 @@ void V_DrawScaledBlockTransparency(int x, int y, int width, int height, byte *sr
         {
             const int src_x = (j + xoff) >> crispy->hires;
             if (!src_row[src_x]) continue;
-#ifndef CRISPY_TRUECOLOR
-            dest[i * SCREENWIDTH + j] = src_row[src_x];
-#else
-            dest[i * SCREENWIDTH + j] = pal_color[src_row[src_x]];
-#endif
+            dest[i * SCREENWIDTH + j] = drawpx(0, src_row[src_x]);
         }
     }
 }

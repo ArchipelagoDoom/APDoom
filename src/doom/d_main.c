@@ -86,6 +86,7 @@
 #include "apdoom.h"
 #include "deh_misc.h"
 #include "ap_notif.h"
+#include "hu_lib.h"
 
 //
 // D-DoomLoop()
@@ -618,7 +619,7 @@ boolean D_Display (void)
     M_Drawer ();          // menu is drawn even on top of everything
     if (gamestate != GS_FINALE)
     {
-        ap_notif_draw();
+        APC_DrawNotifs(HUlib_drawText);
         HU_DrawAPMessages();   // ^ no, Sticky messages on top of everything :)
     }
     NetUpdate ();         // send out any new accumulation
