@@ -68,4 +68,8 @@ cp ../data/AppImage/apdoom.desktop ./AppDir/apdoom.desktop || exit 1
 cp ../data/AppImage/run_launcher.sh ./AppDir/usr/bin || exit 1
 cp ../CREDITS ./AppDir || exit 1
 
-"$LINUXDEPLOY_PATH" --appdir=AppDir --desktop-file=AppDir/apdoom.desktop --icon-file=AppDir/apdoom.png --custom-apprun=AppDir/usr/bin/run_launcher.sh --output=appimage || exit 1
+# If you've made a local build of SDL2, uncomment and edit these lines as appropriate.
+#cp /usr/local/lib/libSDL2-2.0.so.0 ./AppDir/usr/lib || exit 1
+#cp /usr/local/lib/libSDL2_mixer-2.0.so.0 ./AppDir/usr/lib || exit 1
+
+"$LINUXDEPLOY_PATH" --appdir=AppDir --exclude-library=libssl.so.3 --exclude-library=libcrypto.so.3 --desktop-file=AppDir/apdoom.desktop --icon-file=AppDir/apdoom.png --custom-apprun=AppDir/usr/bin/run_launcher.sh --output=appimage || exit 1
