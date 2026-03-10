@@ -42,6 +42,7 @@ void SB_RightAlignedSmallNum(int x, int y, int digit);
 void SB_LeftAlignedSmallNum(int x, int y, int digit);
 
 void G_DoSaveGame(void);
+void set_ap_player_states(void);
 
 int ep_anim = 0;
 int urh_anim = 0;
@@ -302,6 +303,9 @@ void ShowLevelSelect()
     activating_level_select_anim = 200;
     ep_anim = 0;
     players[consoleplayer].centerMessage = NULL;
+
+    // Necessary to ensure player info is correct for EnergyLink, etc
+    set_ap_player_states();
 }
 
 

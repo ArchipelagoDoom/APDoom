@@ -44,6 +44,7 @@ void WI_initVariables(wbstartstruct_t* wbstartstruct);
 void WI_loadData(void);
 
 void G_DoSaveGame(void);
+void set_ap_player_states(void);
 
 // Functions in "st_stuff.c" needed for drawing things using status bar graphics
 void ST_DrawKey(int x, int y, int which, boolean is_skull);
@@ -314,7 +315,7 @@ void ShowLevelSelect()
 
     // If in a level, save current level
     if (gamestate == GS_LEVEL)
-        G_DoSaveGame(); 
+        G_DoSaveGame();
 
     if (crispy->ap_levelselectmusic)
     {
@@ -341,6 +342,9 @@ void ShowLevelSelect()
     bcnt = 0;
     ep_anim = 0;
     initial_delay = 2; // Just a couple frames of no input to prevent accidental movement
+
+    // Necessary to ensure player info is correct for EnergyLink, etc
+    set_ap_player_states();
 }
 
 

@@ -41,6 +41,8 @@
 #include "crispy.h"
 #include "level_select.h" // [ap]
 #include "apdoom.h"
+#include "ap_notif.h"
+#include "ap_spec.h"
 
 // Needed for saving on exit.
 extern void G_DoSaveGame(void);
@@ -83,6 +85,7 @@ typedef enum
     MENU_SAVE,
     MENU_MOUSE,
     MENU_SHOWGOALS, // [AP]
+    MENU_ENERGYLINK,
     MENU_CRISPNESS1,
     MENU_CRISPNESS2,
     MENU_CRISPNESS3,
@@ -235,6 +238,7 @@ static int numeric_entry_index;
 // [AP] Menu for showing goal status
 #define AP_INC_HERETIC
 #include "inc_mgoals.c"
+#include "inc_menergy.c"
 
 static MenuItem_t MainItems[] = {
     {ITT_EFUNC, "PLAY", SCLevelSelect, 0, MENU_NONE},
@@ -255,6 +259,7 @@ static Menu_t MainMenu = {
 static MenuItem_t InGameItems[] = {
     {ITT_SETMENU, "OPTIONS", NULL, 0, MENU_OPTIONS},
     {ITT_SETMENU, "GOALS", NULL, 0, MENU_SHOWGOALS},
+    {ITT_SETMENU, "ENERGY LINK", NULL, 0, MENU_ENERGYLINK},
     {ITT_EFUNC, "RESET LEVEL", SCKill, 0, MENU_NONE},
     {ITT_EFUNC, "QUIT GAME", SCQuitGame, 0, MENU_NONE}
 };
@@ -262,7 +267,7 @@ static MenuItem_t InGameItems[] = {
 static Menu_t InGameMenu = {
     110, 56,
     DrawInGameMenu,
-    4, InGameItems,
+    5, InGameItems,
     0,
     MENU_NONE
 };
@@ -638,6 +643,7 @@ static Menu_t *Menus[] = {
     &SaveMenu,
     &MouseMenu,
     &ShowGoalsMenu,
+    &EnergyLinkMenu,
     &Crispness1Menu,
     &Crispness2Menu,
     &Crispness3Menu,
@@ -741,6 +747,14 @@ void MN_Init(void)
     {                           // Add episodes 4 and 5 to the menu
         EpisodeMenu.itemCount = 5;
         EpisodeMenu.y -= ITEM_HEIGHT;
+    }
+
+    // [AP]
+    if (!APDOOM_EnergyLink_Enabled())
+    {
+        --InGameMenu.itemCount;
+        for (int i = 2; i < InGameMenu.itemCount; ++i)
+            InGameItems[i] = InGameItems[i+1]; // Shift entire menu up.
     }
 
     // [crispy] apply default difficulty

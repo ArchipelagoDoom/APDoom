@@ -258,16 +258,12 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
 
 // These functions are mostly for handling EnergyLink interactions.
 
-static boolean could_give_artifact(player_t *player, artitype_t arti)
+int count_player_artifacts(player_t *player, artitype_t arti)
 {
     int i = 0;
     while (player->inventory[i].type != arti && i < player->inventorySlotNum)
         ++i;
-
-    if (i == player->inventorySlotNum)
-        return true; // None in inventory, can freely accept
-    else
-        return player->inventory[i].count < 16;
+    return (i == player->inventorySlotNum) ? 0 : player->inventory[i].count;
 }
 
 boolean APC_CanGiveItem(int doom_type)
@@ -287,25 +283,25 @@ boolean APC_CanGiveItem(int doom_type)
 
         // Artifacts
         case 36: // Chaos Device
-            return could_give_artifact(player, arti_teleport);
+            return (count_player_artifacts(player, arti_teleport) < 16);
         case 30: // Morph Ovum
-            return could_give_artifact(player, arti_egg);
+            return (count_player_artifacts(player, arti_egg) < 16);
         case 32: // Mystic Urn
-            return could_give_artifact(player, arti_superhealth);
+            return (count_player_artifacts(player, arti_superhealth) < 16);
         case 82: // Quartz Flask
-            return could_give_artifact(player, arti_health);
+            return (count_player_artifacts(player, arti_health) < 16);
         case 84: // Ring of Invincibility
-            return could_give_artifact(player, arti_invulnerability);
+            return (count_player_artifacts(player, arti_invulnerability) < 16);
         case 75: // Shadowsphere
-            return could_give_artifact(player, arti_invisibility);
+            return (count_player_artifacts(player, arti_invisibility) < 16);
         case 34: // Timebomb of the Ancients
-            return could_give_artifact(player, arti_firebomb);
+            return (count_player_artifacts(player, arti_firebomb) < 16);
         case 86: // Tome of Power
-            return could_give_artifact(player, arti_tomeofpower);
+            return (count_player_artifacts(player, arti_tomeofpower) < 16);
         case 83: // Wings of Wrath
-            return could_give_artifact(player, arti_fly);
+            return (count_player_artifacts(player, arti_fly) < 16);
         case 33: // Torch
-            return could_give_artifact(player, arti_torch);
+            return (count_player_artifacts(player, arti_torch) < 16);
 
         // Junk
         case 12: // Crystal Geode
@@ -351,23 +347,23 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 36: // Chaos Device
             return AP_ENERGYLINK_COST(100);
         case 30: // Morph Ovum
-            return AP_ENERGYLINK_COST(60);
+            return AP_ENERGYLINK_COST(50);
         case 32: // Mystic Urn
             return AP_ENERGYLINK_HEALTH_COST(100);
         case 82: // Quartz Flask
             return AP_ENERGYLINK_HEALTH_COST(25);
         case 84: // Ring of Invincibility
-            return AP_ENERGYLINK_COST(500);
+            return AP_ENERGYLINK_COST(400);
         case 75: // Shadowsphere
-            return AP_ENERGYLINK_COST(100);
+            return AP_ENERGYLINK_COST(90);
         case 34: // Timebomb of the Ancients
             return AP_ENERGYLINK_COST(30);
         case 86: // Tome of Power
-            return AP_ENERGYLINK_COST(200);
+            return AP_ENERGYLINK_COST(180);
         case 83: // Wings of Wrath
             return 0; // This... should not ever happen?
         case 33: // Torch
-            return AP_ENERGYLINK_COST(120);
+            return AP_ENERGYLINK_COST(90);
 
         // Junk
         case 12: // Crystal Geode
@@ -390,5 +386,36 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
             value += AP_ENERGYLINK_AMMO_COST((player->maxammo[am_crossbow]   + AMMO_CBOW_HEFTY - 1) / AMMO_CBOW_HEFTY);
             return value;
         }
+    }
+}
+
+int APC_ArtifactCount(int doom_type)
+{
+    player_t* player = &players[consoleplayer];
+
+    switch (doom_type)
+    {
+        default:
+            return -1;
+        case 36: // Chaos Device
+            return count_player_artifacts(player, arti_teleport);
+        case 30: // Morph Ovum
+            return count_player_artifacts(player, arti_egg);
+        case 32: // Mystic Urn
+            return count_player_artifacts(player, arti_superhealth);
+        case 82: // Quartz Flask
+            return count_player_artifacts(player, arti_health);
+        case 84: // Ring of Invincibility
+            return count_player_artifacts(player, arti_invulnerability);
+        case 75: // Shadowsphere
+            return count_player_artifacts(player, arti_invisibility);
+        case 34: // Timebomb of the Ancients
+            return count_player_artifacts(player, arti_firebomb);
+        case 86: // Tome of Power
+            return count_player_artifacts(player, arti_tomeofpower);
+        case 83: // Wings of Wrath
+            return count_player_artifacts(player, arti_fly);
+        case 33: // Torch
+            return count_player_artifacts(player, arti_torch);
     }
 }

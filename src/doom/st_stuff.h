@@ -32,7 +32,9 @@
 #define ST_Y		(ORIGHEIGHT - ST_HEIGHT)
 
 // [crispy] in non-widescreen mode WIDESCREENDELTA is 0 anyway
-#define ST_WIDESCREENDELTA ((screenblocks >= CRISPY_HUD + 3 && (!automapactive || crispy->automapoverlay)) ? WIDESCREENDELTA : 0)
+extern boolean st_forcedclassicbar;
+#define ST_NOTWIDESCREEN ((automapactive && !crispy->automapoverlay) || st_forcedclassicbar)
+#define ST_WIDESCREENDELTA ((screenblocks >= CRISPY_HUD + 3 && !ST_NOTWIDESCREEN) ? WIDESCREENDELTA : 0)
 
 #define CRISPY_HUD 12
 

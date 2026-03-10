@@ -2086,24 +2086,25 @@ void set_ap_player_states()
     //p->itemcount = ap_state.player_state.item_count;
     //p->secretcount = ap_state.player_state.secret_count;
 
-    p->pendingweapon = wp_nochange;
     if (!was_in_level)
+    {
+        p->pendingweapon = wp_nochange;
         p->readyweapon = (weapontype_t)ap_state.player_state.ready_weapon;
 
-    // in the exceedingly rare case that we were a chicken, switch off the beak
-    // chickens can't interact with things (including the hub), so this only happens on death
-    if (p->readyweapon == wp_beak)
-        p->readyweapon = p->pendingweapon = wp_staff;
+        // in the exceedingly rare case that we were a chicken, switch off the beak
+        // chickens can't interact with things (including the hub), so this only happens on death
+        if (p->readyweapon == wp_beak)
+            p->readyweapon = p->pendingweapon = wp_staff;
 
-    // set the player's pspr up as if they were just spawning, even when loading a save
-    P_SetupPsprites(p);
+        // set the player's pspr up as if they were just spawning, even when loading a save
+        P_SetupPsprites(p);
+    }
 
     for (int i = 0; i < NUMPOWERS; ++i)
     {
         if (i == pw_flight || i == pw_allmap) continue;
         p->powers[i] = ap_state.player_state.powers[i];
     }
-    p->powers[pw_allmap] = ap_get_level_state(ap_make_level_index(gameepisode, gamemap))->has_map;
     for (int i = 0; i < NUMWEAPONS; ++i)
         p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
     for (int i = 0; i < NUMAMMO; ++i)
@@ -2131,17 +2132,25 @@ void set_ap_player_states()
         ++inv_slot;
     }
 
-    // Cards
-    ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
-    p->keys[0] = level_state->keys[0];
-    p->keys[1] = level_state->keys[1];
-    p->keys[2] = level_state->keys[2];
-
-    if (level_state->special)
+    if (gamestate == GS_LEVEL) // Cards and other level specific things
     {
-        p->inventory[p->inventorySlotNum].type = arti_fly;
-        p->inventory[p->inventorySlotNum].count = 1;
-        ++p->inventorySlotNum;
+        ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
+        p->keys[0] = level_state->keys[0];
+        p->keys[1] = level_state->keys[1];
+        p->keys[2] = level_state->keys[2];
+
+        if (level_state->special)
+        {
+            p->inventory[p->inventorySlotNum].type = arti_fly;
+            p->inventory[p->inventorySlotNum].count = 1;
+            ++p->inventorySlotNum;
+        }
+
+        p->powers[pw_allmap] = level_state->has_map;
+    }
+    else
+    {
+        p->keys[0] = p->keys[1] = p->keys[2] = false;
     }
 
     // respawn would-be zombies, if ap health somehow becomes zero

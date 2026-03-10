@@ -70,7 +70,9 @@
 
 #include "level_select.h" // [ap]
 #include "apdoom.h"
-
+#include "ap_notif.h"
+#include "ap_spec.h"
+#include "st_stuff.h"
 
 //
 // defaulted values
@@ -78,6 +80,9 @@
 int			mouseSensitivity = 5;
 int			mouseSensitivity_x2 = 5; // [crispy] mouse sensitivity menu
 int			mouseSensitivity_y = 5; // [crispy] mouse sensitivity menu
+
+// [AP] moved so handlers can access
+boolean     mousextobutton = false;
 
 // Show messages has default, 0 = off, 1 = on
 int			showMessages = 1;
@@ -286,6 +291,7 @@ static void M_DrawCrispness4(void);
 // [AP] Menu for showing goal status
 #define AP_INC_DOOM
 #include "inc_mgoals.c"
+#include "inc_menergy.c"
 
 //
 // DOOM MENU
@@ -328,6 +334,7 @@ enum
 {
     ingamemenu_options,
     ingamemenu_showgoals,
+    ingamemenu_energylink,
     ingamemenu_kill,
     ingamemenu_quitdoom,
     ingamemenu_end
@@ -337,8 +344,8 @@ menuitem_t InGameMenu[]=
 {
     {1,"M_OPTION",M_Options,'o'},
     {1,"M_GOAL",M_ShowGoals,'g'},
+    {1,"M_ENERGY",M_EnergyLink,'e'},
     {1,"M_KILL",M_Kill,'r'},
-    // Another hickup with Special edition.
     {1,"M_QUITG",M_QuitDOOM,'q'}
 };
 
@@ -2495,8 +2502,10 @@ boolean M_Responder (event_t* ev)
     static  int     lasty = 0;
     static  int     mousex = 0;
     static  int     lastx = 0;
-    boolean mousextobutton = false;
+    //boolean mousextobutton = false; // [AP] moved
     int dir;
+
+    mousextobutton = false;
 
     // In testcontrols mode, none of the function keys should do anything
     // - the only key is escape to quit.
@@ -3499,6 +3508,7 @@ void M_Drawer (void)
 void M_ClearMenus (void)
 {
     menuactive = 0;
+    st_forcedclassicbar = false;
 
     // [crispy] entering menus while recording demos pauses the game
     if (demorecording && paused)
@@ -3523,6 +3533,7 @@ void M_SetupNextMenu(menu_t *menudef)
         currentMenu = &InGameMenuDef;
     if (currentMenu == &ShowGoalDef)
         ShowGoals_Init();
+    st_forcedclassicbar = (currentMenu == &EnergyLinkDef);
 
     itemOn = currentMenu->lastOn;
 }
@@ -3595,6 +3606,15 @@ void M_Init (void)
         ReadDef1.x = 330;
         ReadDef1.y = 165;
         ReadMenu1[rdthsempty1].routine = M_FinishReadThis;
+
+        InGameMenuDef.y += 8; // [AP]
+    }
+
+    if (!APDOOM_EnergyLink_Enabled())
+    {
+        InGameMenuDef.numitems--;
+        for (int i = ingamemenu_energylink; i < InGameMenuDef.numitems; ++i)
+            InGameMenu[i] = InGameMenu[i+1]; // Shift entire menu up.
     }
 
     // [crispy] Sigil

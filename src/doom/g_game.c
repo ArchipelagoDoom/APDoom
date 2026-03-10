@@ -1505,16 +1505,17 @@ void set_ap_player_states()
     //p->itemcount = ap_state.player_state.item_count;
     //p->secretcount = ap_state.player_state.secret_count;
 
-    p->pendingweapon = wp_nochange;
     if (!was_in_level)
+    {
+        p->pendingweapon = wp_nochange;
         p->readyweapon = (weapontype_t)ap_state.player_state.ready_weapon;
 
-    // set the player's pspr up as if they were just spawning, even when loading a save
-    P_SetupPsprites(p);
+        // set the player's pspr up as if they were just spawning
+        P_SetupPsprites(p);
+    }
 
     for (int i = 0; i < NUMPOWERS; ++i)
         p->powers[i] = ap_state.player_state.powers[i];
-    p->powers[pw_allmap] = ap_get_level_state(ap_make_level_index(gameepisode, gamemap))->has_map;
     for (int i = 0; i < NUMWEAPONS; ++i)
         p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
     for (int i = 0; i < NUMAMMO; ++i)
@@ -1524,17 +1525,26 @@ void set_ap_player_states()
     for (int i = 0; i < NUMAMMO; ++i)
         p->maxammo[i] = ap_state.player_state.max_ammo[i];
 
-    // Cards
-    ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
-    ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
+    if (gamestate == GS_LEVEL) // Cards and other level specific things
+    {
+        ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
+        ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
 
-    p->cards[0] = level_state->keys[0] && !level_info->use_skull[0];
-    p->cards[1] = level_state->keys[1] && !level_info->use_skull[1];
-    p->cards[2] = level_state->keys[2] && !level_info->use_skull[2];
-    // Skulls (redundant)
-    p->cards[3] = level_state->keys[0] && level_info->use_skull[0];
-    p->cards[4] = level_state->keys[1] && level_info->use_skull[1];
-    p->cards[5] = level_state->keys[2] && level_info->use_skull[2];
+        p->cards[0] = level_state->keys[0] && !level_info->use_skull[0];
+        p->cards[1] = level_state->keys[1] && !level_info->use_skull[1];
+        p->cards[2] = level_state->keys[2] && !level_info->use_skull[2];
+        // Skulls (redundant)
+        p->cards[3] = level_state->keys[0] && level_info->use_skull[0];
+        p->cards[4] = level_state->keys[1] && level_info->use_skull[1];
+        p->cards[5] = level_state->keys[2] && level_info->use_skull[2];
+
+        p->powers[pw_allmap] = level_state->has_map;
+    }
+    else
+    {
+        p->cards[0] = p->cards[1] = p->cards[2] = false;
+        p->cards[3] = p->cards[4] = p->cards[5] = false;
+    }
 
     // respawn would-be zombies, if ap health somehow becomes zero
     if (p->playerstate == PST_LIVE && p->health == 0)

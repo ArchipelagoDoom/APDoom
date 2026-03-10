@@ -32,4 +32,7 @@ boolean APC_CanGiveItem(int doom_type);
 // Helper function: Returns EnergyLink credit cost of item
 int64_t APC_EnergyLinkItemCost(int doom_type);
 
+// Helper function: Number of artifacts in inventory per doom type
+int APC_ArtifactCount(int doom_type);
+
 #endif

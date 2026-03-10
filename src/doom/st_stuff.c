@@ -228,6 +228,9 @@ static boolean		st_crispyhud;
 static boolean		st_classicstatusbar;
 static boolean		st_statusbarface;
 
+// [AP] forces classic status bar if enabled, regardless of settings
+boolean      st_forcedclassicbar = false;
+
 // whether status bar chat is active
 static boolean		st_chat;
 
@@ -2047,12 +2050,12 @@ void ST_diffDraw(void)
 void ST_Drawer (boolean fullscreen, boolean refresh)
 {
   
-    st_statusbaron = (!fullscreen) || (automapactive && !crispy->automapoverlay);
+    st_statusbaron = (!fullscreen) || ST_NOTWIDESCREEN;
     // [crispy] immediately redraw status bar after help screens have been shown
     st_firsttime = st_firsttime || refresh || inhelpscreens;
 
     // [crispy] distinguish classic status bar with background and player face from Crispy HUD
-    st_crispyhud = screenblocks >= CRISPY_HUD && (!automapactive || crispy->automapoverlay);
+    st_crispyhud = screenblocks >= CRISPY_HUD && !ST_NOTWIDESCREEN;
     st_classicstatusbar = st_statusbaron && !st_crispyhud;
     st_statusbarface = st_classicstatusbar || (st_crispyhud && (screenblocks % 3 == 0));
 
@@ -2547,4 +2550,17 @@ void ST_LeftAlignedShortNum(int x, int y, int digit)
     while (i);
 
     ST_RightAlignedShortNum(x + len, y, digit);
+}
+
+void ST_RenderStatusBarAnywhere(void)
+{
+	if (st_stopped)
+		ST_Start();
+
+	if (gamestate != GS_LEVEL) // Fake the face sprite
+	{
+		int health = MIN(ap_state.player_state.health, 100);
+		st_faceindex = 1 + (ST_FACESTRIDE * (((100 - health) * ST_NUMPAINFACES) / 101));
+	}
+	ST_Drawer(false, true);
 }

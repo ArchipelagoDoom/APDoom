@@ -487,7 +487,7 @@ int APDOOM_DeleteSave(const ap_savesettings_t *save);
 #define AP_ENERGYLINK_COST(value)        ((value) * AP_ENERGYLINK_RATIO)
 #define AP_ENERGYLINK_HEALTH_COST(point) ((AP_ENERGYLINK_COST(point) * 4) / 5) // 0.8 per 1 health
 #define AP_ENERGYLINK_ARMOR_COST(point)  ((AP_ENERGYLINK_COST(point)    )    ) // 1 per 1 armor
-#define AP_ENERGYLINK_AMMO_COST(pickup)  ((AP_ENERGYLINK_COST(pickup)* 5)    ) // 5 per large pickup
+#define AP_ENERGYLINK_AMMO_COST(pickup)  ((AP_ENERGYLINK_COST(pickup)* 4)    ) // 4 per large pickup
 
 int APDOOM_EnergyLink_Enabled(void);
 
@@ -496,7 +496,7 @@ int APDOOM_EnergyLink_TakeEnergyForItem(int64_t energy, int item);
 int APDOOM_EnergyLink_DisplayEnergy(void);
 
 // Returns a zero-terminated list of items that should be available in the shop.
-int* APDOOM_EnergyLink_ShopItemList(void);
+const int* APDOOM_EnergyLink_ShopItemList(int* count);
 
 #ifdef __cplusplus
 }

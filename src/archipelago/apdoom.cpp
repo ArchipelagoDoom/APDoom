@@ -2422,7 +2422,9 @@ int APDOOM_EnergyLink_DisplayEnergy(void)
 	return (int)(energylink_available / AP_ENERGYLINK_RATIO);
 }
 
-int* APDOOM_EnergyLink_ShopItemList(void)
+const int* APDOOM_EnergyLink_ShopItemList(int* count)
 {
+	if (count)
+		*count = energylink_shop_items.size() - 1;
 	return energylink_shop_items.data();
 }

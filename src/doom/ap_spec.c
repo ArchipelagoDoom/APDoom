@@ -374,23 +374,25 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 2019: // Mega Armor
             return AP_ENERGYLINK_ARMOR_COST(deh_blue_armor_class * 100);
         case 2023: // Berserk
-            return AP_ENERGYLINK_HEALTH_COST(100) + AP_ENERGYLINK_COST(60);
+            return AP_ENERGYLINK_HEALTH_COST(100) + AP_ENERGYLINK_COST(20);
         case 2013: // Supercharge
             return AP_ENERGYLINK_HEALTH_COST(deh_soulsphere_health);
         case 2022: // Invulnerability
-            return AP_ENERGYLINK_COST(500);
+            return AP_ENERGYLINK_COST(400);
         case 2024: // Partial invisibility
-            return AP_ENERGYLINK_COST(80);
+            return AP_ENERGYLINK_COST(70);
         case 2025: // Radiation shielding suit
-            return AP_ENERGYLINK_COST(60);
+            return AP_ENERGYLINK_COST(80);
         case 2045: // Light amplification visor
-            return AP_ENERGYLINK_COST(120);
+            return AP_ENERGYLINK_COST(90);
         case 83: // Megasphere
-            return AP_ENERGYLINK_HEALTH_COST(deh_megasphere_health) + AP_ENERGYLINK_ARMOR_COST(2 * 100);
+            return AP_ENERGYLINK_HEALTH_COST(deh_megasphere_health)
+                 + AP_ENERGYLINK_ARMOR_COST(2 * 100)
+                 - AP_ENERGYLINK_COST(100);
 
         // Ammo / Other Junk
         case 2012: // Medikit
-            return AP_ENERGYLINK_HEALTH_COST(25);
+            return AP_ENERGYLINK_HEALTH_COST(25) / 2;
         case 2048: // Box of bullets
         case 2046: // Box of rockets
         case 2049: // Box of shotgun shells
