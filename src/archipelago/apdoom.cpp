@@ -2320,19 +2320,24 @@ void f_setreply(const AP_SetReply& setreply)
 
 void f_energylink(std::string json_blob)
 {
-	Json::Value json = AP_ReadJson(json_blob);
-	if (json.isObject())
-	{
-		energylink_enabled = json.get("enabled", false).asBool();
-		energylink_pool = "EnergyLink" + std::to_string(AP_GetPlayerTeam());
+	std::string custom_pool;
 
-		std::string custom_pool = json.get("pool", "").asString();
-		if (!custom_pool.empty())
-			energylink_pool += "(" + custom_pool + ")";
+	Json::Value json = AP_ReadJson(json_blob);
+	if (json.isInt())
+	{
+		energylink_enabled = (json.asInt() > 0);
+	}
+	else if (json.isString())
+	{
+		energylink_enabled = true;
+		custom_pool = json.asString();
 	}
 
 	if (energylink_enabled)
 	{
+		energylink_pool = "EnergyLink" + std::to_string(AP_GetPlayerTeam());
+		if (!custom_pool.empty())
+			energylink_pool += "(" + custom_pool + ")";
 		AP_RegisterSetReplyCallback(f_setreply);
 
 		// APCpp would try to set the default to {} (an object) if we asked it to. That's *bad*.
