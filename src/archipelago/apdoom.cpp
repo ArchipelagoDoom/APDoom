@@ -2177,7 +2177,7 @@ const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
 					strftime(memo_buffer, 64 + 1, "%b %d %Y", localtime(&save_timestamp));
 				}
 
-				snprintf(tmp_savedata.description, 64 + 1, "%s; %s", tmp_savedata.slot_name, memo_buffer);
+				snprintf(tmp_savedata.description, 64 + 1, "%s: %s", memo_buffer, tmp_savedata.slot_name);
 				savedata_cache.emplace_back(tmp_savedata);
 			}
 		}
