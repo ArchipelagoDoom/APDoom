@@ -546,7 +546,6 @@ void D_Display(void)
         V_DrawMouseSpeedBox(testcontrols_mousespeed);
     }
 
-#if 0 // [AP] No need in AP, when menu is up, it's paused. It shows up on level select otherwise
     if (paused && !MenuActive && !askforquit)
     {
         if (!netgame)
@@ -559,7 +558,6 @@ void D_Display(void)
             V_DrawPatch(160, 70, W_CacheLumpName(DEH_String("PAUSED"), PU_CACHE));
         }
     }
-#endif
 
     // [crispy] check for translucent HUD
     SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));

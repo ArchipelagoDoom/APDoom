@@ -279,6 +279,12 @@ void ShowLevelSelect()
     if (gamestate == GS_LEVEL)
         G_DoSaveGame(); 
 
+    if (paused)
+    {
+        paused = false;
+        S_ResumeSound();
+    }
+
     if (crispy->ap_levelselectmusic)
         S_StartSong(mus_intr, true);
     else
