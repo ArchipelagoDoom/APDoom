@@ -434,7 +434,7 @@ P_TouchSpecialThing
 	if (player->health > deh_max_health)
 	{
 	    // [AP] Convert unused health/armor bonus to EnergyLink
-	    APDOOM_EnergyLink_GiveEnergy(AP_ENERGYLINK_HEALTH_COST(player->health - deh_max_health));
+	    APDOOM_EnergyLink_GiveEnergy(AP_ENERGYLINK_COST(player->health - deh_max_health) / 2);
 	    player->health = deh_max_health;
 	}
 	player->mo->health = player->health;
@@ -446,7 +446,7 @@ P_TouchSpecialThing
 	if (player->armorpoints > deh_max_armor && gameversion > exe_doom_1_2)
 	{
 	    // [AP] Convert unused health/armor bonus to EnergyLink
-	    APDOOM_EnergyLink_GiveEnergy(AP_ENERGYLINK_ARMOR_COST(player->armorpoints - deh_max_armor));
+	    APDOOM_EnergyLink_GiveEnergy(AP_ENERGYLINK_COST(player->armorpoints - deh_max_armor) / 2);
 	    player->armorpoints = deh_max_armor;
 	}
         // deh_green_armor_class only applies to the green armor shirt;

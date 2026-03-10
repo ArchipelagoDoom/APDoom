@@ -75,7 +75,15 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
 
     if (!APC_CanGiveItem(doom_type))
     {
-        APDOOM_EnergyLink_GiveEnergy(APC_EnergyLinkItemCost(doom_type));
+        int64_t value = APC_EnergyLinkItemCost(doom_type);
+
+        const int *shopitem = APDOOM_EnergyLink_ShopItemList(NULL);
+        for (; *shopitem && *shopitem != doom_type; ++shopitem) {}
+        if (!(*shopitem))
+            value /= 2; // Halve value of items not in the shop.
+
+        APDOOM_EnergyLink_GiveEnergy(value);
+        printf("Sent %ld to the EnergyLink pool.\n", value);
         return false;
     }
 
@@ -258,7 +266,25 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
 
 // These functions are mostly for handling EnergyLink interactions.
 
-int count_player_artifacts(player_t *player, artitype_t arti)
+static int large_ammo_count(ammotype_t am)
+{
+    int value = 0;
+    switch (am)
+    {
+        case am_goldwand:   value = AMMO_GWND_HEFTY; break;
+        case am_blaster:    value = AMMO_BLSR_HEFTY; break;
+        case am_skullrod:   value = AMMO_SKRD_HEFTY; break;
+        case am_phoenixrod: value = AMMO_PHRD_HEFTY; break;
+        case am_mace:       value = AMMO_MACE_HEFTY; break;
+        case am_crossbow:   value = AMMO_CBOW_HEFTY; break;
+        default:            return 0;
+    }
+    if (ap_state.difficulty == sk_baby || ap_state.difficulty == sk_nightmare || critical->moreammo)
+        value += value >> 1;
+    return value;
+}
+
+static int count_player_artifacts(player_t *player, artitype_t arti)
 {
     int i = 0;
     while (player->inventory[i].type != arti && i < player->inventorySlotNum)
@@ -339,23 +365,23 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
 
         // Powerups
         case 85: // Silver Shield
-            return AP_ENERGYLINK_ARMOR_COST(100);
+            return AP_ENERGYLINK_COST(100);
         case 31: // Enchanted Shield
-            return AP_ENERGYLINK_ARMOR_COST(200);
+            return AP_ENERGYLINK_COST(200);
 
         // Artifacts
         case 36: // Chaos Device
-            return AP_ENERGYLINK_COST(100);
+            return AP_ENERGYLINK_COST(125);
         case 30: // Morph Ovum
-            return AP_ENERGYLINK_COST(50);
+            return AP_ENERGYLINK_COST(70);
         case 32: // Mystic Urn
-            return AP_ENERGYLINK_HEALTH_COST(100);
+            return AP_ENERGYLINK_COST(100);
         case 82: // Quartz Flask
-            return AP_ENERGYLINK_HEALTH_COST(25);
+            return AP_ENERGYLINK_COST(25);
         case 84: // Ring of Invincibility
             return AP_ENERGYLINK_COST(400);
         case 75: // Shadowsphere
-            return AP_ENERGYLINK_COST(90);
+            return AP_ENERGYLINK_COST(100);
         case 34: // Timebomb of the Ancients
             return AP_ENERGYLINK_COST(30);
         case 86: // Tome of Power
@@ -363,7 +389,7 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 83: // Wings of Wrath
             return 0; // This... should not ever happen?
         case 33: // Torch
-            return AP_ENERGYLINK_COST(90);
+            return AP_ENERGYLINK_COST(120);
 
         // Junk
         case 12: // Crystal Geode
@@ -372,19 +398,20 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 23: // Inferno Orb
         case 16: // Pile of Mace Spheres
         case 19: // Quiver of Ethereal Arrows
-            return AP_ENERGYLINK_AMMO_COST(1);
+            return AP_ENERGYLINK_COST(10);
 
         // Other
         case 65000: // Shop ammo refill
         {
-            int64_t value = 0; // Simulate giving large pickups from empty to full.
-            value += AP_ENERGYLINK_AMMO_COST((player->maxammo[am_goldwand]   + AMMO_GWND_HEFTY - 1) / AMMO_GWND_HEFTY);
-            value += AP_ENERGYLINK_AMMO_COST((player->maxammo[am_blaster]    + AMMO_BLSR_HEFTY - 1) / AMMO_BLSR_HEFTY);
-            value += AP_ENERGYLINK_AMMO_COST((player->maxammo[am_skullrod]   + AMMO_SKRD_HEFTY - 1) / AMMO_SKRD_HEFTY);
-            value += AP_ENERGYLINK_AMMO_COST((player->maxammo[am_phoenixrod] + AMMO_PHRD_HEFTY - 1) / AMMO_PHRD_HEFTY);
-            value += AP_ENERGYLINK_AMMO_COST((player->maxammo[am_mace]       + AMMO_MACE_HEFTY - 1) / AMMO_MACE_HEFTY);
-            value += AP_ENERGYLINK_AMMO_COST((player->maxammo[am_crossbow]   + AMMO_CBOW_HEFTY - 1) / AMMO_CBOW_HEFTY);
-            return value;
+            int64_t pickups = 0; // Simulate giving large pickups from empty to full.
+            for (int i = 0; i < NUMAMMO; ++i)
+            {
+                const int largeammo = large_ammo_count(i);
+                if (largeammo <= 0) continue;
+                const int numammo = player->maxammo[i] + largeammo - 1;
+                pickups += (numammo / largeammo);
+            }
+            return AP_ENERGYLINK_COST(pickups * 4);
         }
     }
 }

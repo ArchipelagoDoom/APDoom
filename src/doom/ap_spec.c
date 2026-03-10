@@ -105,7 +105,15 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
 
     if (!APC_CanGiveItem(doom_type))
     {
-        APDOOM_EnergyLink_GiveEnergy(APC_EnergyLinkItemCost(doom_type));
+        int64_t value = APC_EnergyLinkItemCost(doom_type);
+
+        const int *shopitem = APDOOM_EnergyLink_ShopItemList(NULL);
+        for (; *shopitem && *shopitem != doom_type; ++shopitem) {}
+        if (!(*shopitem))
+            value /= 2; // Halve value of items not in the shop.
+
+        APDOOM_EnergyLink_GiveEnergy(value);
+        printf("Sent %ld to the EnergyLink pool.\n", value);
         return false;
     }
 
@@ -309,6 +317,12 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
 
 // These functions are mostly for handling EnergyLink interactions.
 
+static int large_ammo_count(ammotype_t am)
+{
+    return (ap_state.difficulty == sk_baby || ap_state.difficulty == sk_nightmare || critical->moreammo)
+        ? (clipammo[am] * 10) : (clipammo[am] * 5);
+}
+
 boolean APC_CanGiveItem(int doom_type)
 {
     player_t* player = &players[consoleplayer];
@@ -370,46 +384,43 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
 
         // Powerups
         case 2018: // Armor
-            return AP_ENERGYLINK_ARMOR_COST(deh_green_armor_class * 100);
+            return AP_ENERGYLINK_COST(deh_green_armor_class * 100);
         case 2019: // Mega Armor
-            return AP_ENERGYLINK_ARMOR_COST(deh_blue_armor_class * 100);
+            return AP_ENERGYLINK_COST(deh_blue_armor_class * 100);
         case 2023: // Berserk
-            return AP_ENERGYLINK_HEALTH_COST(100) + AP_ENERGYLINK_COST(20);
+            return AP_ENERGYLINK_COST(125);
         case 2013: // Supercharge
-            return AP_ENERGYLINK_HEALTH_COST(deh_soulsphere_health);
+            return AP_ENERGYLINK_COST(deh_soulsphere_health);
         case 2022: // Invulnerability
             return AP_ENERGYLINK_COST(400);
         case 2024: // Partial invisibility
-            return AP_ENERGYLINK_COST(70);
+            return AP_ENERGYLINK_COST(80);
         case 2025: // Radiation shielding suit
             return AP_ENERGYLINK_COST(80);
         case 2045: // Light amplification visor
-            return AP_ENERGYLINK_COST(90);
+            return AP_ENERGYLINK_COST(120);
         case 83: // Megasphere
-            return AP_ENERGYLINK_HEALTH_COST(deh_megasphere_health)
-                 + AP_ENERGYLINK_ARMOR_COST(2 * 100)
-                 - AP_ENERGYLINK_COST(100);
+            return AP_ENERGYLINK_COST(100 + deh_megasphere_health);
 
         // Ammo / Other Junk
         case 2012: // Medikit
-            return AP_ENERGYLINK_HEALTH_COST(25) / 2;
+            return AP_ENERGYLINK_COST(25);
         case 2048: // Box of bullets
         case 2046: // Box of rockets
         case 2049: // Box of shotgun shells
         case 17: // Energy cell pack
-            return AP_ENERGYLINK_AMMO_COST(1);
+            return AP_ENERGYLINK_COST(10);
         case 65000: // Shop ammo refill
         {
-            int64_t value = 0; // Simulate giving large pickups from empty to full.
+            int64_t pickups = 0; // Simulate giving large pickups from empty to full.
             for (int i = 0; i < NUMAMMO; ++i)
             {
-                const int largeammo = clipammo[i] * 5;
+                const int largeammo = large_ammo_count(i);
                 if (largeammo <= 0) continue;
-
                 const int numammo = player->maxammo[i] + largeammo - 1;
-                value += AP_ENERGYLINK_AMMO_COST(numammo / largeammo);
+                pickups += (numammo / largeammo);
             }
-            return value;
+            return AP_ENERGYLINK_COST(pickups * 4);
         }
     }
 }

@@ -486,11 +486,7 @@ int APDOOM_DeleteSave(const ap_savesettings_t *save);
 
 #define AP_ENERGYLINK_RATIO          1000000LL // Joules per base displayed "point"
 #define AP_ENERGYLINK_MAX   1000000000000000LL // Maximum energy we track
-
-#define AP_ENERGYLINK_COST(value)        ((value) * AP_ENERGYLINK_RATIO)
-#define AP_ENERGYLINK_HEALTH_COST(point) ((AP_ENERGYLINK_COST(point) * 4) / 5) // 0.8 per 1 health
-#define AP_ENERGYLINK_ARMOR_COST(point)  ((AP_ENERGYLINK_COST(point)    )    ) // 1 per 1 armor
-#define AP_ENERGYLINK_AMMO_COST(pickup)  ((AP_ENERGYLINK_COST(pickup)* 4)    ) // 4 per large pickup
+#define AP_ENERGYLINK_COST(value)    ((value) * AP_ENERGYLINK_RATIO)
 
 int APDOOM_EnergyLink_Enabled(void);
 
