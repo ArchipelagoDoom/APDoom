@@ -417,6 +417,9 @@ typedef struct {
     // Required IWAD file, special behavior may be inferred based on which IWAD is used
     const char *iwad;
 
+    // NULL-terminated list of authors in the manifest
+    const char **authors;
+
     // NULL-terminated list of PWADs that must be present
     const char **required_wads;
 

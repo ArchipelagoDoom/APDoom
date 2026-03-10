@@ -24,10 +24,12 @@ struct WorldInfo {
 	std::vector<std::string> included_wads; // PWADs included in apworld
 	std::vector<std::string> required_wads; // PWADs reqiured for play
 	std::vector<std::string> optional_wads; // PWADs auto-loaded if available, but optional
+	std::vector<std::string> authors; // Authorship information from world manifest
 
 	std::vector<const char *> c_included_wads; // Pointed to by C structure below, NULL terminated
 	std::vector<const char *> c_required_wads; // As above
 	std::vector<const char *> c_optional_wads; // As above
+	std::vector<const char *> c_authors; // As above
 	ap_worldinfo_t c_world_info;
 
 	bool operator<(const WorldInfo& other)
@@ -59,17 +61,20 @@ static void json_to_vector(Json::Value &json, std::vector<std::string> &vec)
 
 static ap_worldinfo_t *make_c_world(WorldInfo &w)
 {
-	to_cstring_vector(w.c_included_wads, w.included_wads);
-	to_cstring_vector(w.c_required_wads, w.required_wads);
-	to_cstring_vector(w.c_optional_wads, w.optional_wads);
 	w.c_world_info.shortname = w.shortname.c_str();
 	w.c_world_info.fullname = w.fullname.c_str();
 	w.c_world_info.apname = w.apname.c_str();
 	w.c_world_info.definitions = w.definitions.c_str();
 	w.c_world_info.iwad = w.iwad.c_str();
+
+	to_cstring_vector(w.c_included_wads, w.included_wads);
+	to_cstring_vector(w.c_required_wads, w.required_wads);
+	to_cstring_vector(w.c_optional_wads, w.optional_wads);
+	to_cstring_vector(w.c_authors, w.authors);
 	w.c_world_info.required_wads = w.c_required_wads.data();
 	w.c_world_info.optional_wads = w.c_optional_wads.data();
 	w.c_world_info.included_wads = w.c_included_wads.data();
+	w.c_world_info.authors = w.c_authors.data();
 	return &w.c_world_info;
 }
 
@@ -127,6 +132,8 @@ static WorldInfo *parse_world(APZipReader *world)
 
 	w.fullname = apdoom_json.get("full_name", w.apname).asString();
 
+	if (json.isMember("authors") && json["authors"].isArray())
+		json_to_vector(json["authors"], w.authors);
 	if (apdoom_json.isMember("wads_required") && apdoom_json["wads_required"].isArray())
 		json_to_vector(apdoom_json["wads_required"], w.required_wads);
 	if (apdoom_json.isMember("wads_optional") && apdoom_json["wads_optional"].isArray())

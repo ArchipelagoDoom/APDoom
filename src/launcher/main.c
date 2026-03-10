@@ -827,6 +827,41 @@ static void LoadOptions_Input(menudata_t *data)
 
 // ----- Select Game ----------------------------------------------------------
 
+int world_sidebar_id = -1;
+char *world_sidebar_text = NULL;
+
+// Used to print authorship information.
+static char *InLineList(const char *pre, const char **list, const char *post)
+{
+    int count = 0, i = 0;
+    for (; list[count]; ++count) {}
+
+    if (count == 0)
+        return calloc(1, 1); // Technically wasteful, but whatever
+    if (count == 1)
+        return LN_allocsprintf("%s%s%s", pre, list[0], post);
+    if (count == 2)
+        return LN_allocsprintf("%s%s and %s%s", pre, list[0], list[1], post);
+
+    int len = 5; // "and ", and NULL terminator
+    len += strlen(pre);
+    len += strlen(post);
+    for (i = 0; i < count; ++i)
+        len += strlen(list[i]) + 2; // String content, and ", "
+
+    char *content = malloc(len);
+    memcpy(content, pre, strlen(pre) + 1);
+    for (i = 0; i < count - 1; ++i)
+    {
+        M_StringConcat(content, list[i], len);
+        M_StringConcat(content, ", ", len);
+    }
+    M_StringConcat(content, "and ", len);
+    M_StringConcat(content, list[i], len);
+    M_StringConcat(content, post, len);
+    return content;
+}
+
 static int GameActionHandler(int num, menudata_t *data, void *arg)
 {
     (void)arg;
@@ -882,6 +917,21 @@ static void SelectGame_Draw(menudata_t *data)
     LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0x80000000 | border_color);
     LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0x80000000 | border_color);
     LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
+
+    if (world_sidebar_id != data->cursor)
+    {
+        if (world_sidebar_text)
+            free(world_sidebar_text);
+        world_sidebar_id = data->cursor;
+
+        // If a world has authorship information, show it!
+        char *authors = InLineList("World created by ", all_worlds[world_sidebar_id]->authors, ".");
+        world_sidebar_text = LV_WrapText(&small_font, SCREEN_WIDTH/4, authors);
+        free(authors);
+    }
+
+    if (world_sidebar_text)
+        LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3, 120, &small_font, world_sidebar_text);
 
     LV_FormatText(l_primary, (SCREEN_WIDTH/4)*3, 325, &small_font, "%d of %d", data->cursor + 1, data->target_count);
 }
