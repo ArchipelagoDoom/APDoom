@@ -83,7 +83,6 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
             value /= 2; // Halve value of items not in the shop.
 
         APDOOM_EnergyLink_GiveEnergy(value);
-        printf("Sent %ld to the EnergyLink pool.\n", value);
         return false;
     }
 
