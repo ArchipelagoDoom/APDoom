@@ -108,8 +108,6 @@ static boolean		always_off = false;
 static char		chat_dest[MAXPLAYERS];
 static hu_itext_t w_inputbuffer[MAXPLAYERS];
 
-// [AP] auto_hide messages when in automap, due to overlap
-static boolean      message_truly_on;
 static boolean		message_on;
 boolean			message_dontfuckwithme;
 static boolean		message_nottobefuckedwith;
@@ -659,7 +657,6 @@ void HU_Start(void)
 	HU_Stop();
 
     plr = &players[displayplayer];
-    message_truly_on = false;
     message_on = false;
     message_dontfuckwithme = false;
     message_nottobefuckedwith = false;
@@ -676,7 +673,7 @@ void HU_Start(void)
     HUlib_initSText(&w_message,
 		    HU_MSGX, w_message_y, HU_MSGHEIGHT,
 		    hu_font,
-		    HU_FONTSTART, &message_truly_on);
+		    HU_FONTSTART, &message_on);
 
     // [crispy] create the secret message widget
     HUlib_initSText(&w_secret,
@@ -977,7 +974,8 @@ void HU_Drawer(void)
     if (crispy->coloredhud & COLOREDHUD_TEXT)
 	dp_translation = cr[CR_GOLD];
 
-    if (automapactive)
+    // [AP] due to moved ingame message position, automap level name would overlap with it
+    if (automapactive && !message_on)
     {
 	HUlib_drawTextLine(&w_title, false);
     }
@@ -1591,9 +1589,6 @@ void HU_Ticker(void)
 	while (*s)
 	    HUlib_addCharToTextLine(&w_fps, *(s++));
     }
-
-    // [AP] suppress message text if automap up, due to overlap
-    message_truly_on = (message_on && !automapactive);
 }
 
 #define QUEUESIZE		128
