@@ -839,7 +839,7 @@ int apdoom_init(ap_settings_t* settings)
 				music_pool.push_back(ap_get_level_state(*idx)->music);
 			goto post_init_music;
 		case 2: // Shuffle all music
-			for (ap_level_index_t *idx = ap_get_available_levels(); idx->ep != -1; ++idx)
+			for (ap_level_index_t *idx = ap_get_all_levels(); idx->ep != -1; ++idx)
 				music_pool.push_back(ap_get_level_state(*idx)->music);
 			goto post_init_music;
 		default:
