@@ -255,6 +255,13 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
             P_GiveAmmo(player, am_crossbow, AMMO_CBOW_HEFTY);
             P_SetMessage(player, DEH_String(TXT_AMMOCROSSBOW2), false);
             break;
+
+        // Things not usually present in random pool, but can be !getitem-ed or bought
+        case 65000: // Shop ammo refill
+            for (int i = 0; i < NUMAMMO; ++i)
+                player->ammo[i] = player->maxammo[i];
+            break;
+
     }
 
 	S_StartSound(NULL, sound); // [NS] Fallback to itemup.
