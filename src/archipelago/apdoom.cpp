@@ -34,6 +34,7 @@
 #include "apdoom.h"
 #include "Archipelago.h"
 #include <json/json.h>
+#include <algorithm>
 #include <filesystem>
 #include <memory.h>
 #include <stdarg.h>
