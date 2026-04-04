@@ -160,16 +160,8 @@ extern void P_SetMobjState(mobj_t*, statenum_t);
 
 void A_CheckCollected(mobj_t* mo)
 {
-	int j, lenj;
-	ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
-    for (j = 0, lenj = level_state->check_count; j < lenj; ++j)
-    {
-        if (level_state->checks[j] == mo->index)
-        {
-			P_RemoveMobj(mo);
-			return;
-        }
-    }
+    if (ap_is_location_checked(ap_make_level_index(gameepisode, gamemap), mo->index))
+        P_RemoveMobj(mo);
 }
 
 void A_EnableHUB(mobj_t *mo)

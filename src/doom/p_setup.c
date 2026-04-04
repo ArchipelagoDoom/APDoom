@@ -506,7 +506,7 @@ void P_LoadNodes (int lump)
 void P_LoadThings (int lump)
 {
     byte               *data;
-    int			i, j;
+    int			i;
     mapthing_t         *mt;
     mapthing_t          spawnthing;
     mapthing_t  spawnthing_player1_start;
@@ -514,7 +514,6 @@ void P_LoadThings (int lump)
     boolean		spawn;
 
     ap_level_index_t  curlvlindex = ap_make_level_index(gameepisode, gamemap);
-    ap_level_state_t *curlvlstate = ap_get_level_state(curlvlindex);
     ap_level_info_t  *curlvlinfo  = ap_get_level_info(curlvlindex);
     int               num_ap_items = 0;
 
@@ -640,17 +639,9 @@ void P_LoadThings (int lump)
 		switch (ap_validate_doom_location(curlvlindex, original_type, i))
 		{
 		case 1: // Found, valid location
-            ++num_ap_items;
+			++num_ap_items;
 			spawnthing.type = (apdoom_is_location_progression(curlvlindex, i) ? 20001 : 20000);
-
-			for (j = 0; j < curlvlstate->check_count; ++j)
-			{
-				if (curlvlstate->checks[j] == i)
-				{
-					spawn = false;
-					break;
-				}
-			}
+			spawn = !ap_is_location_checked(curlvlindex, i);
 			break;
 		case 0: // Found, not a location (suppressed, unreachable, etc.)
 			spawn = false;

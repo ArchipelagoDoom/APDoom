@@ -31,7 +31,7 @@ extern "C"
 #define APDOOM_VERSION_FULL_TEXT "APDOOM " PACKAGE_VERSION
 
 
-#define AP_CHECK_MAX 128 // 999 is enforced by ID format
+#define AP_CHECK_MAX 999 // 999 is enforced by ID format
 #define AP_MAX_THING 10240 // List is dynamically allocated; this is more to guard against malformed defs
 
 typedef struct
@@ -48,9 +48,9 @@ typedef struct
     int keys[3];
     int use_skull[3];
     int check_count;
+    int true_check_count; // check count minus suppressed locations
     int thing_count;
     ap_thing_info_t* thing_infos; // Dynamically allocated
-    int true_check_count; // check count minus suppressed locations
 
     int game_episode;
     int game_map;
@@ -61,14 +61,15 @@ typedef struct
 {
     int completed;
     int keys[3];
-    int check_count;
     int has_map;
     int unlocked;
-    int checks[AP_CHECK_MAX];
     int special; // Berzerk or Wings
     int flipped;
     int music;
 
+    int check_count;
+    int max_check_count;
+    int64_t* checks; // Dynamically allocated
 } ap_level_state_t;
 
 
@@ -367,6 +368,7 @@ int ap_get_highest_episode();
 int ap_validate_doom_location(ap_level_index_t idx, int doom_type, int index);
 int ap_get_map_count(int ep);
 int ap_total_check_count(const ap_level_info_t *level_info);
+int ap_is_location_checked(ap_level_index_t idx, int index);
 
 ap_level_index_t ap_try_make_level_index(int ep /* 1-based */, int map /* 1-based */);
 ap_level_index_t ap_make_level_index(int ep /* 1-based */, int map /* 1-based */);

@@ -440,6 +440,17 @@ int ap_total_check_count(const ap_level_info_t *level_info)
 }
 
 
+int ap_is_location_checked(ap_level_index_t idx, int index)
+{
+	auto level_state = ap_get_level_state(idx);
+	for (int i = 0; i < level_state->check_count; ++i)
+	{
+		if (level_state->checks[i] == index) return true;
+	}
+	return false;
+}
+
+
 ap_level_info_t* ap_get_level_info(ap_level_index_t idx)
 {
 	auto& level_info_table = get_level_info_table();
@@ -575,16 +586,15 @@ int apdoom_init(ap_settings_t* settings)
 	}
 	memset(ap_state.player_state.capacity_upgrades, 0, sizeof(int) * ap_ammo_count);
 
-	for (int ep = 0; ep < ap_episode_count; ++ep)
+	// initialize checked location lists
+	for (ap_level_index_t *idx = ap_get_all_levels(); idx->ep != -1; ++idx)
 	{
-		int map_count = ap_get_map_count(ep + 1);
-		for (int map = 0; map < map_count; ++map)
-		{
-			for (int k = 0; k < AP_CHECK_MAX; ++k)
-			{
-				ap_state.level_states[ep * max_map_count + map].checks[k] = -1;
-			}
-		}
+		auto level_state = ap_get_level_state(*idx);
+
+		level_state->max_check_count = ap_get_level_info(*idx)->check_count + 1;
+		level_state->checks = new int64_t[level_state->max_check_count];
+		for (int k = 0; k < level_state->max_check_count; ++k)
+			level_state->checks[k] = -1;
 	}
 
 	ap_settings = *settings;
@@ -917,17 +927,6 @@ int apdoom_init(ap_settings_t* settings)
 }
 
 
-static bool is_loc_checked(ap_level_index_t idx, int index)
-{
-	auto level_state = ap_get_level_state(idx);
-	for (int i = 0; i < level_state->check_count; ++i)
-	{
-		if (level_state->checks[i] == index) return true;
-	}
-	return false;
-}
-
-
 void apdoom_shutdown()
 {
 	if (ap_was_connected)
@@ -1060,16 +1059,10 @@ void load_state()
 			json_get_bool_or(json["episodes"][i][j]["keys0"], level_state->keys[0]);
 			json_get_bool_or(json["episodes"][i][j]["keys1"], level_state->keys[1]);
 			json_get_bool_or(json["episodes"][i][j]["keys2"], level_state->keys[2]);
-			//json_get_bool_or(json["episodes"][i][j]["check_count"], level_state->check_count);
 			json_get_bool_or(json["episodes"][i][j]["has_map"], level_state->has_map);
 			json_get_bool_or(json["episodes"][i][j]["unlocked"], level_state->unlocked);
 			json_get_bool_or(json["episodes"][i][j]["special"], level_state->special);
-
-			//int k = 0;
-			//for (const auto& json_check : json["episodes"][i][j]["checks"])
-			//{
-			//	json_get_bool_or(json_check, level_state->checks[k++]);
-			//}
+			// We don't save checks or check_count -- server state is treated as authoritative
 		}
 	}
 
@@ -1117,38 +1110,12 @@ static Json::Value serialize_level(int ep, int map)
 	json_level["keys0"] = level_state->keys[0];
 	json_level["keys1"] = level_state->keys[1];
 	json_level["keys2"] = level_state->keys[2];
-	json_level["check_count"] = level_state->check_count;
 	json_level["has_map"] = level_state->has_map;
 	json_level["unlocked"] = level_state->unlocked;
 	json_level["special"] = level_state->special;
-
-	Json::Value json_checks(Json::arrayValue);
-	for (int k = 0; k < AP_CHECK_MAX; ++k)
-	{
-		if (level_state->checks[k] == -1)
-			continue;
-		json_checks.append(level_state->checks[k]);
-	}
-	json_level["checks"] = json_checks;
+	// We don't save checks or check_count -- server state is treated as authoritative
 
 	return json_level;
-}
-
-
-std::vector<ap_level_index_t> get_level_indices()
-{
-	std::vector<ap_level_index_t> ret;
-
-	for (int i = 0; i < ap_episode_count; ++i)
-	{
-		int map_count = ap_get_map_count(i + 1);
-		for (int j = 0; j < map_count; ++j)
-		{
-			ret.push_back({i + 1, j + 1});
-		}
-	}
-
-	return ret;
 }
 
 
@@ -1508,12 +1475,14 @@ void f_locrecv(int64_t loc_id)
 	ap_level_index_t idx = {ep - 1, map - 1};
 
 	// Make sure we didn't already check it
-	if (is_loc_checked(idx, index)) return;
+	if (ap_is_location_checked(idx, index)) return;
 	if (index < 0) return;
 
 	auto level_state = ap_get_level_state(idx);
-	level_state->checks[level_state->check_count] = index;
-	level_state->check_count++;
+	level_state->checks[level_state->check_count++] = index;
+
+	if (level_state->check_count >= level_state->max_check_count)
+		printf("APDOOM: In f_locrecv: more checks made than expected. this WILL write out of bounds, please report this\n");
 }
 
 
@@ -1594,15 +1563,14 @@ void apdoom_check_location(ap_level_index_t idx, int index)
 
 	if (index >= 0)
 	{
-		if (is_loc_checked(idx, index))
+		if (ap_is_location_checked(idx, index))
 		{
 			printf("APDOOM: Location already checked\n");
 		}
 		else
-		{ // We get back from AP
-			//auto level_state = ap_get_level_state(ep, map);
-			//level_state->checks[level_state->check_count] = index;
-			//level_state->check_count++;
+		{
+			// No operation -- we wait until AP tells us
+			// (see f_locrecv())
 		}
 	}
 	AP_SendItem(id);
