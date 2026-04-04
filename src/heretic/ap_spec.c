@@ -385,13 +385,13 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 82: // Quartz Flask
             return AP_ENERGYLINK_COST(25);
         case 84: // Ring of Invincibility
-            return AP_ENERGYLINK_COST(400);
+            return AP_ENERGYLINK_COST(500);
         case 75: // Shadowsphere
             return AP_ENERGYLINK_COST(100);
         case 34: // Timebomb of the Ancients
             return AP_ENERGYLINK_COST(30);
         case 86: // Tome of Power
-            return AP_ENERGYLINK_COST(180);
+            return AP_ENERGYLINK_COST(150);
         case 83: // Wings of Wrath
             return 0; // This... should not ever happen?
         case 33: // Torch
@@ -404,7 +404,7 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 23: // Inferno Orb
         case 16: // Pile of Mace Spheres
         case 19: // Quiver of Ethereal Arrows
-            return AP_ENERGYLINK_COST(10);
+            return AP_ENERGYLINK_COST(8);
 
         // Other
         case 65000: // Shop ammo refill
@@ -417,7 +417,7 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
                 const int numammo = player->maxammo[i] + largeammo - 1;
                 pickups += (numammo / largeammo);
             }
-            return AP_ENERGYLINK_COST(pickups * 4);
+            return AP_ENERGYLINK_COST(pickups * 2);
         }
     }
 }

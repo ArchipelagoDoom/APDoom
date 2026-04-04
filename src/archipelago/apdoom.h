@@ -484,9 +484,9 @@ int APDOOM_DeleteSave(const ap_savesettings_t *save);
 
 // ===== ENERGYLINK ===========================================================
 
-#define AP_ENERGYLINK_RATIO          1000000LL // Joules per base displayed "point"
-#define AP_ENERGYLINK_MAX   1000000000000000LL // Maximum energy we track
-#define AP_ENERGYLINK_COST(value)    ((value) * AP_ENERGYLINK_RATIO)
+#define AP_ENERGYLINK_RATIO                                 25000000LL // Joules per base displayed "point" (2.5e7)
+#define AP_ENERGYLINK_MAX         (1000000000LL * AP_ENERGYLINK_RATIO) // Maximum energy we track
+#define AP_ENERGYLINK_COST(value)      ((value) * AP_ENERGYLINK_RATIO)
 
 int APDOOM_EnergyLink_Enabled(void);
 

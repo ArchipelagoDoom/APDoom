@@ -391,7 +391,7 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 2013: // Supercharge
             return AP_ENERGYLINK_COST(deh_soulsphere_health);
         case 2022: // Invulnerability
-            return AP_ENERGYLINK_COST(400);
+            return AP_ENERGYLINK_COST(500);
         case 2024: // Partial invisibility
             return AP_ENERGYLINK_COST(80);
         case 2025: // Radiation shielding suit
@@ -408,7 +408,7 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
         case 2046: // Box of rockets
         case 2049: // Box of shotgun shells
         case 17: // Energy cell pack
-            return AP_ENERGYLINK_COST(10);
+            return AP_ENERGYLINK_COST(8);
         case 65000: // Shop ammo refill
         {
             int64_t pickups = 0; // Simulate giving large pickups from empty to full.
@@ -419,7 +419,7 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
                 const int numammo = player->maxammo[i] + largeammo - 1;
                 pickups += (numammo / largeammo);
             }
-            return AP_ENERGYLINK_COST(pickups * 4);
+            return AP_ENERGYLINK_COST(pickups * 2);
         }
     }
 }
