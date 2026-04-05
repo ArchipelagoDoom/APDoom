@@ -1219,7 +1219,7 @@ static const menutarget_t AdvancedOptsTargets[] = {
     {40, 200, "Flip Levels",          AdvOptDrawFlipLevels},
     {40, 220, "Reset Level on Death", AdvOptDrawResetLevel},
     {40, 240, "DeathLink",            AdvOptDrawDeathLink},
-    {40, 280, "Command Line Args.",   TextInputDrawer, &game_settings.extra_cmdline},
+    {40, 280, "Extra Arguments",      TextInputDrawer, &game_settings.extra_cmdline},
     {40, 320, "Back"}
 };
 
