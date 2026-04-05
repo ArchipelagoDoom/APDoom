@@ -1476,7 +1476,10 @@ void ap_set_respawning_player_attributes(player_t *p)
             const int ammo_replenish = ap_game_info.weapons[i].start_ammo;
 
             if (ammo_type >= 0 && ammo_type < NUMAMMO)
+            {
                 p->ammo[ammo_type] = MAX(p->ammo[ammo_type], ammo_replenish);
+                p->ammo[ammo_type] = MIN(p->ammo[ammo_type], p->maxammo[ammo_type]);
+            }
         }
     }
 
@@ -1576,7 +1579,6 @@ void G_Ticker (void)
     int		i;
     int		buf; 
     ticcmd_t*	cmd;
-    player_t* p;
     
     // do player reborns if needed
     for (i=0 ; i<MAXPLAYERS ; i++) 
@@ -1591,8 +1593,7 @@ void G_Ticker (void)
 	  case ga_loadlevel: 
 	    G_DoLoadLevel(); 
         set_ap_player_states();
-        p = &players[consoleplayer];
-        ap_set_respawning_player_attributes(p);
+        ap_set_respawning_player_attributes(&players[consoleplayer]);
 	    break;
 	  case ga_newgame: 
 	    // [crispy] re-read game parameters from command line
@@ -2088,8 +2089,7 @@ static inline void G_ClearSavename ()
 void on_spawn_ap_states()
 {
     set_ap_player_states();
-    player_t* p = &players[consoleplayer];
-    ap_set_respawning_player_attributes(p);
+    ap_set_respawning_player_attributes(&players[consoleplayer]);
     leveltimesinceload = MIN(leveltimesinceload, MINHUBTIME/2);
 }
 

@@ -1494,6 +1494,7 @@ void G_PrepTiccmd (void)
 */
 
 void set_ap_player_states();
+void ap_set_respawning_player_attributes(player_t *p);
 
 extern int wings_timeout;
 
@@ -1521,25 +1522,7 @@ void G_Ticker(void)
             case ga_loadlevel:
                 G_DoLoadLevel();
                 set_ap_player_states();
-                player_t* p = &players[consoleplayer];
-                for (i = 0; i < NUMWEAPONS; ++i)
-                {
-                    p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
-                    if (p->weaponowned[i])
-                    {
-                        switch (i)
-                        {
-                            case wp_goldwand: p->ammo[am_goldwand] = MAX(p->ammo[am_goldwand], 50); break;
-                            case wp_crossbow: p->ammo[am_crossbow] = MAX(p->ammo[am_crossbow], 30); break;
-                            case wp_blaster: p->ammo[am_blaster] = MAX(p->ammo[am_blaster], 50); break;
-                            case wp_skullrod: p->ammo[am_skullrod] = MAX(p->ammo[am_skullrod], 150); break;
-                            case wp_phoenixrod: p->ammo[am_phoenixrod] = MAX(p->ammo[am_phoenixrod], 10); break;
-                            case wp_mace: p->ammo[am_mace] = MAX(p->ammo[am_mace], 150); break;
-                        }
-                    }
-                }
-                p->health = 100;
-                if (p->mo) p->mo->health = p->health;
+                ap_set_respawning_player_attributes(&players[consoleplayer]);
                 break;
             case ga_newgame:
                 G_DoNewGame();
@@ -1988,25 +1971,7 @@ boolean killed_from_menu = false;
 void on_spawn_ap_states()
 {
     set_ap_player_states();
-    player_t* p = &players[consoleplayer];
-    for (int i = 0; i < NUMWEAPONS; ++i)
-    {
-        p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
-        if (p->weaponowned[i])
-        {
-            switch (i)
-            {
-                case wp_goldwand: p->ammo[am_goldwand] = MAX(p->ammo[am_goldwand], 50); break;
-                case wp_crossbow: p->ammo[am_crossbow] = MAX(p->ammo[am_crossbow], 30); break;
-                case wp_blaster: p->ammo[am_blaster] = MAX(p->ammo[am_blaster], 50); break;
-                case wp_skullrod: p->ammo[am_skullrod] = MAX(p->ammo[am_skullrod], 150); break;
-                case wp_phoenixrod: p->ammo[am_phoenixrod] = MAX(p->ammo[am_phoenixrod], 10); break;
-                case wp_mace: p->ammo[am_mace] = MAX(p->ammo[am_mace], 150); break;
-            }
-        }
-    }
-    p->health = 100;
-    if (p->mo) p->mo->health = p->health;
+    ap_set_respawning_player_attributes(&players[consoleplayer]);
     leveltimesinceload = MIN(leveltimesinceload, MINHUBTIME/2);
 }
 
@@ -2068,6 +2033,35 @@ void G_ScreenShot(void)
 void G_LevelSelect(void)
 {
     gameaction = ga_levelselect; 
+}
+
+
+void ap_set_respawning_player_attributes(player_t *p)
+{
+    for (int i = 0; i < NUMWEAPONS; ++i)
+    {
+        p->weaponowned[i] = ap_state.player_state.weapon_owned[i];
+        if (p->weaponowned[i] && i < ap_game_info.named_weapon_count)
+        {
+            const int ammo_type = ap_game_info.weapons[i].ammo_type;
+            const int ammo_replenish = ap_game_info.weapons[i].start_ammo;
+
+            if (ammo_type >= 0 && ammo_type < NUMAMMO)
+            {
+                p->ammo[ammo_type] = MAX(p->ammo[ammo_type], ammo_replenish);
+                p->ammo[ammo_type] = MIN(p->ammo[ammo_type], p->maxammo[ammo_type]);
+            }
+        }
+    }
+
+    p->health = ap_game_info.start_health;
+    if (p->mo) p->mo->health = p->health;
+
+    if (p->armorpoints < ap_game_info.start_armor)
+    {
+        p->armortype = 1;
+        p->armorpoints = ap_game_info.start_armor;
+    }
 }
 
 
@@ -2155,7 +2149,7 @@ void set_ap_player_states()
 
     // respawn would-be zombies, if ap health somehow becomes zero
     if (p->playerstate == PST_LIVE && p->health == 0)
-        p->health = 100;
+        ap_set_respawning_player_attributes(p);
 
     // mo
     if (p->mo)
