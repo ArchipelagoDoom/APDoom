@@ -73,6 +73,10 @@ int P_TestFit(mapthing_t *mt, mobjinfo_t *oldinfo, mobjinfo_t *newinfo)
     if (oldinfo == newinfo)
         return true;
 
+    // If this spot requires a flying enemy and this enemy isn't, it's not valid here
+    if ((mt->options & APMTF_FLYING_ONLY) && !(newinfo->flags & MF_FLOAT))
+        return false;
+
     // If the old enemy floats and the new one doesn't, always run fit tests
     if (!(oldinfo->flags & (MF_DROPOFF|MF_FLOAT)) || (newinfo->flags & (MF_DROPOFF|MF_FLOAT)))
     {
@@ -292,7 +296,15 @@ void P_PrepareMapThingRandos(void)
 
         for (int mt_i = 0; mt_i < numthings; ++mt_i, ++mt)
         {
-            if ((mt->options & 16) || !(mt->options & bit))
+            // Tweaks aren't loaded at this point, so checking the AP flag is pointless
+            if (
+                !(mt->options & bit)
+#ifdef AP_INC_HEXEN
+                || !(mt->options & MTF_GSINGLE)
+#else
+                || (mt->options & 16) // "MTF_NOTSINGLE"
+#endif
+            )
                 continue;
 
             for (int i = 0; i < max_item_count; ++i)
@@ -382,8 +394,15 @@ void P_MTRando_Run(mapthing_t *mts, int numthings, short *out_list)
     for (int i = 0; i < numthings; ++i)
     {
         mapthing_t *mt = &mts[i];
-        if ((mt->options & 16) || !(mt->options & bit))
-            continue; // Item that wouldn't be spawned (multiplayer, or wrong difficulty)
+        if (
+            (mt->options & APMTF_DONT_RANDOMIZE) || !(mt->options & bit)
+#ifdef AP_INC_HEXEN
+            || !(mt->options & MTF_GSINGLE)
+#else
+            || (mt->options & 16) // "MTF_NOTSINGLE"
+#endif
+        )
+            continue; // Item that shouldn't be randomized (or multiplayer only, or wrong difficulty)
 
         // If the item exists, then add it to the rando pool.
         randoitem_t *item = RDef_GetItem(active_rdef, mt->type);
@@ -493,6 +512,20 @@ void P_MTRando_Run(mapthing_t *mts, int numthings, short *out_list)
                     {
 #ifdef MTRAND_DEBUG
                         printf(" -> Rerolled to new type %i.\n",
+                            ritem_list[i]->doom_type);
+#endif
+                        goto placement_resolved;
+                    }
+                }
+
+                // Reroll *again*, but this time allow any replacement.
+                for (int tries = 0; tries < 64; ++tries)
+                {
+                    ritem_list[i] = RDef_ReplaceAny(active_rdef);
+                    if (active_rdef->placement_callback(mt, mtitem->info, ritem_list[i]->info))
+                    {
+#ifdef MTRAND_DEBUG
+                        printf(" -> Rerolled to new type %i (second reroll).\n",
                             ritem_list[i]->doom_type);
 #endif
                         goto placement_resolved;

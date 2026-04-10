@@ -521,6 +521,9 @@ void P_LoadThings (int lump)
     numthings = W_LumpLength (lump) / sizeof(mapthing_t);
 
     mt = (mapthing_t *)data;
+    for (i = 0; i < numthings; ++i)
+        mt[i].options &= ~APMTF_MASK; // Ensure AP flags aren't set before tweaks
+
     { // [AP] Tweaks: Alter mapthing data
         ap_maptweak_t *tweak;
 
@@ -630,7 +633,11 @@ void P_LoadThings (int lump)
 	spawnthing.options = SHORT(mt->options);
 
 	// [AP] Replace AP locations with AP item
-	if (!ap_force_disable_behaviors && ap_is_location_type(original_type))
+	if (ap_force_disable_behaviors || (mt->options & APMTF_DONT_RANDOMIZE))
+	{
+		// Inhibit randomization. The item spawns as it normally would.
+	}
+	else if (ap_is_location_type(original_type))
 	{
 		spawn = true;
 
