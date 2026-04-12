@@ -56,6 +56,16 @@ bool invalidate_savegame_cache = false;
 // We're editing connection info for an already present save, which limits what we can do.
 static bool editing_savegame = false;
 
+static inline const uint32_t _DeselectedColor(void)
+{
+    return 0x00525252;
+}
+
+static inline const uint32_t _SelectedColor(void)
+{
+    return 0x000054CA + (pulsating_color << 8) + (pulsating_color << 17);
+}
+
 // ============================================================================
 // Game / World Functionality Testing
 // ============================================================================
@@ -359,10 +369,9 @@ void StandardMenuDraw(menudata_t *data)
         if (data->cursor == i)
         {
             const int h = anim_bg_fade[anim_step];
-            uint32_t color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
-
-            LV_FillRect(data->layer, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 0x60000000 | color);
-            LV_OutlineRect(data->layer, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 1, 0x40000000 | color);
+            const uint32_t color = _SelectedColor();
+            LV_FillRect(data->layer, -1, y + 5 -(h/2), SCREEN_WIDTH+2, h, 0x80000000 | color);
+            LV_OutlineRect(data->layer, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 1, 0x60000000 | color);
         }
 
         if (target->draw_handler && target->draw_handler(i, data, target->arg))
@@ -496,14 +505,11 @@ int StandardMenuInput(menudata_t *data, int *interaction_type)
 static int TextInputDrawer(int num, menudata_t *data, void *arg)
 {
     const char *text = (const char *)arg;
-    uint32_t border_color = 0x00606060;
-    if (data->cursor == num)
-        border_color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
-
-    LV_FillRect(data->layer, SCREEN_WIDTH/2 - 2, data->target_list[num].y, (SCREEN_WIDTH/2) - 32, 10, 0xA0000000);
-    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 4, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 28, 12, 1, 0x80000000 | border_color);
-    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 2, (SCREEN_WIDTH/2) - 30, 14, 1, 0x80000000 | border_color);
-    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 30, 12, 1, 0xA0000000 | border_color);
+    const uint32_t border_color = (data->cursor == num) ? _SelectedColor() : _DeselectedColor();
+    LV_FillRect(data->layer, SCREEN_WIDTH/2 - 2, data->target_list[num].y, (SCREEN_WIDTH/2) - 32, 10, 0xC0000000);
+    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 4, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 28, 12, 1, 0xA0000000 | border_color);
+    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 2, (SCREEN_WIDTH/2) - 30, 14, 1, 0xA0000000 | border_color);
+    LV_OutlineRect(data->layer, SCREEN_WIDTH/2 - 3, data->target_list[num].y - 1, (SCREEN_WIDTH/2) - 30, 12, 1, 0xC0000000 | border_color);
 
     LV_PrintText(data->layer, SCREEN_WIDTH/2, data->target_list[num].y + 3, &small_font, text);
     if (LI_HasTextInput(text) && SDL_GetTicks() % 500 > 250)
@@ -626,11 +632,11 @@ static void LoadSavedGame_Draw(menudata_t *data)
 {
     DrawHeader(data->layer, 100, "Load Previous Game");
 
-    const uint32_t border_color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
-    LV_FillRect(l_primary, (SCREEN_WIDTH/4)*3 - 2, 118, (SCREEN_WIDTH/4) + 5, 214, 0xA0000000);
-    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0x80000000 | border_color);
-    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0x80000000 | border_color);
-    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
+    const uint32_t border_color = _SelectedColor();
+    LV_FillRect(l_primary, (SCREEN_WIDTH/4)*3 - 2, 118, (SCREEN_WIDTH/4) + 5, 214, 0xC0000000);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0xA0000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xC0000000 | border_color);
 
     if (!lsg_targets)
     {
@@ -912,11 +918,11 @@ static void SelectGame_Draw(menudata_t *data)
 {
     DrawHeader(data->layer, 100, "Select a Game");
 
-    const uint32_t border_color = 0x000070FF + (pulsating_color << 8) + (pulsating_color << 17);
-    LV_FillRect(l_primary, (SCREEN_WIDTH/4)*3 - 2, 118, (SCREEN_WIDTH/4) + 5, 214, 0xA0000000);
-    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0x80000000 | border_color);
-    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0x80000000 | border_color);
-    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
+    const uint32_t border_color = _SelectedColor();
+    LV_FillRect(l_primary, (SCREEN_WIDTH/4)*3 - 2, 118, (SCREEN_WIDTH/4) + 5, 214, 0xC0000000);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 4, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xA0000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 2, (SCREEN_WIDTH/4) + 5, 214 + 4, 1, 0xA0000000 | border_color);
+    LV_OutlineRect(l_primary, (SCREEN_WIDTH/4)*3 - 3, 118 - 1, (SCREEN_WIDTH/4) + 5, 214 + 2, 1, 0xC0000000 | border_color);
 
     if (world_sidebar_id != data->cursor)
     {
@@ -1120,13 +1126,15 @@ static void Connect_Input(menudata_t *data)
 static int AdvOptDrawSkill(int num, menudata_t *data, void *arg)
 {
     const char *text = "\xF9<unchanged>";
+    const int is_heretic = (game_settings.world && !strcmp(game_settings.world->iwad, "HERETIC.WAD"));
+
     switch (game_settings.skill)
     {
-    case 1: text = "Baby"; break;
+    case 1: text = is_heretic ? "Wet Nurse" : "Baby"; break;
     case 2: text = "Easy"; break;
     case 3: text = "Medium"; break;
     case 4: text = "Hard"; break;
-    case 5: text = "Nightmare"; break;
+    case 5: text = is_heretic ? "Black Plague" : "Nightmare"; break;
     default: break;
     }
     DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);
@@ -1398,7 +1406,7 @@ void D_DoomMain(void)
     {
         const int cur_menu = menu_stack[menu_stack_pos];
 
-        pulsating_color = 16 + (finesine[(int)((SDL_GetTicks() % 1000) * 8.200200020002f)] >> 12);
+        pulsating_color = 16 + (finesine[(int)((SDL_GetTicks() % 1000) * 8.200200020002f)] >> 13);
 
         LI_HandleEvents();
         LV_ClearLayer(menus[cur_menu].data.layer);
