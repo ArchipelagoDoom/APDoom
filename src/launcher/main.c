@@ -1383,8 +1383,16 @@ void D_DoomMain(void)
     LV_SetBrightness(l_bg_primary, 0, 0);
     LV_SetBrightness(l_bg_primary, 255, 4);
 
-    // Temporary...
+    // TODO: Try to load these dynamically from IWAD/PWADs?
+    LV_DrawBackground(l_bg_primary, W_CacheLumpName("INTERPIC", PU_CACHE));
     LV_DrawPatch(l_bg_primary, 94+160, 10, W_CacheLumpName("LN_DOOM1", PU_CACHE));
+
+    { // Print version on background
+        char *ver_str = LN_allocsprintf("v%s", PACKAGE_VERSION);
+        const int ver_width = LV_TextWidth(&small_font, ver_str);
+        LV_PrintText(l_bg_primary, (SCREEN_WIDTH-1) - ver_width, (SCREEN_HEIGHT-8), &small_font, ver_str);
+        free(ver_str);
+    }
 
     while (true)
     {

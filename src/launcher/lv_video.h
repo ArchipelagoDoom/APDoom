@@ -51,5 +51,6 @@ void LV_FillRect(layer_t *layer, int x, int y, int w, int h, unsigned int c);
 void LV_SetBrightness(layer_t *layer, byte brightness, char fade_speed);
 void LV_ClearLayer(layer_t *layer);
 void LV_DrawPatch(layer_t *layer, int x, int y, patch_t *patch);
+void LV_DrawBackground(layer_t *layer, patch_t *patch);
 
 #endif // __LV_VIDEO_H__

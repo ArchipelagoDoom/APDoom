@@ -346,3 +346,44 @@ void LV_DrawPatch(layer_t *layer, int x, int y, patch_t *patch)
         }
     }
 }
+
+void LV_DrawBackground(layer_t *layer, patch_t *patch)
+{
+    // Create a dummy layer and "draw" the background onto it "invisibly".
+    layer_t dummylayer;
+    dummylayer.surf = SDL_CreateRGBSurfaceWithFormat(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, PIXEL_FORMAT);
+    LV_SetAlpha(0);
+    LV_ClearLayer(&dummylayer);
+    LV_DrawPatch(&dummylayer, 0, 0, patch);
+    LV_SetAlpha(255);
+
+    // 96 alpha is, I feel, the sweet spot of "visible" and "doesn't get in the way".
+    // I would prefer keeping this lower over higher; don't want to impair readability.
+    const uint32_t max_bg_alpha = 96;
+
+    // We expect a 320x200 INTERPIC, and we're going to turn it into a 640x360 background.
+    for (int y = 0, ry = 10; y < SCREEN_HEIGHT; y += 2, ++ry)
+    {
+        // Top/bottom alpha gradient effect
+        uint32_t alpha1 = (y < SCREEN_HEIGHT/2 ? y : SCREEN_HEIGHT - y);
+        uint32_t alpha2 = alpha1 + (y < SCREEN_HEIGHT/2 ? 1 : -1);
+        alpha1 = (alpha1 > max_bg_alpha ? max_bg_alpha << 24 : alpha1 << 24);
+        alpha2 = (alpha2 > max_bg_alpha ? max_bg_alpha << 24 : alpha2 << 24);
+
+        uint32_t *dst1_p = (uint32_t*)(layer->surf->pixels) + (y * SCREEN_WIDTH);
+        uint32_t *dst2_p = (uint32_t*)(layer->surf->pixels) + ((y + 1) * SCREEN_WIDTH);
+        uint32_t *src_p = (uint32_t*)(dummylayer.surf->pixels) + (ry * SCREEN_WIDTH);
+
+        for (int x = 0; x < SCREEN_WIDTH; x += 2)
+        {
+            const uint32_t v1 = (alpha1 | *src_p);
+            const uint32_t v2 = (alpha2 | *src_p++);
+            *dst1_p++ = v1;
+            *dst1_p++ = v1;
+            *dst2_p++ = v2;
+            *dst2_p++ = v2;
+        }
+    }
+
+    SDL_FreeSurface(dummylayer.surf);
+}
