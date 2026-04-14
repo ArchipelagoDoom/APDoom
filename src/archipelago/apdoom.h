@@ -485,6 +485,7 @@ typedef struct {
     char description[64 + 1];
     long int initial_timestamp;
     long int last_timestamp;
+    int victory;
 } ap_savesettings_t;
 
 const ap_savesettings_t *APDOOM_FindSaves(int *save_count);

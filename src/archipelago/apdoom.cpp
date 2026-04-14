@@ -2129,8 +2129,9 @@ const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
 
 					if (json["launcher_data"].isObject())
 					{
-						json = json["launcher_data"];
+						tmp_savedata.victory = json["victory"].asBool();
 
+						json = json["launcher_data"];
 						tmp_savedata.practice_mode = false;
 						tmp_savedata.last_timestamp = json["_last_timestamp"].asInt64();
 						tmp_savedata.initial_timestamp = json["_initial_timestamp"].asInt64();

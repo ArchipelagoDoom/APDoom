@@ -665,12 +665,14 @@ static void LoadSavedGame_Draw(menudata_t *data)
                 "Server:\n"      "  \xF2%s\xF0\n\n"
                 "Slot Name:\n"   "  \xF2%s\xF0\n\n"
                 "Started:\n"     "  %s\n\n"
-                "Last Played:\n" "  %s\n\n",
+                "Last Played:\n" "  %s\n\n"
+                "\xF4%s",
                 lsg_savegame_cache[sidebar_id].world->fullname,
                 lsg_savegame_cache[sidebar_id].address,
                 lsg_savegame_cache[sidebar_id].slot_name,
                 initdt,
-                lastdt);
+                lastdt,
+                lsg_savegame_cache[sidebar_id].victory ? "Goal Completed!" : "");
         }
 
         if (sidebar_text)
