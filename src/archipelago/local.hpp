@@ -24,6 +24,16 @@
 #include <map>
 #include <json/json.h>
 
+
+enum class ap_game_t
+{
+    doom,
+    doom2,
+    heretic
+};
+
+extern ap_game_t ap_base_game;
+
 // ===== LUMP REMAPPING =======================================================
 
 struct remap_entry_t

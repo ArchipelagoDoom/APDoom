@@ -66,13 +66,7 @@ static Json::Value AP_ReadJson(const std::string &data)
 }
 
 
-enum class ap_game_t
-{
-	doom,
-	doom2,
-	heretic
-};
-
+ap_game_t ap_base_game; // doom, doom2, or heretic (see local.hpp)
 
 const ap_worldinfo_t *ap_world_info;
 ap_gameinfo_t ap_game_info;
@@ -86,8 +80,6 @@ int ap_force_disable_behaviors = false; // For demo compatibility.
 long int initial_timestamp = 0; // Time that the seed was started.
 
 static bool detected_old_apworld = false;
-
-static ap_game_t ap_base_game;
 static int ap_weapon_count = -1;
 static int ap_ammo_count = -1;
 static int ap_powerup_count = -1;
