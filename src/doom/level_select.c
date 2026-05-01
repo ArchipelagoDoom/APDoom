@@ -250,6 +250,7 @@ static void level_select_nav_enter()
 
 boolean LevelSelectResponder(event_t* ev)
 {
+    if (menuactive) return false; // don't eat events when menu is up
     if (ep_anim || initial_delay) return true;
 
     switch (ev->type)

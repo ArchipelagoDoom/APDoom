@@ -202,6 +202,7 @@ static void level_select_nav_enter()
 
 boolean LevelSelectResponder(event_t* ev)
 {
+    if (MenuActive || askforquit) return false; // don't eat events when menu is up
     if (activating_level_select_anim) return true;
     if (ep_anim) return true;
 

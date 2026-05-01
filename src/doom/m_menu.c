@@ -3394,6 +3394,12 @@ void M_Drawer (void)
 	{
 	    M_DrawCrispnessBackground();
 	}
+    // [AP] Draw pause pic if in the level select
+    else if (gamestate == GS_LEVEL_SELECT && ap_game_info.pause_pic)
+    {
+        inhelpscreens = true;
+        V_DrawPatchFullScreen(W_CacheLumpName(ap_game_info.pause_pic, PU_CACHE), false);
+    }
 
 	start = 0;
 	y = ORIGHEIGHT/2 - M_StringHeight(messageString) / 2;
