@@ -353,8 +353,9 @@ static void insert_new_tweak(std::vector<ap_maptweak_t> &tweak_list, allowed_twe
 static void parse_hub_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	// There's only one thing that can be tweaked with the hub, so the target is ignored
-	insert_new_tweak(tweak_list, TWEAK_HUB_X, 0, json["x"]);
-	insert_new_tweak(tweak_list, TWEAK_HUB_Y, 0, json["y"]);	
+	insert_new_tweak(tweak_list, TWEAK_HUB_X,     0, json["x"]);
+	insert_new_tweak(tweak_list, TWEAK_HUB_Y,     0, json["y"]);
+	insert_new_tweak(tweak_list, TWEAK_HUB_ANGLE, 0, json["angle"]);
 }
 
 static void parse_things_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
@@ -414,7 +415,8 @@ static void parse_sidedefs_tweak_block(const Json::Value& json, std::vector<ap_m
 static void parse_metadata_tweak_block(const Json::Value& json, std::vector<ap_maptweak_t> &tweak_list)
 {
 	// Metadata is level-wide stuff, so the target is ignored
-	insert_new_tweak(tweak_list, TWEAK_META_BEHAVES_AS, 0, json["behaves_as"]);
+	insert_new_tweak(tweak_list, TWEAK_META_BEHAVES_AS,  0, json["behaves_as"]);
+	insert_new_tweak(tweak_list, TWEAK_META_SECRET_EXIT, 0, json["allow_secret_exits"]);
 }
 
 int json_parse_map_tweaks(const Json::Value& json, map_tweaks_storage_t &output)

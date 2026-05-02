@@ -41,6 +41,7 @@
 #include "d_pwad.h" // [crispy] masterlevel kex music
 
 #include "apdoom.h"
+#include "ap_basic.h"
 
 // when to clip out sounds
 // Does not fit the large outdoor areas.
@@ -683,7 +684,7 @@ static int S_AdjustSoundParams(mobj_t *listener, mobj_t *source,
     angle_t        angle;
 
     // [crispy] proper sound clipping in Doom 2 MAP08 and The Ultimate Doom E4M8 / Sigil E5M8
-    const boolean doom1map8 = (metamap /* gamemap */ == 8 && ((gamemode != commercial && gameepisode < 4) || !crispy->soundfix));
+    const boolean doom1map8 = (apmeta.gamemap == 8 && ((gamemode != commercial && gameepisode < 4) || !crispy->soundfix));
 
     // calculate the distance to sound origin
     //  and clip it if necessary

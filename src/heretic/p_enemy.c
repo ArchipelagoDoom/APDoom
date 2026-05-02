@@ -25,6 +25,8 @@
 #include "s_sound.h"
 #include "v_video.h"
 
+#include "ap_basic.h" // [AP] apmeta
+
 // Macros
 
 #define MAX_BOSS_SPOTS 8
@@ -2360,11 +2362,11 @@ void A_BossDeath(mobj_t *actor, player_t *player, pspdef_t *psp)
         -1
     };
 
-    if (gamemap != 8)
+    if (apmeta.gamemap != 8 || apmeta.gameepisode < 1 || apmeta.gameepisode > 6)
     {                           // Not a boss level
         return;
     }
-    if (actor->type != bossType[gameepisode - 1])
+    if (actor->type != bossType[apmeta.gameepisode - 1])
     {                           // Not considered a boss in this episode
         return;
     }
@@ -2381,7 +2383,7 @@ void A_BossDeath(mobj_t *actor, player_t *player, pspdef_t *psp)
             return;
         }
     }
-    if (gameepisode > 1)
+    if (apmeta.gameepisode > 1)
     {                           // Kill any remaining monsters
         P_Massacre();
     }

@@ -65,6 +65,7 @@
 #include "v_trans.h" // [crispy] colored cheat messages
 
 #include "apdoom.h" // [AP] keys cheat
+#include "ap_basic.h"
 
 extern int screenblocks; // [crispy] for the Crispy HUD
 extern boolean inhelpscreens; // [crispy] prevent palette changes
@@ -586,17 +587,17 @@ static int ST_cheat_spechits()
     }
     else
     {
-	if (metaepisode /* gameepisode */ == 1)
+	if (apmeta.gameepisode == 1)
 	    // Barons of Hell
 	    speciallines += EV_DoFloor(&dummy, lowerFloorToLowest);
 	else
-	if (metaepisode /* gameepisode */ == 4)
+	if (apmeta.gameepisode == 4)
 	{
-	     if (metamap /* gamemap */ == 6)
+	     if (apmeta.gamemap == 6)
 		// Cyberdemons
 		speciallines += EV_DoDoor(&dummy, vld_blazeOpen);
 	    else
-	    if (metamap /* gamemap */ == 8)
+	    if (apmeta.gamemap == 8)
 		// Spider Masterminds
 		speciallines += EV_DoFloor(&dummy, lowerFloorToLowest);
 	}

@@ -24,8 +24,11 @@
 #include "m_misc.h"
 
 #include "apdoom.h"
+#include "ap_basic.h"
 #include "apzip.h"
 #include "embedded_files.h"
+
+apmeta_t apmeta;
 
 // Parses command line options common to all games' AP implementations.
 // See each game's "d_main.c".

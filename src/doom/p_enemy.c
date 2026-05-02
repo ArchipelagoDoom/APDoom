@@ -27,6 +27,7 @@
 #include "doomdef.h"
 #include "p_local.h"
 #include "d_pwad.h" // [crispy] kex masterlevels
+#include "ap_basic.h" // [AP] apmeta
 
 #include "s_sound.h"
 
@@ -1681,14 +1682,14 @@ static boolean CheckBossEnd(mobjtype_t motype)
 {
     if (gameversion < exe_ultimate)
     {
-        if (metamap /* gamemap */ != 8)
+        if (apmeta.gamemap != 8)
         {
             return false;
         }
 
         // Baron death on later episodes is nothing special.
 
-        if (motype == MT_BRUISER && metaepisode /* gameepisode */ != 1)
+        if (motype == MT_BRUISER && apmeta.gameepisode != 1)
         {
             return false;
         }
@@ -1702,33 +1703,33 @@ static boolean CheckBossEnd(mobjtype_t motype)
         // episode 4 support.  Now bosses only trigger on their
         // specific episode.
 
-	switch(metaepisode /* gameepisode */)
+	switch(apmeta.gameepisode)
 	{
             case 1:
-                return metamap /* gamemap */ == 8 && motype == MT_BRUISER;
+                return apmeta.gamemap == 8 && motype == MT_BRUISER;
 
             case 2:
-                return metamap /* gamemap */ == 8 && motype == MT_CYBORG;
+                return apmeta.gamemap == 8 && motype == MT_CYBORG;
 
             case 3:
-                return metamap /* gamemap */ == 8 && motype == MT_SPIDER;
+                return apmeta.gamemap == 8 && motype == MT_SPIDER;
 
 	    case 4:
-                return (metamap /* gamemap */ == 6 && motype == MT_CYBORG)
-                    || (metamap /* gamemap */ == 8 && motype == MT_SPIDER);
+                return (apmeta.gamemap == 6 && motype == MT_CYBORG)
+                    || (apmeta.gamemap == 8 && motype == MT_SPIDER);
 
 #if 0 // [AP] Dead code, auto sideloading isn't possible
             // [crispy] no trigger for auto-loaded Sigil E5
             case 5:
-                return (metamap /* gamemap */ == 8 && !critical->havesigil);
+                return (apmeta.gamemap == 8 && !critical->havesigil);
 
             // [crispy] no trigger for auto-loaded Sigil II E6
             case 6:
-                return (metamap /* gamemap */ == 8 && !critical->havesigil2);
+                return (apmeta.gamemap == 8 && !critical->havesigil2);
 #endif
 
             default:
-                return metamap /* gamemap */ == 8;
+                return apmeta.gamemap == 8;
 	}
     }
 }
@@ -1743,22 +1744,22 @@ boolean P_CheckMapTag666 (void)
             if (D_CheckMasterlevelKex())
             {
                 // kex materlevels.wad
-                return (metamap /* gamemap */ == 13
-                    || metamap /* gamemap */ == 19
-                    || metamap /* gamemap */ == 20);
+                return (apmeta.gamemap == 13
+                    || apmeta.gamemap == 19
+                    || apmeta.gamemap == 20);
             }
             else
             {
                 // psn/unity masterlevels.wad
-                return (metamap /* gamemap */ == 14
-                    || metamap /* gamemap */ == 15
-                    || metamap /* gamemap */ == 16);
+                return (apmeta.gamemap == 14
+                    || apmeta.gamemap == 15
+                    || apmeta.gamemap == 16);
             }
         }
         else
         {
             // other Doom2-based gamemissions
-            return (metamap /* gamemap */ == 7);
+            return (apmeta.gamemap == 7);
         }        
     }
     else
@@ -1843,7 +1844,7 @@ void A_BossDeath (mobj_t* mo)
     }
     else
     {
-	switch(metaepisode /* gameepisode */)
+	switch(apmeta.gameepisode)
 	{
 	  case 1:
 	    junk.tag = 666;
@@ -1852,7 +1853,7 @@ void A_BossDeath (mobj_t* mo)
 	    break;
 	    
 	  case 4:
-	    switch(metamap /* gamemap */)
+	    switch(apmeta.gamemap)
 	    {
 	      case 6:
 		junk.tag = 666;

@@ -47,6 +47,7 @@
 #include "p_extnodes.h" // [crispy] support extended node formats
 
 #include "apdoom.h"
+#include "ap_basic.h"
 
 void	P_SpawnMapThing (mapthing_t*	mthing, int index);
 
@@ -546,7 +547,7 @@ void P_LoadThings (int lump)
         // Forbid monsters that have map effects from moving, even when settings dictate otherwise.
         if (gamemode == commercial)
         {
-            if (metamap /* gamemap */ == 7) // Dead Simple mancubi and arachnotrons
+            if (apmeta.gamemap == 7) // Dead Simple mancubi and arachnotrons
             {
                 P_MTRando_ForbidItem(mobjinfo[MT_FATSO].doomednum);
                 P_MTRando_ForbidItem(mobjinfo[MT_BABY].doomednum);                
@@ -554,28 +555,28 @@ void P_LoadThings (int lump)
         }
         else
         {
-            switch (metaepisode /* gameepisode */)
+            switch (apmeta.gameepisode)
             {
             case 1:
-                if (metamap /* gamemap */ == 8) // Barons in Phobos Anomaly
+                if (apmeta.gamemap == 8) // Barons in Phobos Anomaly
                     P_MTRando_ForbidItem(mobjinfo[MT_BRUISER].doomednum);
                 break;
             case 2:
-                if (metamap /* gamemap */ == 8) // Cyberdemon in Tower of Babel
+                if (apmeta.gamemap == 8) // Cyberdemon in Tower of Babel
                     P_MTRando_ForbidItem(mobjinfo[MT_CYBORG].doomednum);
                 break;
             case 3:
-                if (metamap /* gamemap */ == 8) // Spider Mastermind in Dis
+                if (apmeta.gamemap == 8) // Spider Mastermind in Dis
                     P_MTRando_ForbidItem(mobjinfo[MT_SPIDER].doomednum);
                 break;
             case 4:
-                if (metamap /* gamemap */ == 6) // Cyberdemon in Against Thee Wickedly (opens exit door)
+                if (apmeta.gamemap == 6) // Cyberdemon in Against Thee Wickedly (opens exit door)
                     P_MTRando_ForbidItem(mobjinfo[MT_CYBORG].doomednum);
-                else if (metamap /* gamemap */ == 8) // Spider Mastermind in Unto the Cruel
+                else if (apmeta.gamemap == 8) // Spider Mastermind in Unto the Cruel
                     P_MTRando_ForbidItem(mobjinfo[MT_SPIDER].doomednum);
                 break;
             default:
-                if (metamap /* gamemap */ == 8) // Any Cyberdemon or Spider Mastermind in ExM8
+                if (apmeta.gamemap == 8) // Any Cyberdemon or Spider Mastermind in ExM8
                 {
                     P_MTRando_ForbidItem(mobjinfo[MT_CYBORG].doomednum);
                     P_MTRando_ForbidItem(mobjinfo[MT_SPIDER].doomednum);
@@ -1243,8 +1244,9 @@ P_SetupLevel
     mapformat_t	crispy_mapformat;
 
     // [AP] map metadata
-    metaepisode = gameepisode;
-    metamap = gamemap;
+    apmeta.gameepisode = gameepisode;
+    apmeta.gamemap = gamemap;
+    apmeta.secretexit = false;
     {
         ap_maptweak_t *tweak;
 

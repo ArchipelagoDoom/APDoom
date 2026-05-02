@@ -267,8 +267,9 @@ P_ChangeSwitchTexture
     int     i;
     int     sound;
     boolean playsound = false;
+    boolean isExit = (line->special == 11 || line->special == 51);
 	
-    if (!useAgain && line->special != 11) // [AP] Exit switch can be used again
+    if (!useAgain && !isExit) // [AP] Exit switch can be used again
 	line->special = 0;
 
     texTop = sides[line->sidenum[0]].toptexture;
@@ -278,7 +279,7 @@ P_ChangeSwitchTexture
     sound = sfx_swtchn;
 
     // EXIT SWITCH?
-    if (line->special == 11)                
+    if (isExit) // [AP] Applied to secret exit too
 	sound = sfx_swtchx;
 	
     for (i = 0;i < numswitches*2;i++)

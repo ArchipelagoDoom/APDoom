@@ -85,6 +85,7 @@
 
 #include "level_select.h" // [ap]
 #include "apdoom.h"
+#include "ap_basic.h"
 #include "p_inter.h"
 
 #define SAVEGAMESIZE	0x2c000
@@ -112,10 +113,6 @@ skill_t         gameskill;
 boolean		respawnmonsters;
 int             gameepisode; 
 int             gamemap; 
-
-// [AP] allow levels to behave as other levels
-int             metaepisode;
-int             metamap;
 
 // If non-zero, exit the level after this number of minutes.
 
@@ -2239,14 +2236,17 @@ void G_ExitLevel (void)
 // Here's for the german edition.
 void G_SecretExitLevel (void) 
 { 
+#if 0
     // IF NO WOLF3D LEVELS, NO SECRET EXIT!
     if ( (gamemode == commercial)
       && (W_CheckNumForName("map31")<0))
 	secretexit = false;
     else
+#endif
 	secretexit = true; 
     G_ClearSavename();
-    gameaction = ga_levelselect; // [AP] over ga_completed 
+    // [AP] by default, secret exit isn't allowed
+    gameaction = (apmeta.secretexit ? ga_completed : ga_levelselect);
 } 
 
 // [crispy] format time for level statistics

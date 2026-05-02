@@ -26,4 +26,16 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
 void APC_InitAssets(void);
 void APC_DumpEmbeddedFiles(void);
 
+// ----------------------------------------------------------------------------
+
+// "Meta" map tweaks we allow -- stored here so all games can have consistent sets of tweaks
+typedef struct {
+	int gameepisode; // Acting gameepisode, regardless of real gameepisode
+	int gamemap;     // As above but for gamemap
+
+	int secretexit;  // If true, secret exits function as regular exits
+} apmeta_t;
+
+extern apmeta_t apmeta;
+
 #endif //__AP_BASIC_H__

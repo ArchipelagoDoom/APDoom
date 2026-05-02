@@ -298,6 +298,7 @@ typedef enum
     HUB_TWEAKS = 0x00,
     TWEAK_HUB_X,
     TWEAK_HUB_Y,
+    TWEAK_HUB_ANGLE,
 
     MAPTHING_TWEAKS = 0x10,
     TWEAK_MAPTHING_X,
@@ -330,6 +331,7 @@ typedef enum
 
     META_TWEAKS = 0xA0,
     TWEAK_META_BEHAVES_AS,
+    TWEAK_META_SECRET_EXIT,
 
     TWEAK_TYPE_MASK = 0xF0,
 } allowed_tweaks_t;

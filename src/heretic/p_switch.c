@@ -234,8 +234,9 @@ void P_ChangeSwitchTexture(line_t * line, int useAgain)
     int texBot;
     int i;
     int sound;
+    boolean isExit = (line->special == 11 || line->special == 51);
 
-    if (!useAgain && line->special != 11) // [AP] Exit switch can be used again
+    if (!useAgain && !isExit) // [AP] Exit switch can be used again
         line->special = 0;
 
     texTop = sides[line->sidenum[0]].toptexture;

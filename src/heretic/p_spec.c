@@ -780,7 +780,7 @@ void P_CrossSpecialLine(int linenum, int side, mobj_t * thing)
             break;
         case 105:              // Trigger_SecretExit
             G_SecretExitLevel();
-            line->special = 0;
+            //line->special = 0; // [AP] Don't turn the line off!
             break;
 
             //====================================================

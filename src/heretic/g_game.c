@@ -42,6 +42,7 @@
 #include "level_select.h" // [ap]
 #include "apdoom.h"
 #include "ap_msg.h"
+#include "ap_basic.h"
 
 
 // Macros
@@ -2197,7 +2198,8 @@ void G_SecretExitLevel(void)
             P_UndoPlayerChicken(&players[i], true);
 
     secretexit = true;
-    gameaction = ga_levelselect; // [AP] over ga_completed
+    // [AP] by default, secret exit isn't allowed
+    gameaction = (apmeta.secretexit ? ga_completed : ga_levelselect);
 }
 
 // [crispy] format time for level statistics

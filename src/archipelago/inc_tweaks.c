@@ -43,8 +43,9 @@ static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
     if (ap_force_disable_behaviors) return;
     switch (tweak->type)
     {
-        case TWEAK_HUB_X: hub->x = tweak->value; break;
-        case TWEAK_HUB_Y: hub->y = tweak->value; break;
+        case TWEAK_HUB_X:     hub->x = tweak->value;     break;
+        case TWEAK_HUB_Y:     hub->y = tweak->value;     break;
+        case TWEAK_HUB_ANGLE: hub->angle = tweak->value; break;
         default: break;
     }
     printf("P_TweakHub: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
@@ -78,7 +79,6 @@ static void P_TweakSidedef(mapsidedef_t *sidedef, ap_maptweak_t *tweak)
     printf("P_TweakSidedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
-#ifdef AP_INC_DOOM // TODO: metaepisode/metamap are only handled in Doom right now.
 static void P_TweakMeta(ap_maptweak_t *tweak)
 {
     if (ap_force_disable_behaviors) return;
@@ -88,21 +88,26 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
             // Let any arbitrary map have normally hardcoded hacks applied to it
             if (strncmp(tweak->string, "MAP", 3) == 0)
             {
-                metaepisode = 1;
-                metamap = atoi(&tweak->string[3]);
+                apmeta.gameepisode = 1;
+                apmeta.gamemap = atoi(&tweak->string[3]);
             }
             else if (tweak->string[0] == 'E'
                 && tweak->string[1] >= '1' && tweak->string[1] <= '9'
                 && tweak->string[2] == 'M')
             {
-                metaepisode = (tweak->string[1] - '0');
-                metamap = atoi(&tweak->string[3]);
+                apmeta.gameepisode = (tweak->string[1] - '0');
+                apmeta.gamemap = atoi(&tweak->string[3]);
             }
             else if (strncmp(tweak->string, "NORMAL", 6) == 0)
             { // Ignore normally present hacks
-                metaepisode = 1;
-                metamap = 1;
+                apmeta.gameepisode = 1;
+                apmeta.gamemap = 1;
             }
+            break;
+
+        case TWEAK_META_SECRET_EXIT:
+            // Allow secret exit to behave as a normal exit for this map
+            apmeta.secretexit = !!tweak->value;
             break;
 
         default:
@@ -110,4 +115,3 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
     }
     printf("P_TweakMeta: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
-#endif

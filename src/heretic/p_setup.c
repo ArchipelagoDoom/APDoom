@@ -30,6 +30,7 @@
 #include "p_extnodes.h"
 
 #include "apdoom.h"
+#include "ap_basic.h"
 
 void P_SpawnMapThing(mapthing_t * mthing, int index);
 
@@ -430,20 +431,20 @@ void P_LoadThings(int lump)
         P_MTRando_Setup(&monster_rando, ap_state.random_monsters);
 
         // Forbid monsters that have map effects from moving, even when settings dictate otherwise.
-        switch (gameepisode)
+        switch (apmeta.gameepisode)
         {
         case 1:
         case 4:
-            if (gamemap == 8)
+            if (apmeta.gamemap == 8)
                 P_MTRando_ForbidItem(mobjinfo[MT_HEAD].doomednum);
             break;
         case 2:
         case 5:
-            if (gamemap == 8)
+            if (apmeta.gamemap == 8)
                 P_MTRando_ForbidItem(mobjinfo[MT_MINOTAUR].doomednum);
             break;
         case 3:
-            if (gamemap == 8)
+            if (apmeta.gamemap == 8)
             {
                 // Handle both forms of D'Sparil in the extremely unlikely event
                 // of a HEHACKED mod spawning him without his serpent.
@@ -969,6 +970,18 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     mobj_t *mobj;
     boolean crispy_validblockmap;
     mapformat_t crispy_mapformat;
+
+    // [AP] map metadata
+    apmeta.gameepisode = gameepisode;
+    apmeta.gamemap = gamemap;
+    apmeta.secretexit = false;
+    {
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), META_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakMeta(tweak);
+    }
 
     totalkills = totalitems = totalsecret = 0;
     for (i = 0; i < MAXPLAYERS; i++)
