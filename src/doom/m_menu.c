@@ -259,7 +259,6 @@ static void M_ReadSaveStrings(void);
 //static void M_QuickLoad(void);
 
 static void M_DrawMainMenu(void);
-static void M_InGameMenuDraw(void);
 static void M_DrawReadThis1(void);
 static void M_DrawReadThis2(void);
 static void M_DrawNewGame(void);
@@ -354,7 +353,7 @@ menu_t  InGameMenuDef =
     ingamemenu_end,
     NULL,
     InGameMenu,
-    M_InGameMenuDraw,
+    M_DrawMainMenu,
     97,64,
     0
 };
@@ -1345,7 +1344,7 @@ void M_MusicVol(int choice)
 }
 
 
-void draw_apdoom_version(void)
+void M_DrawAPDOOMVersion(void)
 {
     patch_t *patch;
     int x = HU_MSGX;
@@ -1376,33 +1375,13 @@ void M_DrawMainMenu(void)
     // [crispy] force status bar refresh
     inhelpscreens = true;
 
-    if (gamemode == commercial)
-        V_DrawPatchDirect(94, 2,
-                          W_CacheLumpName(DEH_String("M_DOOM2"), PU_CACHE));
-    else
-        V_DrawPatchDirect(94, 2,
-                          W_CacheLumpName(DEH_String("M_DOOM"), PU_CACHE));
+    V_DrawPatchDirect(94, 2,
+                      W_CacheLumpName(DEH_String("M_DOOM"), PU_CACHE));
 
-    draw_apdoom_version();
-}
-
-
-//
-// M_InGameMenuDraw
-//
-void M_InGameMenuDraw(void)
-{
-    // [crispy] force status bar refresh
-    inhelpscreens = true;
-
-    if (gamemode == commercial)
-        V_DrawPatchDirect(94, 2,
-                          W_CacheLumpName(DEH_String("M_DOOM2"), PU_CACHE));
-    else
-        V_DrawPatchDirect(94, 2,
-                          W_CacheLumpName(DEH_String("M_DOOM"), PU_CACHE));
-
-    draw_apdoom_version();
+    // [AP] Draw AP logo text and game version
+    V_DrawPatchDirect(94, 2,
+                      W_CacheLumpName(DEH_String("M_APTEXT"), PU_CACHE));
+    M_DrawAPDOOMVersion();
 }
 
 

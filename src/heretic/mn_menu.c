@@ -168,7 +168,6 @@ static boolean CrispyAPAutomapIcons(int option);
 static boolean CrispyAPLevelSelectMusic(int option);
 static boolean CrispyNextPage(int option);
 static boolean CrispyPrevPage(int option);
-static void DrawInGameMenu(void);
 static void DrawMainMenu(void);
 static void DrawEpisodeMenu(void);
 static void DrawSkillMenu(void);
@@ -266,7 +265,7 @@ static MenuItem_t InGameItems[] = {
 
 static Menu_t InGameMenu = {
     110, 56,
-    DrawInGameMenu,
+    DrawMainMenu,
     5, InGameItems,
     0,
     MENU_NONE
@@ -1152,30 +1151,11 @@ void MN_Drawer(void)
 //
 //---------------------------------------------------------------------------
 
-void draw_apdoom_version(void)
+static void M_DrawAPDOOMVersion(void)
 {
     const char* version_text = APDOOM_VERSION_FULL_TEXT;
     MN_DrTextA(version_text, 0, 200 - 9);
 }
-
-static void DrawInGameMenu(void)
-{
-    int frame;
-
-    frame = (MenuTime / 3) % 18;
-    V_DrawPatch(88, 0, W_CacheLumpName(DEH_String("M_HTIC"), PU_CACHE));
-    V_DrawPatch(40, 10, W_CacheLumpNum(SkullBaseLump + (17 - frame),
-                                       PU_CACHE));
-    V_DrawPatch(232, 10, W_CacheLumpNum(SkullBaseLump + frame, PU_CACHE));
-
-    draw_apdoom_version();
-}
-
-//---------------------------------------------------------------------------
-//
-// PROC DrawMainMenu
-//
-//---------------------------------------------------------------------------
 
 static void DrawMainMenu(void)
 {
@@ -1187,7 +1167,9 @@ static void DrawMainMenu(void)
                                        PU_CACHE));
     V_DrawPatch(232, 10, W_CacheLumpNum(SkullBaseLump + frame, PU_CACHE));
 
-    draw_apdoom_version();
+    // [AP] Draw AP logo text and game version
+    V_DrawPatch(88, 0, W_CacheLumpName(DEH_String("M_APTEXT"), PU_CACHE));
+    M_DrawAPDOOMVersion();
 }
 
 //---------------------------------------------------------------------------
