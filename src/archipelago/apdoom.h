@@ -308,6 +308,8 @@ typedef enum
     TWEAK_MAPTHING_FLAGS,
     TWEAK_MAPTHING_FLYING_ONLY,
     TWEAK_MAPTHING_DONT_RANDOMIZE,
+    TWEAK_MAPTHING_VOODOO_NOITEMS,
+    TWEAK_MAPTHING_VOODOO_NODAMAGE,
 
     SECTOR_TWEAKS = 0x20,
     TWEAK_SECTOR_SPECIAL,
@@ -345,10 +347,12 @@ typedef struct
 } ap_maptweak_t;
 
 // AP specific mapthing flags:
-#define APMTF_MASK           0xF000 // Reserve the top 4 bits for AP specific thing tweaks
+#define APMTF_MASK            0xF000 // Reserve the top 4 bits for AP specific thing tweaks
 
-#define APMTF_FLYING_ONLY    0x1000 // Enemy rando must place a flying enemy here
-#define APMTF_DONT_RANDOMIZE 0x8000 // No matter what this thing is, it must spawn vanilla
+#define APMTF_VOODOO_NOITEMS  0x1000 // Voodoo doll with this flag can't pick up items
+#define APMTF_VOODOO_NODAMAGE 0x2000 // Voodoo doll with this flag can't transfer damage to player
+#define APMTF_FLYING_ONLY     0x1000 // Enemy rando must place a flying enemy here
+#define APMTF_DONT_RANDOMIZE  0x8000 // No matter what this thing is, it must spawn vanilla
 
 // ============================================================================
 

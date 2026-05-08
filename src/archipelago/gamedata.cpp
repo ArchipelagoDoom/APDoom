@@ -369,8 +369,10 @@ static void parse_things_tweak_block(const Json::Value& json, std::vector<ap_map
 		insert_new_tweak(tweak_list, TWEAK_MAPTHING_ANGLE, target, json[key_target]["angle"]);
 		insert_new_tweak(tweak_list, TWEAK_MAPTHING_FLAGS, target, json[key_target]["flags"]);
 
-		insert_new_tweak(tweak_list, TWEAK_MAPTHING_FLYING_ONLY,    target, json[key_target]["flying_enemies_only"]);
-		insert_new_tweak(tweak_list, TWEAK_MAPTHING_DONT_RANDOMIZE, target, json[key_target]["dont_randomize"]);
+		insert_new_tweak(tweak_list, TWEAK_MAPTHING_VOODOO_NOITEMS,  target, json[key_target]["voodoo_ignore_items"]);
+		insert_new_tweak(tweak_list, TWEAK_MAPTHING_VOODOO_NODAMAGE, target, json[key_target]["voodoo_ignore_damage"]);
+		insert_new_tweak(tweak_list, TWEAK_MAPTHING_FLYING_ONLY,     target, json[key_target]["flying_enemies_only"]);
+		insert_new_tweak(tweak_list, TWEAK_MAPTHING_DONT_RANDOMIZE,  target, json[key_target]["dont_randomize"]);
 	}
 }
 

@@ -400,6 +400,8 @@ P_TouchSpecialThing
     // [AP] transfer voodoo doll special touch to real player
     if (toucher->type == MT_FAKEPLAYER)
     {
+      if (toucher->spawnpoint.options & APMTF_VOODOO_NOITEMS)
+        return; // This voodoo doll is used for things like level movement/scripts!
       if (special->sprite == SPR_LVST)
         return; // Voodoo dolls can't exit to hub
       if (!player->mo || player->mo->health <= 0)
@@ -1112,6 +1114,8 @@ P_DamageMobj
     // [AP] transfer voodoo doll damage to real player
     if (player && target->type == MT_FAKEPLAYER)
     {
+      if (target->spawnpoint.options & APMTF_VOODOO_NODAMAGE)
+        return; // This voodoo doll is used for things like level movement/scripts!
       if (!player->mo || player->mo->health <= 0)
         return; // Actual player is dead, don't kill them further
       target = player->mo;

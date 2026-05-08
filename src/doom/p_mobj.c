@@ -36,6 +36,7 @@
 #include "g_game.h" // [crispy] demo_gotonextlvl
 
 #include "doomstat.h"
+#include "apdoom.h"
 
 
 void G_PlayerReborn (int player);
@@ -923,6 +924,9 @@ void P_SpawnPlayer (mapthing_t* mthing)
     mobj->angle	= ANG45 * (mthing->angle/45);
     mobj->player = p;
     mobj->health = p->health;
+
+    // [AP] keep track of voodoo flags in spawnpoint
+    mobj->spawnpoint.options = (mthing->options & APMTF_MASK);
 
     p->mo = mobj;
     p->playerstate = PST_LIVE;	

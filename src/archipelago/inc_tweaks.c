@@ -31,8 +31,10 @@ static void P_TweakMapThing(mapthing_t *mapthing, ap_maptweak_t *tweak)
         case TWEAK_MAPTHING_ANGLE: mapthing->angle = tweak->value;   break;
         case TWEAK_MAPTHING_FLAGS: mapthing->options = tweak->value; break;
 
-        case TWEAK_MAPTHING_FLYING_ONLY:    mapthing->options |= (   APMTF_FLYING_ONLY * (!!tweak->value)); break;
-        case TWEAK_MAPTHING_DONT_RANDOMIZE: mapthing->options |= (APMTF_DONT_RANDOMIZE * (!!tweak->value)); break;
+        case TWEAK_MAPTHING_VOODOO_NOITEMS:  mapthing->options |= ( APMTF_VOODOO_NOITEMS * (!!tweak->value)); break;
+        case TWEAK_MAPTHING_VOODOO_NODAMAGE: mapthing->options |= (APMTF_VOODOO_NODAMAGE * (!!tweak->value)); break;
+        case TWEAK_MAPTHING_FLYING_ONLY:     mapthing->options |= (    APMTF_FLYING_ONLY * (!!tweak->value)); break;
+        case TWEAK_MAPTHING_DONT_RANDOMIZE:  mapthing->options |= ( APMTF_DONT_RANDOMIZE * (!!tweak->value)); break;
         default: break;
     }
     printf("P_TweakMapThing: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
