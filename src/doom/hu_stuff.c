@@ -459,7 +459,7 @@ void HU_Init(void)
 	hu_font[i] = (patch_t *) W_CacheLumpName(buffer, PU_STATIC);
     }
 
-    if (gameversion == exe_chex)
+    if (crispy->ischex /* gameversion == exe_chex */)
     {
 	cr_stat = crstr[CR_GREEN];
 	cr_stat2 = crstr[CR_GOLD];

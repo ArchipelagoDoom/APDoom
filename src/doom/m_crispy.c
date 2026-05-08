@@ -223,7 +223,7 @@ void M_CrispyToggleColoredblood(int choice)
 {
     thinker_t *th;
 
-    if (gameversion == exe_chex)
+    if (crispy->ischex /* gameversion == exe_chex */)
     {
 	return;
     }
@@ -344,7 +344,7 @@ void M_CrispyToggleExtAutomap(int choice)
 
 void M_CrispyToggleFlipcorpses(int choice)
 {
-    if (gameversion == exe_chex)
+    if (crispy->ischex /* gameversion == exe_chex */)
     {
 	return;
     }

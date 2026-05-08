@@ -121,6 +121,9 @@ typedef struct
 	char *havesigil;
 	char *havesigil2;
 
+	// [AP] Handle CQ3VE
+	boolean ischex;
+
 	const char *sdlversion;
 	const char *platform;
 

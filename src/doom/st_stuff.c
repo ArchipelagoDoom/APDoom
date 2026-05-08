@@ -913,8 +913,8 @@ ST_Responder (event_t* ev)
                cht_CheckCheatSP(&cheat_massacre3, ev->data2))
       {
 	int killcount = ST_cheat_massacre();
-	const char *const monster = (gameversion == exe_chex) ? "Flemoid" : "Monster";
-	const char *const killed = (gameversion == exe_chex) ? "returned" : "killed";
+	const char *const monster = (crispy->ischex /* gameversion == exe_chex */) ? "Flemoid" : "Monster";
+	const char *const killed = (crispy->ischex /* gameversion == exe_chex */) ? "returned" : "killed";
 
 	M_snprintf(msg, sizeof(msg), "%s%d %s%s%s %s",
 	           crstr[CR_GOLD],
@@ -1766,7 +1766,7 @@ static void ST_doPaletteStuff(void)
     // as though the player is being covered in goo by an
     // attacking flemoid.
 
-    if (gameversion == exe_chex
+    if (crispy->ischex /* gameversion == exe_chex */
      && palette >= STARTREDPALS && palette < STARTREDPALS + NUMREDPALS)
     {
         palette = RADIATIONPAL;

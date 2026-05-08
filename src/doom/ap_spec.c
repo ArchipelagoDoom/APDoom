@@ -211,6 +211,8 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
             sound = sfx_wpnup;  
             break;
         case 82:
+            if (!crispy->havessg)
+                break; // SSG isn't available to give
             P_GiveWeapon(player, wp_supershotgun, false);
             player->message = DEH_String(GOTSHOTGUN2);
             sound = sfx_wpnup;  

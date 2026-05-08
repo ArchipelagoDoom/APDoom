@@ -250,7 +250,7 @@ int ap_preload_defs_for_game(const char *game_name)
 		std::string iwad_name = std::string(ap_world_info->iwad);
 		if (iwad_name == "HERETIC.WAD")
 			ap_base_game = ap_game_t::heretic;
-		else if (iwad_name == "DOOM.WAD" || iwad_name == "CHEX.WAD")
+		else if (iwad_name == "DOOM.WAD" || iwad_name == "CHEX.WAD" || iwad_name == "chex3v.wad")
 			ap_base_game = ap_game_t::doom;
 		else // All others are Doom 2 based, I think?
 			ap_base_game = ap_game_t::doom2;
@@ -397,18 +397,18 @@ static int get_original_music_for_level(ap_level_index_t& idx)
 		case ap_game_t::doom:
 		{
 			// Correcting Episode 4's music is no longer needed
-			return 1 + (idx.ep) * 9 + (idx.map);
+			return 1 + (ap_index_to_ep(idx)-1) * 9 + (ap_index_to_map(idx)-1);
 		}
 		case ap_game_t::doom2:
 		{
-			int d2map = ap_index_to_map(idx);
+			const int d2map = ap_index_to_map(idx);
 			// Hack for NRFTL, should really give this a proper fix at some point
 			if (d2map > 40) return 97 + (d2map - 40) - 1;
 			return 62 + d2map - 1;
 		}
 		case ap_game_t::heretic:
 		{
-			return (idx.ep) * 9 + (idx.map);
+			return (ap_index_to_ep(idx)-1) * 9 + (ap_index_to_map(idx)-1);
 		}
 	}
 
@@ -1256,7 +1256,6 @@ void f_itemclr()
 
 
 static const std::map<int, int> doom_keys_map = {{5, 0}, {40, 0}, {6, 1}, {39, 1}, {13, 2}, {38, 2}};
-static const std::map<int, int> doom2_keys_map = {{5, 0}, {40, 0}, {6, 1}, {39, 1}, {13, 2}, {38, 2}};
 static const std::map<int, int> heretic_keys_map = {{80, 0}, {73, 1}, {79, 2}};
 
 
@@ -1266,7 +1265,7 @@ const std::map<int, int>& get_keys_map()
 	{
 		default: // Indeterminate state? Default to Doom 1
 		case ap_game_t::doom: return doom_keys_map;
-		case ap_game_t::doom2: return doom2_keys_map;
+		case ap_game_t::doom2: return doom_keys_map;
 		case ap_game_t::heretic: return heretic_keys_map;
 	}
 }
@@ -1284,8 +1283,8 @@ int get_map_doom_type()
 }
 
 
-static const std::map<int, int> doom_weapons_map = {{2001, 2}, {2002, 3}, {2003, 4}, {2004, 5}, {2006, 6}, {2005, 7}};
-static const std::map<int, int> doom2_weapons_map = {{2001, 2}, {2002, 3}, {2003, 4}, {2004, 5}, {2006, 6}, {2005, 7}, {82, 8}};
+// Crispy Doom can handle the SSG in Doom 1 if the sprites exist for it, so allow it.
+static const std::map<int, int> doom_weapons_map = {{2001, 2}, {2002, 3}, {2003, 4}, {2004, 5}, {2006, 6}, {2005, 7}, {82, 8}};
 static const std::map<int, int> heretic_weapons_map = {{2005, 7}, {2001, 2}, {53, 3}, {2003, 5}, {2002, 6}, {2004, 4}};
 
 
@@ -1295,7 +1294,7 @@ const std::map<int, int>& get_weapons_map()
 	{
 		default: // Indeterminate state? Default to Doom 1
 		case ap_game_t::doom: return doom_weapons_map;
-		case ap_game_t::doom2: return doom2_weapons_map;
+		case ap_game_t::doom2: return doom_weapons_map;
 		case ap_game_t::heretic: return heretic_weapons_map;
 	}
 }

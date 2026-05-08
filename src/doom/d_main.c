@@ -2222,6 +2222,12 @@ void D_DoomMain (void)
         DEH_AddStringReplacement(PHUSTR_1, "level 33: betray");
     }
 
+    // [AP] check for Chex Quest, either original or CQ3VE
+    crispy->ischex = (gameversion == exe_chex) || (
+                     (gameversion == exe_ultimate) &&
+                     (W_CheckNumForName("cq1title") != -1) &&
+                     (W_CheckNumForName("cq2title") != -1));
+
     printf ("NET_Init: Init network subsystem.\n");
     NET_Init ();
 

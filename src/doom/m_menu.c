@@ -1688,8 +1688,8 @@ static void M_DrawCrispness1(void)
     M_DrawCrispnessMultiItem(crispness_translucency, "Enable Translucency", multiitem_translucency, crispy->translucency, true);
     M_DrawCrispnessItem(crispness_smoothlight, "Smooth Diminishing Lighting", crispy->smoothlight, true);
     M_DrawCrispnessMultiItem(crispness_brightmaps, "Apply Brightmaps to", multiitem_brightmaps, crispy->brightmaps, true);
-    M_DrawCrispnessMultiItem(crispness_coloredblood, "Colored Blood", multiitem_coloredblood, crispy->coloredblood, gameversion != exe_chex);
-    M_DrawCrispnessItem(crispness_flipcorpses, "Randomly Mirrored Corpses", crispy->flipcorpses, gameversion != exe_chex);
+    M_DrawCrispnessMultiItem(crispness_coloredblood, "Colored Blood", multiitem_coloredblood, crispy->coloredblood, !crispy->ischex /* gameversion != exe_chex */);
+    M_DrawCrispnessItem(crispness_flipcorpses, "Randomly Mirrored Corpses", crispy->flipcorpses, !crispy->ischex /* gameversion != exe_chex */);
 
     M_DrawCrispnessGoto(crispness1_next, "Next Page >");
     M_DrawCrispnessGoto(crispness1_prev, "< Last Page");
@@ -1808,11 +1808,11 @@ void M_KillResponse(int key)
 void M_Kill(int choice)
 {
     if (ap_state.ep == 0 && ap_state.map == 0)
-        M_StartMessage("you aren't in a level!\n\n" PRESSKEY, NULL, false);
+        M_StartMessage(DEH_String("you aren't in a level!\n\n" PRESSKEY), NULL, false);
     else if (!(players[consoleplayer].mo && players[consoleplayer].playerstate == PST_LIVE && !paused))
-        M_StartMessage("you can't reset the level right now.\n\n" PRESSKEY, NULL, false);
+        M_StartMessage(DEH_String("you can't reset the level right now.\n\n" PRESSKEY), NULL, false);
     else
-        M_StartMessage("are you sure you want to die and\nreset the level?\n\n" PRESSYN, M_KillResponse, true);
+        M_StartMessage(DEH_String("are you sure you want to die and\nreset the level?\n\n" PRESSYN), M_KillResponse, true);
 }
 
 // [crispy] correctly handle inverted y-axis

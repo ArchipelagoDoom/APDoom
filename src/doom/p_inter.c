@@ -902,7 +902,7 @@ P_KillMobj_Real // So we can specify death by death link
 
     // In Chex Quest, monsters don't drop items.
 
-    if (gameversion == exe_chex)
+    if (crispy->ischex /* gameversion == exe_chex */)
     {
         return;
     }
