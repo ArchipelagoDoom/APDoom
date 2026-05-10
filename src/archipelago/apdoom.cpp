@@ -2000,6 +2000,7 @@ void f_deathlink(std::string source, std::string cause)
 void APDOOM_ObitTags_Clear(void)
 {
 	upcoming_obit_tags.clear();
+	upcoming_obit_tags.insert("GENERIC");
 }
 
 void APDOOM_ObitTags_Add(const char *fmt, ...)
@@ -2027,9 +2028,9 @@ const char *APDOOM_SendDeath()
 			return NULL;
 	}
 
-	int best_score = 0;
-	int cur_score = 0;
-	deathlink_sent_msg = "%YOU% died.";
+	int best_score = -1;
+	int cur_score = -1;
+	deathlink_sent_msg = "%YOU% died."; // Default "GENERIC" text
 
 	for (obituary_t& obit : obituary_list)
 	{
@@ -2047,6 +2048,7 @@ const char *APDOOM_SendDeath()
 		printf("No obituaries matched the following tags: ");
 		for (const std::string &tag : upcoming_obit_tags)
 		{
+			if (tag == "GENERIC") continue;
 			printf("%s%s", (first ? "" : ", "), tag.c_str());
 			first = false;
 		}

@@ -990,6 +990,10 @@ P_MakeObituaryTags
 			{
 				APDOOM_ObitTags_Add("CRUSHER");
 			}
+			else
+			{
+				APDOOM_ObitTags_Add("ENVIRONMENT");
+			}
 		}
 		return;
 	}

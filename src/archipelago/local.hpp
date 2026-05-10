@@ -81,6 +81,8 @@ class obituary_t
     // Used to bias certain tag matches over others.
     static int bias_score(const std::string &new_tag)
     {
+        if (new_tag == "GENERIC")
+            return 0;
         if (new_tag == "TELEFRAG")
             return 10000;
         if (new_tag == "SPLASH")
