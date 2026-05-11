@@ -231,6 +231,10 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
             break;
 
         // Junk
+        case 81: // Crystal Vial
+            P_GiveBody(player, 10);
+            P_SetMessage(player, DEH_String(TXT_ITEMHEALTH), false);
+            break;
         case 12: // Crystal Geode
             P_GiveAmmo(player, am_goldwand, AMMO_GWND_HEFTY);
             P_SetMessage(player, DEH_String(TXT_AMMOGOLDWAND2), false);
@@ -336,6 +340,8 @@ boolean APC_CanGiveItem(int doom_type)
             return (count_player_artifacts(player, arti_torch) < 16);
 
         // Junk
+        case 81: // Crystal Vial
+            return (player->health < MAXHEALTH);
         case 12: // Crystal Geode
             return (player->ammo[am_goldwand] < player->maxammo[am_goldwand]);
         case 55: // Energy Orb
@@ -398,6 +404,8 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
             return AP_ENERGYLINK_COST(120);
 
         // Junk
+        case 81: // Crystal Vial
+            return AP_ENERGYLINK_COST(10);
         case 12: // Crystal Geode
         case 55: // Energy Orb
         case 21: // Greater Runes

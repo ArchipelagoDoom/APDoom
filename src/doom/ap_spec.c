@@ -116,6 +116,7 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
         return false;
     }
 
+    int clip_size = 5;
     switch (doom_type)
     {
         // Level specifics
@@ -266,6 +267,10 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
             break;
 
         // Junk
+        case 2011: // Stimpack
+            P_GiveBody(player, 10);
+            player->message = DEH_String(GOTSTIM);
+            break;
         case 2012: // Medikit
             P_GiveBody(player, 25);
             // [crispy] show "Picked up a Medikit that you really need" message as intended
@@ -274,20 +279,47 @@ int APC_OnGiveItem(int doom_type, int ep, int map)
             else
                 player->message = DEH_String(GOTMEDIKIT);
             break;
+
+        case 2014: // Health bonus
+            if (++player->health > deh_max_health)
+                player->health = deh_max_health;
+            player->mo->health = player->health;
+            player->message = DEH_String(GOTHTHBONUS);
+            break;
+
+        case 2015: // Armor bonus
+            if (++player->armorpoints > deh_max_armor)
+                player->armorpoints = deh_max_armor;
+            if (!player->armortype)
+                player->armortype = 1;
+            player->message = DEH_String(GOTARMBONUS);
+            break;
+
+        case 2007: // Clip
+            clip_size = 1; // fall through
         case 2048: // Box of bullets
-            P_GiveAmmo(player, am_clip, 5, false);
+            P_GiveAmmo(player, am_clip, clip_size, false);
             player->message = DEH_String(GOTCLIPBOX);
             break;
+
+        case 2010: // Rocket
+            clip_size = 1; // fall through
         case 2046: // Box of rockets
-            P_GiveAmmo(player, am_misl, 5, false);
+            P_GiveAmmo(player, am_misl, clip_size, false);
             player->message = DEH_String(GOTROCKBOX);
             break;
+
+        case 2008: // 4 Shotgun Shells
+            clip_size = 1; // fall through
         case 2049: // Box of shotgun shells
-            P_GiveAmmo (player, am_shell,5,false);
+            P_GiveAmmo (player, am_shell, clip_size,false);
             player->message = DEH_String(GOTSHELLBOX);
             break;
+
+        case 2047: // Energy cell
+            clip_size = 1; // fall through
         case 17: // Energy cell pack
-            P_GiveAmmo (player, am_cell,5,false);
+            P_GiveAmmo (player, am_cell, clip_size,false);
             player->message = DEH_String(GOTCELLBOX);
             break;
 
@@ -354,14 +386,23 @@ boolean APC_CanGiveItem(int doom_type)
             return (player->health < deh_megasphere_health || player->armorpoints < 2 * 100);
 
         // Ammo / Other Junk
+        case 2011: // Stimpack
         case 2012: // Medikit
             return (player->health < MAXHEALTH);
+        case 2014: // Health bonus
+            return (player->health < deh_max_health);
+        case 2015: // Armor bonus
+            return (player->armorpoints < deh_max_armor);
+        case 2007: // Clip
         case 2048: // Box of bullets
             return (player->ammo[am_clip] < player->maxammo[am_clip]);
+        case 2010: // Rocket
         case 2046: // Box of rockets
             return (player->ammo[am_misl] < player->maxammo[am_misl]);
+        case 2008: // 4 Shotgun Shells
         case 2049: // Box of shotgun shells
             return (player->ammo[am_shell] < player->maxammo[am_shell]);
+        case 2047: // Energy cell
         case 17: // Energy cell pack
             return (player->ammo[am_cell] < player->maxammo[am_cell]);
         case 65000: // Shop ammo refill
@@ -404,8 +445,18 @@ int64_t APC_EnergyLinkItemCost(int doom_type)
             return AP_ENERGYLINK_COST(100 + deh_megasphere_health);
 
         // Ammo / Other Junk
+        case 2011: // Stimpack
+            return AP_ENERGYLINK_COST(10);
         case 2012: // Medikit
             return AP_ENERGYLINK_COST(25);
+        case 2014: // Health bonus
+        case 2015: // Armor bonus
+            return AP_ENERGYLINK_COST(1);
+        case 2007: // Clip
+        case 2010: // Rocket
+        case 2008: // 4 Shotgun Shells
+        case 2047: // Energy cell
+            return AP_ENERGYLINK_COST(2);
         case 2048: // Box of bullets
         case 2046: // Box of rockets
         case 2049: // Box of shotgun shells
