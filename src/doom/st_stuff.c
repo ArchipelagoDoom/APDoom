@@ -2516,11 +2516,8 @@ void ST_DrawDemoTimer (const int time)
 //--------------------------------------------------------------------------
 // [AP] used for level select, to avoid re-tagging static graphics (causing later memory issues)
 
-void ST_DrawKey(int x, int y, int which, boolean is_skull)
+void ST_DrawKey(int x, int y, int which)
 {
-	if (is_skull)
-		which += 3;
-
     V_DrawPatch(x + 2, y + 1, keys[which]);
 }
 

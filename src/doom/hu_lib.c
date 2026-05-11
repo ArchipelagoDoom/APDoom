@@ -210,6 +210,9 @@ void HUlib_drawText(const char* text, int x, int y)
 
 	int og_x = x;
 
+	// [AP] AP messages are always colored
+    const int can_color = hu_forced_color || (crispy->coloredhud & COLOREDHUD_TEXT);
+
     // draw the new stuff
     for (i=0;i<len;i++)
     {
@@ -220,7 +223,7 @@ void HUlib_drawText(const char* text, int x, int y)
 		if (text[i+1] >= '0' && text[i+1] <= '0' + CRMAX - 1)
 		{
 		    i++;
-		    dp_translation = (crispy->coloredhud & COLOREDHUD_TEXT) ? cr[(int) (text[i] - '0')] : NULL;
+		    dp_translation = (can_color) ? cr[(int) (text[i] - '0')] : NULL;
 		}
 	}
 	else

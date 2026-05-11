@@ -49,7 +49,7 @@ int urh_anim = 0;
 int activating_level_select_anim = 200;
 
 // These key graphics are added for APDoom, so we don't need to work around PU_CACHE
-const char* KEY_LUMP_NAMES[] = {"SELKEYY", "SELKEYG", "SELKEYB"};
+const char* KEY_LUMP_NAMES[] = {"LSKEY0", "LSKEY1", "LSKEY2"};
 
 
 void play_level(int ep, int lvl)
@@ -119,8 +119,7 @@ void select_map_dir(int dir)
     int bottom_most_idx = -1;
     float best_score = 0.0f;
     
-    int map_count = ap_get_map_count(selected_ep + 1);
-    for (int i = 0; i < map_count; ++i)
+    for (int i = 0; i < screen_defs->num_map_info; ++i)
     {
         if (screen_defs->map_info[i].y < top_most)
         {
@@ -328,12 +327,31 @@ void TickLevelSelect()
 }
 
 
+int DrawLSPatch(const ap_levelselect_patch_t *lspatch, int x, int y)
+{
+    patch_t* patch = W_CacheLumpName(lspatch->graphic, PU_CACHE);
+    V_DrawPatch(x + lspatch->x, y + lspatch->y, patch);
+    return patch->width; // Save width if needed
+}
+
+
+int DrawLSText(const ap_levelselect_text_t *lstext, int x, int y)
+{
+    if (lstext->size == 1)
+    {
+        MN_DrTextB(lstext->text, x + lstext->x, y + lstext->y);
+        return MN_TextBWidth(lstext->text); // Save width if needed
+    }
+    MN_DrTextA(lstext->text, x + lstext->x, y + lstext->y);
+    return MN_TextAWidth(lstext->text); // Save width if needed
+}
+
+
 void DrawEpisodicLevelSelectStats()
 {
     const ap_levelselect_t* screen_defs = LS_CurrentEpisodeInfo();
-    const int map_count = ap_get_map_count(selected_ep + 1);
 
-    for (int i = 0; i < map_count; ++i)
+    for (int i = 0; i < screen_defs->num_map_info; ++i)
     {
         ap_level_index_t idx = {selected_ep, i};
         ap_level_info_t* ap_level_info = ap_get_level_info(idx);
@@ -351,20 +369,14 @@ void DrawEpisodicLevelSelectStats()
             if (ap_level_info->keys[i])
                 key_count++;
 
-        // Level name display ("Individual" mode)
-        if (screen_defs->map_names == 0 && mapinfo->map_name.text)
-        {
-            MN_DrTextB(mapinfo->map_name.text, x + mapinfo->map_name.x, y + mapinfo->map_name.y);
-            map_name_width = MN_TextBWidth(mapinfo->map_name.text); // Store for later
-        }
-
-        // Level complete splash
-        if (ap_level_state->completed)
-            V_DrawPatch(x, y, W_CacheLumpName("IN_X", PU_CACHE));
-
-        // Lock
+        if (mapinfo->map_name_display == LS_MAP_DISPLAY_INDIVIDUAL) // Level name display (as patch)
+            map_name_width = DrawLSPatch(&mapinfo->map_name, x, y);
+        if (mapinfo->map_text_display == LS_MAP_DISPLAY_INDIVIDUAL) // Level name display (as text)
+            map_name_width = DrawLSText(&mapinfo->map_text, x, y);
+        if (ap_level_state->completed) // Level complete splat
+            DrawLSPatch(&mapinfo->complete, x, y);
         if (!ap_level_state->unlocked)
-            V_DrawPatch(x, y, W_CacheLumpName("WILOCK", PU_CACHE));
+            DrawLSPatch(&mapinfo->locked, x, y);
 
         // Keys
         {
@@ -374,24 +386,31 @@ void DrawEpisodicLevelSelectStats()
             {
                 default:
                     break;
-                case 2:
+                case LS_RELATIVE_IMAGE_RIGHT:
                     key_x += map_name_width;
                     // fall through
-                case 1:
-                    key_x += mapinfo->map_name.x;
-                    key_y += mapinfo->map_name.y;
+                case LS_RELATIVE_IMAGE:
+                    if (mapinfo->map_text_display == LS_MAP_DISPLAY_INDIVIDUAL)
+                    {
+                        key_x += mapinfo->map_text.x;
+                        key_y += mapinfo->map_text.y;  
+                    }
+                    else if (mapinfo->map_name_display == LS_MAP_DISPLAY_INDIVIDUAL)
+                    {
+                        key_x += mapinfo->map_name.x;
+                        key_y += mapinfo->map_name.y;
+                    }
                     break;
             }
 
             for (int k = 0; k < 3; ++k)
             {
-                const char* key_lump_name = KEY_LUMP_NAMES[k];
                 if (!ap_level_info->keys[k])
                     continue;
 
-                V_DrawPatch(key_x, key_y, W_CacheLumpName("KEYBG", PU_CACHE));
+                V_DrawPatch(key_x, key_y, W_CacheLumpName("LSKEYBG", PU_CACHE));
                 if (ap_level_state->keys[k])
-                    V_DrawPatch(key_x, key_y, W_CacheLumpName(key_lump_name, PU_CACHE));                
+                    V_DrawPatch(key_x, key_y, W_CacheLumpName(KEY_LUMP_NAMES[k], PU_CACHE));
 
                 key_x += mapinfo->keys.spacing_x;
                 key_y += mapinfo->keys.spacing_y;
@@ -406,18 +425,26 @@ void DrawEpisodicLevelSelectStats()
             {
                 default:
                     break;
-                case 2:
+                case LS_RELATIVE_IMAGE_RIGHT:
                     progress_x += map_name_width;
                     // fall through
-                case 1:
-                    progress_x += mapinfo->map_name.x;
-                    progress_y += mapinfo->map_name.y;
+                case LS_RELATIVE_IMAGE:
+                    if (mapinfo->map_text_display == LS_MAP_DISPLAY_INDIVIDUAL)
+                    {
+                        progress_x += mapinfo->map_text.x;
+                        progress_y += mapinfo->map_text.y;  
+                    }
+                    else if (mapinfo->map_name_display == LS_MAP_DISPLAY_INDIVIDUAL)
+                    {
+                        progress_x += mapinfo->map_name.x;
+                        progress_y += mapinfo->map_name.y;
+                    }
                     break;
-                case 3:
+                case LS_RELATIVE_KEYS:
                     progress_x += mapinfo->keys.x;
                     progress_y += mapinfo->keys.y;
                     break;
-                case 4:
+                case LS_RELATIVE_KEYS_LAST:
                     progress_x = key_x + mapinfo->checks.x;
                     progress_y = key_y + mapinfo->checks.y;
                     break;
@@ -434,22 +461,39 @@ void DrawEpisodicLevelSelectStats()
         const ap_levelselect_map_t* mapinfo = &screen_defs->map_info[sel_idx];
 
         // Level name (non-"Individual" modes)
-        if (screen_defs->map_names != 0 && mapinfo->map_name.text)
+        if (mapinfo->map_name_display > LS_MAP_DISPLAY_NONE)
         {
-            const int x = (ORIGWIDTH - MN_TextBWidth(mapinfo->map_name.text)) / 2;
-            const int y = (screen_defs->map_names < 0) ? 2 : ORIGHEIGHT - 20;
-
-            MN_DrTextB(mapinfo->map_name.text, x, y);
+            patch_t *patch = W_CacheLumpName(mapinfo->map_name.graphic, PU_CACHE);
+            const int x = (ORIGWIDTH - patch->width) / 2;
+            const int y = (mapinfo->map_text_display == LS_MAP_DISPLAY_UPPER) ? 2 : (ORIGHEIGHT - patch->height) - 2;
+            DrawLSPatch(&mapinfo->map_name, x, y);
+        }
+        if (mapinfo->map_text_display > LS_MAP_DISPLAY_NONE)
+        {
+            int x, y;
+            if (mapinfo->map_text.size == 0)
+            {
+                x = (ORIGWIDTH - MN_TextAWidth(mapinfo->map_text.text)) / 2;
+                y = (mapinfo->map_text_display == LS_MAP_DISPLAY_UPPER) ? 2 : (ORIGHEIGHT - 10) - 2;
+            }
+            else
+            {
+                x = (ORIGWIDTH - MN_TextBWidth(mapinfo->map_text.text)) / 2;
+                y = (mapinfo->map_text_display == LS_MAP_DISPLAY_UPPER) ? 2 : ORIGHEIGHT - 20;
+            }
+            DrawLSText(&mapinfo->map_text, x, y);
         }
 
         // You are here
         if (urh_anim < 25)
-        {
-            V_DrawPatch(mapinfo->x + mapinfo->cursor.x, 
-                        mapinfo->y + mapinfo->cursor.y, 
-                        W_CacheLumpName(mapinfo->cursor.graphic, PU_CACHE));
-        }
+            DrawLSPatch(&mapinfo->cursor, mapinfo->x, mapinfo->y);
     }
+
+    for (int i = 0; i < screen_defs->num_patches; ++i)
+        DrawLSPatch(&screen_defs->patches[i], 0, 0);
+
+    for (int i = 0; i < screen_defs->num_text; ++i)
+        DrawLSText(&screen_defs->text[i], 0, 0);
 }
 
 

@@ -244,41 +244,62 @@ typedef struct {
     const char *goal_menu_flat;
 } ap_gameinfo_t;
 
+typedef struct {
+    char graphic[9]; // Lump name to display
+    short x;         // X position - for maps, added to base X coordinate of map
+    short y;         // Y position - for maps, added to base Y coordinate of map
+} ap_levelselect_patch_t;
+
+typedef struct {
+    const char *text; // Text to display
+    char size;        // 0 == small, 1 == big (if available)
+    short x;          // X position - for maps, added to base X coordinate of map
+    short y;          // Y position - for maps, added to base Y coordinate of map
+} ap_levelselect_text_t;
+
+#define LS_MAP_DISPLAY_INDIVIDUAL -1
+#define LS_MAP_DISPLAY_NONE        0
+#define LS_MAP_DISPLAY_UPPER       1
+#define LS_MAP_DISPLAY_LOWER       2
+
+#define LS_RELATIVE_MAP          0
+#define LS_RELATIVE_IMAGE        1
+#define LS_RELATIVE_IMAGE_RIGHT  2
+#define LS_RELATIVE_KEYS         3
+#define LS_RELATIVE_KEYS_LAST    4
+
 // All info for a single map on the level select screen
 typedef struct { // All info for a specific map on the level select screen
-    int x;
-    int y;
+    short x;
+    short y;
 
-    struct { // Selection cursor / "You are here"
-        char graphic[9]; // Lump name to display when this map is selected
-        int x;           // Added to base X coordinate of map
-        int y;           // Added to base Y coordinate of map
-    } cursor;
+    ap_levelselect_patch_t cursor; // Selection cursor / "You are here"
+    ap_levelselect_patch_t complete; // Level complete splat
+    ap_levelselect_patch_t locked; // Locked level indicator
+    ap_levelselect_patch_t map_name; // Map name (as patch)
+    ap_levelselect_text_t  map_text; // Map name (as text)
 
-    struct { // Image or text of map name
-        const char *text; // Name of map to display; use either this, or lump name below
-        char graphic[9];  // Lump name to display; use either this, or text above
-        int x;            // Added to base X coordinate of map, in individual mode
-        int y;            // Added to base Y coordinate of map, in individual mode
-    } map_name;
+    char map_name_display; // for map_name: -1 == individual, 0 == don't display, 1 == upper, 2 == lower
+    char map_text_display; // as above but for map_text
 
     struct { // Display of keys in map
-        int relative_to;   // 0 == map, 1 == image, 2 == image-right
-        int x;             // Added to base X coordinate of relative choice above
-        int y;             // Added to base Y coordinate of relative choice above
-        int spacing_x;     // Added to each additional key's X coordinate after the first
-        int spacing_y;     // Added to each additional key's Y coordinate after the first
-        int align_x;       // Added to the base X coordinate, multiplied by number of keys
-        int align_y;       // Added to the base Y coordinate, multiplied by number of keys
-        int checkmark_x;   // If checkmark is enabled, added to each additional key's X coordinate
-        int checkmark_y;   // If checkmark is enabled, added to each additional key's Y coordinate
-        int use_checkmark; // 1 == shows all keys, and a checkmark shows if obtained, 0 == only shows obtained keys
+        char relative_to;    // 0 == map, 1 == image, 2 == image-right
+        char use_checkmark;  // 1 == shows all keys, and a checkmark shows if obtained, 0 == only shows obtained keys
+        char use_custom_gfx; // 1 == Use LSKEY# instead of normal key graphics
+        short x;             // Added to base X coordinate of relative choice above
+        short y;             // Added to base Y coordinate of relative choice above
+        short spacing_x;     // Added to each additional key's X coordinate after the first
+        short spacing_y;     // Added to each additional key's Y coordinate after the first
+        short align_x;       // Added to the base X coordinate, multiplied by number of keys
+        short align_y;       // Added to the base Y coordinate, multiplied by number of keys
+        short checkmark_x;   // If checkmark is enabled, added to each additional key's X coordinate
+        short checkmark_y;   // If checkmark is enabled, added to each additional key's Y coordinate
     } keys;
 
     struct { // Display of check count
-        int relative_to; // 0 == map, 1 == image, 2 == image-right, 3 == keys, 4 == keys-last
-        int x;           // Added to base X coordinate of relative choice above
-        int y;           // Added to base Y coordinate of relative choice above
+        char relative_to; // 0 == map, 1 == image, 2 == image-right, 3 == keys, 4 == keys-last
+        short x;          // Added to base X coordinate of relative choice above
+        short y;          // Added to base Y coordinate of relative choice above
     } checks;
 } ap_levelselect_map_t;
 
@@ -286,9 +307,14 @@ typedef struct { // All info for a specific map on the level select screen
 typedef struct
 {
     char background_image[9]; // Lump name to use as background
-    int map_names; // negative for upper, positive for lower, zero for individual display
 
-    ap_levelselect_map_t map_info[12];
+    int num_map_info;
+    int num_text;
+    int num_patches;
+
+    ap_levelselect_map_t *map_info; // Primary data for maps
+    ap_levelselect_text_t *text; // Extra arbitrary text strings
+    ap_levelselect_patch_t *patches; // Extra arbitrary patches
 } ap_levelselect_t;
 
 // List of all tweaks we allow definitions JSONs to do.

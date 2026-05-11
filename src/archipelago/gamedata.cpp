@@ -38,14 +38,16 @@ const char *string_to_const_char_ptr(const std::string &element)
 	return cstring_storage.back().c_str();
 }
 
-// Stores the name of a lump into a 9-byte char array. Does nothing if src is not a string.
+// Stores the name of a lump into a 9-byte char array.
+static void store_lump_name(char *dest, const char *src)
+{
+	strncpy(dest, src, 8);
+	dest[8] = 0;
+}
 static void store_lump_name(char *dest, const Json::Value& src)
 {
-	if (!src.isString())
-		return;
-
-	strncpy(dest, src.asCString(), 8);
-	dest[8] = 0;
+	if (src.isString())
+		store_lump_name(dest, src.asCString());
 }
 
 // Gets a level index from a lump name such as "MAP15" or "E2M4"
@@ -201,45 +203,194 @@ int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output)
 // (json: "level_select")
 // ============================================================================
 
+static std::map<std::string, ap_levelselect_map_t> mapinfo_defaults;
+static char default_map_image[9];
+
+// Get a set of mapinfo defaults -- this also initializes an unknown one.
+// Initialization should strictly be kept to graphics, stuff that's critical to have something defined.
+static ap_levelselect_map_t* get_mapinfo_default_set(std::string name)
+{
+	// Backwards compatibility: "maps" is an alias for "base"
+	std::string true_name = (name == "maps" ? "base" : name);
+
+	if (mapinfo_defaults.count(true_name))
+		return &mapinfo_defaults[true_name];
+
+	mapinfo_defaults.emplace(true_name, ap_levelselect_map_t{});
+	ap_levelselect_map_t *mapinfo = &mapinfo_defaults[true_name];
+	memset(mapinfo, 0, sizeof(ap_levelselect_map_t));
+
+	store_lump_name(mapinfo->complete.graphic, "LSCLEAR");
+	store_lump_name(mapinfo->locked.graphic,   "LSLOCK");
+	switch (ap_base_game)
+	{
+		default:
+		case ap_game_t::doom:    // fall through
+		case ap_game_t::doom2:   store_lump_name(mapinfo->cursor.graphic, "STCFN062"); break;
+		case ap_game_t::heretic: store_lump_name(mapinfo->cursor.graphic, "INVGEMR1"); break;
+	}
+	return mapinfo;
+}
+
+static bool mapinfo_default_set_exists(std::string& name)
+{
+	// Backwards compatibility: "maps" is an alias for "base"
+	return (mapinfo_defaults.count(name == "maps" ? "base" : name) > 0);
+}
+
+// ------------------------------------------------------------------
+
+// Makes a basic default level select if none is present.
+static int make_default_level_select(level_select_storage_t &output)
+{
+	ap_levelselect_map_t *default_mapinfo = get_mapinfo_default_set("base");
+	default_mapinfo->x = 10;
+	default_mapinfo->y = 30;
+	default_mapinfo->map_text.x = 18;
+	default_mapinfo->map_text_display = LS_MAP_DISPLAY_INDIVIDUAL;
+	store_lump_name(default_mapinfo->complete.graphic, "LSCLEARS");
+	store_lump_name(default_mapinfo->locked.graphic,   "LSLOCKS");
+	switch (ap_base_game)
+	{
+		default:
+		case ap_game_t::doom:
+		case ap_game_t::doom2:
+			default_mapinfo->cursor.x = 12;
+			default_mapinfo->keys.x = 248;
+			default_mapinfo->keys.y = -1;
+			default_mapinfo->keys.spacing_x = 12;
+			default_mapinfo->checks.x = 224;
+			default_mapinfo->checks.y = 1;
+			break;
+		case ap_game_t::heretic:
+			default_mapinfo->cursor.x = 10;
+			default_mapinfo->cursor.y = -1;
+			default_mapinfo->complete.y = 1;
+			default_mapinfo->locked.y = 1;
+			default_mapinfo->keys.x = 256;
+			default_mapinfo->keys.y = 3;
+			default_mapinfo->keys.spacing_x = 9;
+			default_mapinfo->checks.x = 232;
+			default_mapinfo->checks.y = 2;
+			break;
+	}
+
+	output.resize(ap_episode_count);
+	for (int idx = 0; idx < ap_episode_count; ++idx)
+	{
+		ap_levelselect_t *epinfo = &output[idx];
+		epinfo->num_map_info = ap_get_map_count(idx + 1);
+		epinfo->num_text = 1; // "Episode X"
+		epinfo->num_patches = 0;
+		epinfo->map_info = new ap_levelselect_map_t[epinfo->num_map_info];
+		epinfo->text = new ap_levelselect_text_t[1];
+		epinfo->patches = NULL;
+
+		memcpy(output[idx].background_image, default_map_image, 9);
+
+		for (int i = 0; i < epinfo->num_map_info; ++i)
+		{
+			ap_level_info_t *info = ap_get_level_info({idx, i});
+
+			// Take the parenthetical lump name out of the given level name
+			std::string level_name = info->name;
+			auto const pos = level_name.find_last_of("(");
+			if (pos) level_name.erase(pos, level_name.back());
+
+			memcpy(&epinfo->map_info[i], default_mapinfo, sizeof(ap_levelselect_map_t));
+			epinfo->map_info[i].y = 30 + (i * 11);
+			epinfo->map_info[i].map_text.text = string_to_const_char_ptr(level_name);
+		}
+
+		std::string episode_marker = "~4Episode " + std::to_string(idx + 1);
+		epinfo->text[0].text = string_to_const_char_ptr(episode_marker);
+		epinfo->text[0].x = 10;
+		epinfo->text[0].y = 19;
+		epinfo->text[0].size = 0;
+	}
+
+	mapinfo_defaults.clear();
+	return 1;
+}
+
+// ------------------------------------------------------------------
+
+// Functions for parsing commonly repeated sections of level select.
+static void json_parse_levelselect_patch(ap_levelselect_patch_t *patch, const Json::Value& json)
+{
+	if (json.isNull())
+		return;
+
+	if (!json["graphic"].isNull())
+		store_lump_name(patch->graphic, json["graphic"]);
+	patch->x = json.get("x", patch->x).asInt();
+	patch->y = json.get("y", patch->y).asInt();
+}
+
+static void json_parse_levelselect_text(ap_levelselect_text_t *text, const Json::Value& json)
+{
+	if (json.isNull())
+		return;
+
+	if (!json["text"].isNull())
+		text->text = string_to_const_char_ptr(json["text"].asString());
+	text->size = json.get("size", text->size).asInt();
+	text->x    = json.get("x", text->x).asInt();
+	text->y    = json.get("y", text->y).asInt();
+}
+
+static void json_parse_mapname_display(char *value, const Json::Value& json)
+{
+	if (json.isNull())
+		return;
+
+	std::string pos_str = json.asString();
+	if (pos_str == "top")             *value = LS_MAP_DISPLAY_UPPER;
+	else if (pos_str == "bottom")     *value = LS_MAP_DISPLAY_LOWER;
+	else if (pos_str == "individual") *value = LS_MAP_DISPLAY_INDIVIDUAL;
+	else                              *value = LS_MAP_DISPLAY_NONE;
+}
+
+static void json_parse_relative_to(char *value, const Json::Value& json)
+{
+	if (json.isNull())
+		return;
+
+	std::string result = json.asString();
+	if (result == "map")                 *value = LS_RELATIVE_MAP;
+	else if (result == "map-name")       *value = LS_RELATIVE_IMAGE;
+	else if (result == "map-name-right") *value = LS_RELATIVE_IMAGE_RIGHT;
+	else if (result == "keys")           *value = LS_RELATIVE_KEYS;
+	else if (result == "keys-last")      *value = LS_RELATIVE_KEYS_LAST;
+	else                                 *value = LS_RELATIVE_MAP;
+}
+
 // Parses one mapinfo structure from a JSON blob, while taking care to not overwrite
 // any default options that may have already been set.
 static void json_parse_single_mapinfo(ap_levelselect_map_t *info, const Json::Value& json)
 {
+	if (!json["defaults"].isNull())
+	{
+		// Override everything with a default per-menu item.
+		ap_levelselect_map_t *default_mapinfo = get_mapinfo_default_set(json["defaults"].asString());
+		memcpy(info, default_mapinfo, sizeof(ap_levelselect_map_t));
+	}
+
 	info->x = json.get("x", info->x).asInt();
 	info->y = json.get("y", info->y).asInt();
 
-	if (!json["cursor"].isNull())
-	{
-		store_lump_name(info->cursor.graphic, json["cursor"]["graphic"]);
-		info->cursor.x = json["cursor"].get("x", info->cursor.x).asInt();
-		info->cursor.y = json["cursor"].get("y", info->cursor.y).asInt();
-	}
+	json_parse_levelselect_patch(&info->cursor,   json["cursor"]);
+	json_parse_levelselect_patch(&info->complete, json["complete"]);
+	json_parse_levelselect_patch(&info->locked,   json["locked"]);
+	json_parse_levelselect_patch(&info->map_name, json["map_name"]);
+	json_parse_levelselect_text(&info->map_text, json["map_text"]);
 
-	if (!json["map_name"].isNull())
-	{
-		if (!json["map_name"]["text"].isNull())
-		{
-			info->map_name.text = string_to_const_char_ptr(json["map_name"]["text"].asString());
-			info->map_name.graphic[0] = '\0';
-		}
-		else if (!json["map_name"]["graphic"].isNull())
-		{
-			store_lump_name(info->map_name.graphic, json["map_name"]["graphic"]);
-			info->map_name.text = NULL;
-		}
-		info->map_name.x = json["map_name"].get("x", info->map_name.x).asInt();
-		info->map_name.y = json["map_name"].get("y", info->map_name.y).asInt();
-	}
+	json_parse_mapname_display(&info->map_name_display, json["map_name"]["display"]);
+	json_parse_mapname_display(&info->map_text_display, json["map_text"]["display"]);
 
 	if (!json["keys"].isNull())
 	{
-		if (!json["keys"]["relative_to"].isNull())
-		{
-			std::string result = json["keys"]["relative_to"].asString();
-			if (result == "map")                 info->keys.relative_to = 0;
-			else if (result == "map-name")       info->keys.relative_to = 1;
-			else if (result == "map-name-right") info->keys.relative_to = 2;
-		}
+		json_parse_relative_to(&info->keys.relative_to, json["keys"]["relative_to"]);
 		info->keys.x = json["keys"].get("x", info->keys.x).asInt();
 		info->keys.y = json["keys"].get("y", info->keys.y).asInt();
 		info->keys.spacing_x = json["keys"].get("spacing_x", info->keys.spacing_x).asInt();
@@ -249,19 +400,12 @@ static void json_parse_single_mapinfo(ap_levelselect_map_t *info, const Json::Va
 		info->keys.checkmark_x = json["keys"].get("checkmark_x", info->keys.checkmark_x).asInt();
 		info->keys.checkmark_y = json["keys"].get("checkmark_y", info->keys.checkmark_y).asInt();		
 		info->keys.use_checkmark = json["keys"].get("use_checkmark", info->keys.use_checkmark).asBool();
+		info->keys.use_custom_gfx = json["keys"].get("use_custom_gfx", info->keys.use_custom_gfx).asBool();
 	}
 
 	if (!json["checks"].isNull())
 	{
-		if (!json["checks"]["relative_to"].isNull())
-		{
-			std::string result = json["checks"]["relative_to"].asString();
-			if (result == "map")                 info->checks.relative_to = 0;
-			else if (result == "map-name")       info->checks.relative_to = 1;
-			else if (result == "map-name-right") info->checks.relative_to = 2;
-			else if (result == "keys")           info->checks.relative_to = 3;
-			else if (result == "keys-last")      info->checks.relative_to = 4;
-		}
+		json_parse_relative_to(&info->checks.relative_to, json["checks"]["relative_to"]);
 		info->checks.x = json["checks"].get("x", info->checks.x).asInt();
 		info->checks.y = json["checks"].get("y", info->checks.y).asInt();
 	}
@@ -269,62 +413,155 @@ static void json_parse_single_mapinfo(ap_levelselect_map_t *info, const Json::Va
 
 int json_parse_level_select(const Json::Value& json, level_select_storage_t &output)
 {
-	if (json.isNull())
+	// Just in case nothing sets it... use a known good background by default.
+	switch (ap_base_game)
 	{
-		printf("APDOOM: Definitions missing required 'level_select'.\n");
-		return 0;
+		default:
+		case ap_game_t::doom:
+		case ap_game_t::doom2:
+			store_lump_name(default_map_image, "INTERPIC");
+			break;
+		case ap_game_t::heretic:
+			store_lump_name(default_map_image, "MAPE4");
+			break;
 	}
 
-	// Defaults for level select mapinfo, if not specified anywhere else.
-	char default_map_image[9] = "INTERPIC";
-	int default_map_names = -1; // Top
-	ap_levelselect_map_t default_mapinfo;
-	memset(&default_mapinfo, 0, sizeof(ap_levelselect_map_t));
+	if (json.isNull())
+		return make_default_level_select(output);
 
-	// Specifying defaults?
+	// Specifying default mapinfo sets?
 	if (!json["defaults"].isNull())
 	{
-		json_parse_single_mapinfo(&default_mapinfo, json["defaults"]["maps"]);
-		store_lump_name(default_map_image, json["defaults"]["background_image"]);
+		// It's possible for mapinfo default sets to reference each other.
+		// But we can't rely on ordering due to Json specifying that objects are unordered.
+		// So we keep tabs on all sets we haven't parsed yet, and delay parsing sets until
+		// we've parsed their prerequisites.
+		std::vector<std::string> mids_to_parse;
+		for (std::string &mids_name : json["defaults"].getMemberNames())
+		{
+			if (json["defaults"][mids_name].isObject())
+				mids_to_parse.emplace_back(mids_name);
+		}
 
+		while (!mids_to_parse.empty())
+		{
+			bool parsed = false;
+			for (int i = 0; i < (int)mids_to_parse.size(); ++i)
+			{
+				std::string &mids_name = mids_to_parse[i];
+				std::string mids_reqs = json["defaults"][mids_name].get("defaults", "").asString();
+
+				if (!mids_reqs.empty() && !mapinfo_default_set_exists(mids_reqs))
+					continue;
+
+				ap_levelselect_map_t *mapinfo = get_mapinfo_default_set(mids_name);
+				json_parse_single_mapinfo(mapinfo, json["defaults"][mids_name]);
+				mids_to_parse.erase(mids_to_parse.begin() + i);
+				parsed = true;
+				break;
+			}
+			if (!parsed)
+			{
+				printf("APDOOM: level_select: Mapinfo defaults circular/impossible reference detected\n");
+				return 0;
+			}
+		}
+
+		if (!json["defaults"]["background_image"].isNull())
+			store_lump_name(default_map_image, json["defaults"]["background_image"]);
+
+		// Backwards compatibility -- map name position used to be separate
 		if (!json["defaults"]["map_name_position"].isNull())
 		{
-			std::string pos_str = json["defaults"]["map_name_position"].asString();
-			if (pos_str == "top")             default_map_names = -1;
-			else if (pos_str == "bottom")     default_map_names = 1;
-			else if (pos_str == "individual") default_map_names = 0;
+			ap_levelselect_map_t *mapinfo = get_mapinfo_default_set("base");
+
+			char result = 0;
+			json_parse_mapname_display(&result, json["defaults"]["map_name_position"]);
+			mapinfo->map_name_display = result;
+			mapinfo->map_text_display = result;
+
+			// Upper and lower used to ignore x/y, replicate that here
+			if (result != LS_MAP_DISPLAY_INDIVIDUAL)
+			{
+				mapinfo->map_name.x = mapinfo->map_name.y = 0;
+				mapinfo->map_text.x = mapinfo->map_text.y = 0;
+			}
 		}
 	}
 
 	const int ep_count = (int)json["episodes"].size();
+	if (ep_count < ap_episode_count)
+	{
+		printf("APDOOM: level_select: Too few episodes (need %d, got %d)\n", ap_episode_count, ep_count);
+		return 0;
+	}
 	output.resize(ep_count);
 
 	for (int idx = 0; idx < ep_count; ++idx)
 	{
 		Json::Value episode_defs = json["episodes"][idx];
 
-		if (!episode_defs["background_image"].isNull())
-			store_lump_name(output[idx].background_image, episode_defs["background_image"]);
-		else
-			memcpy(output[idx].background_image, default_map_image, 9);
+		// If the set of defaults to use isn't specified per episode, use "base" by default.
+		ap_levelselect_map_t *default_mapinfo = get_mapinfo_default_set(episode_defs.get("defaults", "base").asString());
 
-		if (!episode_defs["map_name_position"].isNull())
+		ap_levelselect_t *epinfo = &output[idx];
+		epinfo->num_map_info = 0;
+		epinfo->num_text = 0;
+		epinfo->num_patches = 0;
+		epinfo->map_info = NULL;
+		epinfo->text = NULL;
+		epinfo->patches = NULL;
+
+		if (!episode_defs["background_image"].isNull())
+			store_lump_name(epinfo->background_image, episode_defs["background_image"]);
+		else
+			memcpy(epinfo->background_image, default_map_image, 9);
+
+		if (episode_defs["text"].isArray() && episode_defs["text"].size() > 0)
 		{
-			std::string pos_str = episode_defs["map_name_position"].asString();
-			if (pos_str == "top")             output[idx].map_names = -1;
-			else if (pos_str == "bottom")     output[idx].map_names = 1;
-			else if (pos_str == "individual") output[idx].map_names = 0;
+			epinfo->num_text = (int)episode_defs["text"].size();
+			epinfo->text = new ap_levelselect_text_t[epinfo->num_text];
+			for (int i = 0; i < epinfo->num_text; ++i)
+			{
+				memset(&epinfo->text[i], 0, sizeof(ap_levelselect_text_t));
+				json_parse_levelselect_text(&epinfo->text[i], episode_defs["text"][i]);
+			}
+		}
+
+		if (episode_defs["patches"].isArray() && episode_defs["patches"].size() > 0)
+		{
+			epinfo->num_patches = (int)episode_defs["patches"].size();
+			epinfo->patches = new ap_levelselect_patch_t[epinfo->num_text];
+			for (int i = 0; i < epinfo->num_patches; ++i)
+			{
+				memset(&epinfo->patches[i], 0, sizeof(ap_levelselect_patch_t));
+				json_parse_levelselect_patch(&epinfo->patches[i], episode_defs["patches"][i]);
+			}
+		}
+
+		if (episode_defs["maps"].isArray() && episode_defs["maps"].size() > 0)
+		{
+			epinfo->num_map_info = (int)episode_defs["maps"].size();
+			epinfo->map_info = new ap_levelselect_map_t[epinfo->num_map_info];
+			for (int i = 0; i < epinfo->num_map_info; ++i)
+			{
+				ap_levelselect_map_t *mapinfo = &epinfo->map_info[i];
+				memcpy(mapinfo, default_mapinfo, sizeof(ap_levelselect_map_t));
+				json_parse_single_mapinfo(mapinfo, episode_defs["maps"][i]);
+
+				// Don't attempt to display map related things which don't have any data.
+				if (!mapinfo->map_name.graphic[0]) mapinfo->map_name_display = LS_MAP_DISPLAY_NONE;
+				if (!mapinfo->map_text.text)       mapinfo->map_text_display = LS_MAP_DISPLAY_NONE;
+			}
 		}
 		else
-			output[idx].map_names = default_map_names;
-
-		const int map_count = (int)episode_defs["maps"].size();
-		for (int map_idx = 0; map_idx < map_count; ++map_idx)
 		{
-			memcpy(&output[idx].map_info[map_idx], &default_mapinfo, sizeof(ap_levelselect_map_t));
-			json_parse_single_mapinfo(&output[idx].map_info[map_idx], episode_defs["maps"][map_idx]);
+			printf("APDOOM: level_select: Episode %d has no/invalid maps structure\n", idx + 1);
+			return 0;
 		}
 	}
+
+	mapinfo_defaults.clear();
 	return 1;
 }
 
@@ -591,11 +828,11 @@ int json_parse_level_info(const Json::Value& json, level_info_storage_t &output)
 		return 0;
 	}
 
-	const int episode_count = (int)json.size();
-	output.resize(episode_count);
+	ap_episode_count = (int)json.size();
+	output.resize(ap_episode_count);
 
 	ap_level_info_t new_level;
-	for (int ep = 0; ep < episode_count; ++ep)
+	for (int ep = 0; ep < ap_episode_count; ++ep)
 	{
 		const int map_count = (int)json[ep].size();
 		output[ep].resize(map_count);
@@ -676,7 +913,7 @@ int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &out
 		auto result = output.try_emplace(lower_file_name);
 		if (!result.second)
 		{
-			printf("APDOOM: Duplicate WAD file found in rename_lumps\n");
+			printf("APDOOM: 'rename_lumps' contains a duplicate WAD file '%s'\n", lower_file_name.c_str());
 			return 0;
 		}
 
