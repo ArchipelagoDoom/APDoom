@@ -29,6 +29,7 @@
 
 #include "w_wad.h"
 #include "z_zone.h"
+#include "m_misc.h" // [AP] M_snprintf
 
 #include "apdoom.h"
 
@@ -107,6 +108,13 @@ void S_StartSong(int song, boolean loop)
     else
     {
         mus_lumpnum = (W_GetNumForName(S_music[song][0].name));
+    }
+    // [AP] log played music (copied from doom)
+    {
+        char name[9];
+        M_snprintf(name, sizeof(name), "%s", lumpinfo[mus_lumpnum]->name);
+        fprintf(stderr, "S_StartSong: %s (%s)\n", name,
+                W_WadNameForLump(lumpinfo[mus_lumpnum]));
     }
     mus_sndptr = W_CacheLumpNum(mus_lumpnum, PU_MUSIC);
     mus_len = W_LumpLength(mus_lumpnum);

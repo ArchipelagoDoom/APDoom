@@ -351,7 +351,8 @@ void S_Init(int sfxVolume, int musicVolume)
     I_AtExit(S_Shutdown, true);
 
     // [crispy] initialize dedicated music tracks for the 4th episode
-    for (i = mus_e4m1; i <= mus_e6m9; i++)
+    // [AP] initialize *all* music here
+    for (i = mus_e1m1; i < NUMMUSIC; i++)
     {
         musicinfo_t *const music = &S_music[i];
         char namebuf[9];
@@ -438,8 +439,6 @@ void S_Start(void)
     mnum = level_state->music;
     if (!mnum)
         mnum = (commercial ? mus_runnin : mus_e1m1);
-    if (S_music[mnum].lumpnum == -1)
-        mnum = S_CorrectMusic(mnum);
 
 #if 0 // [AP] Upstream music determination code
     if (gamemode == commercial)
@@ -1092,6 +1091,7 @@ void S_ChangeMusic(int musicnum, int looping)
         }
     }
 
+#if 0
     // [crispy] prevent music number under- and overflows
     if (musicnum <= mus_None || (gamemode == commercial && musicnum < mus_runnin) ||
         musicnum >= NUMMUSIC || (gamemode != commercial && musicnum >= mus_runnin) ||
@@ -1125,6 +1125,36 @@ void S_ChangeMusic(int musicnum, int looping)
       if (!music) // [crispy] restart current music if IDMUS00 is entered
         music = &S_music[musicnum];
     }
+#else // [AP] only correct music tracks if we try to play something nonexistent
+    const unsigned int orig_musicnum = (unsigned int)musicnum;
+
+    if (musicnum <= mus_None || musicnum >= NUMMUSIC)
+        I_Error("Bad music number %d", musicnum);
+
+    // We don't have this music track -- maybe we have a fallback track available?
+    if (S_music[musicnum].lumpnum == -1)
+        musicnum = S_CorrectMusic(musicnum);
+
+    // No fallback track? Try wrapping around like Crispy normally would.
+    if (S_music[musicnum].lumpnum == -1)
+    {
+        if (gamemode == commercial)
+            musicnum = mus_runnin + (orig_musicnum % (mus_nrftl1 - mus_runnin));
+        else
+            musicnum = mus_e1m1 + (orig_musicnum % (mus_e4m1 - mus_e1m1));
+    }
+
+    // STILL not available?
+    if (S_music[musicnum].lumpnum == -1)
+    {
+        fprintf(stderr, "S_ChangeMusic: Unknown track %u (not available)\n", orig_musicnum);
+        S_StopMusic();
+        return;
+    }
+
+    if (!music) // [crispy] restart current music if IDMUS00 is entered
+        music = &S_music[musicnum];
+#endif
 
     if (mus_playing == music)
     {
