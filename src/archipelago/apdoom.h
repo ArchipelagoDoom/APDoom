@@ -363,6 +363,7 @@ typedef enum
     META_TWEAKS = 0xA0,
     TWEAK_META_BEHAVES_AS,
     TWEAK_META_SECRET_EXIT,
+    TWEAK_META_SKY_TEXTURE,
 
     TWEAK_TYPE_MASK = 0xF0,
 } allowed_tweaks_t;

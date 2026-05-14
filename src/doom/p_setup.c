@@ -46,6 +46,8 @@
 
 #include "p_extnodes.h" // [crispy] support extended node formats
 
+#include "r_sky.h" // [AP] map tweak for skytexture
+
 #include "apdoom.h"
 #include "ap_basic.h"
 

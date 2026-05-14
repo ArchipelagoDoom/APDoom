@@ -1002,6 +1002,7 @@ void G_DoLoadLevel (void)
     S_UpdateStereoSeparation();
     setsizeneeded = true;
 
+#if 0 // [AP] Remove sideloading hacks (see map tweaks instead)
     // [crispy] NRFTL / The Master Levels
     if (crispy->havenerve || crispy->havemaster)
     {
@@ -1031,6 +1032,7 @@ void G_DoLoadLevel (void)
             gameepisode = 2;
         }
     }
+#endif
 
     // Set the sky map.
     // First thing, we have a dummy sky texture name,
@@ -1048,17 +1050,8 @@ void G_DoLoadLevel (void)
     {
         const char *skytexturename;
 
+#if 0 // [AP] Remove sideloading hacks (see map tweaks instead)
         // nerve skies
-#if 1 // [AP] hacky temporary workaround
-        if (gamemap > 40)
-        {
-            int nervemap = gamemap - 40;
-            if (nervemap >= 4 && nervemap <= 8)
-                skytexturename = "SKY3";
-            else
-                skytexturename = "SKY1";
-        }
-#else
         if (gamemap < 12 && (gameepisode == 2 || gamemission == pack_nerve))
         {
             if (gamemap >= 4 && gamemap <= 8)
@@ -1095,9 +1088,9 @@ void G_DoLoadLevel (void)
                     skytexturename = "SKY2";
             }
         }
-#endif
         // doom2 skies
         else
+#endif
         {
             if (gamemap < 12)
                 skytexturename = "SKY1";

@@ -660,6 +660,7 @@ static void parse_metadata_tweak_block(const Json::Value& json, std::vector<ap_m
 	// Metadata is level-wide stuff, so the target is ignored
 	insert_new_tweak(tweak_list, TWEAK_META_BEHAVES_AS,  0, json["behaves_as"]);
 	insert_new_tweak(tweak_list, TWEAK_META_SECRET_EXIT, 0, json["allow_secret_exits"]);
+	insert_new_tweak(tweak_list, TWEAK_META_SKY_TEXTURE, 0, json["sky_texture"]);
 }
 
 int json_parse_map_tweaks(const Json::Value& json, map_tweaks_storage_t &output)

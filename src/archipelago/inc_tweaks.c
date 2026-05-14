@@ -112,6 +112,14 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
             apmeta.secretexit = !!tweak->value;
             break;
 
+        case TWEAK_META_SKY_TEXTURE:
+        {
+            int newsky = R_TextureNumForName(tweak->string);
+            if (newsky) // I won't make the sky AASTINKY, sorry.
+                skytexture = newsky;
+            break;
+        }
+
         default:
             break;
     }
