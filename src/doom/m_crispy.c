@@ -25,6 +25,7 @@
 #include "s_sound.h"
 #include "r_defs.h" // [crispy] laserpatch
 #include "r_sky.h" // [crispy] R_InitSkyMap()
+#include "apdoom.h" // [AP] ap_game_info
 
 #include "m_crispy.h"
 
@@ -309,10 +310,10 @@ void M_CrispyToggleAPLevelSelectMusic(int choice)
     {
         if (crispy->ap_levelselectmusic)
         {
-            if (gamemode == commercial)
-                S_ChangeMusic(mus_read_m, true);
+            if (ap_game_info.levelsel_music_id != -1)
+                S_ChangeMusic(ap_game_info.levelsel_music_id, true);
             else
-                S_ChangeMusic(mus_inter, true);
+                S_ChangeMusic((gamemode == commercial) ? mus_read_m : mus_inter, true);
         }
         else
             S_StopMusic();

@@ -194,6 +194,10 @@ int json_parse_game_info(const Json::Value& json, ap_gameinfo_t &output)
 			output.goal_menu_flat = string_to_const_char_ptr(goalmenuflat);
 	}
 
+	output.levelsel_music_id = -1;
+	if (json["levelselect_music"].isString())
+		output.levelsel_music_id = get_named_music_id(json["levelselect_music"].asString());
+
 	return 1;
 }
 
@@ -852,6 +856,12 @@ int json_parse_level_info(const Json::Value& json, level_info_storage_t &output)
 			new_level.use_skull[0] = map_info["use_skull"][0].asBool();
 			new_level.use_skull[1] = map_info["use_skull"][1].asBool();
 			new_level.use_skull[2] = map_info["use_skull"][2].asBool();
+
+			new_level.music = -1;
+			if (map_info["music"].isString())
+				new_level.music = get_named_music_id(map_info["music"].asString());
+			if (new_level.music <= 0)
+				new_level.music = get_vanilla_music_id(new_level.game_episode, new_level.game_map);
 
 			// These used to be stored in the structures, but are now recalculated as we load.
 			new_level.thing_count = map_info["thing_list"].size();

@@ -2132,7 +2132,12 @@ static boolean CrispyAPLevelSelectMusic(int option)
     if (gamestate == GS_LEVEL_SELECT)
     {
         if (crispy->ap_levelselectmusic)
-            S_StartSong(mus_intr, true);
+        {
+            if (ap_game_info.levelsel_music_id != -1)
+                S_StartSong(ap_game_info.levelsel_music_id, true);
+            else
+                S_StartSong(mus_intr, true);
+        }
         else
         {
             extern int mus_song;

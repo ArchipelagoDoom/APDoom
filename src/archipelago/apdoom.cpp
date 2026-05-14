@@ -390,32 +390,6 @@ const char* ap_get_sprite(int doom_type)
 
 // ============================================================================
 
-static int get_original_music_for_level(ap_level_index_t& idx)
-{
-	switch (ap_base_game)
-	{
-		case ap_game_t::doom:
-		{
-			// Correcting Episode 4's music is no longer needed
-			return 1 + (ap_index_to_ep(idx)-1) * 9 + (ap_index_to_map(idx)-1);
-		}
-		case ap_game_t::doom2:
-		{
-			const int d2map = ap_index_to_map(idx);
-			// Hack for NRFTL, should really give this a proper fix at some point
-			if (d2map > 40) return 97 + (d2map - 40) - 1;
-			return 62 + d2map - 1;
-		}
-		case ap_game_t::heretic:
-		{
-			return (ap_index_to_ep(idx)-1) * 9 + (ap_index_to_map(idx)-1);
-		}
-	}
-
-	// For now for doom and heretic
-	return -1;
-}
-
 
 int ap_get_map_count(int ep)
 {
@@ -833,7 +807,7 @@ int apdoom_init(ap_settings_t* settings)
 
 		// Map original music to every level to start
 		for (ap_level_index_t *idx = ap_get_all_levels(); idx->ep != -1; ++idx)
-			ap_get_level_state(*idx)->music = get_original_music_for_level(*idx);
+			ap_get_level_state(*idx)->music = ap_get_level_info(*idx)->music;
 
 		switch (ap_state.random_music)
 		{
@@ -857,7 +831,7 @@ int apdoom_init(ap_settings_t* settings)
 			{
 				const int mus = music_pool[track++];
 				ap_get_level_state(*idx)->music = mus;
-				printf("  Episode %i Map %i: Music track %i\n", idx->ep, idx->map, mus);
+				printf("  E%2i M%2i: %s\n", idx->ep + 1, idx->map + 1, music_id_to_name(mus));
 			}
 		}
 	}

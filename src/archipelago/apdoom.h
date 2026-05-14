@@ -54,6 +54,7 @@ typedef struct
 
     int game_episode;
     int game_map;
+    int music; // music ID used in vanilla
 } ap_level_info_t;
 
 
@@ -65,7 +66,7 @@ typedef struct
     int unlocked;
     int special; // Berzerk or Wings
     int flipped;
-    int music;
+    int music; // music ID we're using for this map, post-music rando
 
     int check_count;
     int max_check_count;
@@ -242,6 +243,8 @@ typedef struct {
 
     const char *pause_pic;
     const char *goal_menu_flat;
+
+    int levelsel_music_id;
 } ap_gameinfo_t;
 
 typedef struct {

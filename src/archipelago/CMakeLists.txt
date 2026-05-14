@@ -7,6 +7,7 @@ add_library(${PROJECT_NAME}
     apdoom.cpp       apdoom.h
     gamedata.cpp
                      local.hpp
+    music.cpp
     world.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../../" ../../APCpp ../apzip)

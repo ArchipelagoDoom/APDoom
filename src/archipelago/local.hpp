@@ -22,7 +22,10 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <string>
 #include <json/json.h>
+
+#include "apdoom.h"
 
 
 enum class ap_game_t
@@ -33,6 +36,12 @@ enum class ap_game_t
 };
 
 extern ap_game_t ap_base_game;
+
+// ===== MUSIC ================================================================
+
+int get_vanilla_music_id(int ep, int map);
+int get_named_music_id(const std::string name);
+const char *music_id_to_name(int id);
 
 // ===== LUMP REMAPPING =======================================================
 
