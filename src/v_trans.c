@@ -265,7 +265,8 @@ byte V_Colorize (byte *playpal, int cr, byte source, boolean keepgray109)
     vect rgb, hsv;
 
     // [crispy] preserve gray drop shadow in IWAD status bar numbers
-    if (cr == CR_NONE || (keepgray109 && source == 109))
+    // [AP] don't preserve it for CR_DARK
+    if (cr == CR_NONE || (keepgray109 && source == 109 && cr != CR_DARK))
 	return source;
 
     rgb.x = playpal[3 * source + 0] / 255.;
