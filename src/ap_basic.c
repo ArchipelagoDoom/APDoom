@@ -188,6 +188,18 @@ void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_d
     //!
     // @category archipelago
     //
+    // Enables extra tools (only in offline play)
+    // and displays extra information that may be useful when making a world.
+    //
+    if (M_CheckParm("-apdebug"))
+    {
+        printf("Enabling debug information.\n");
+        ap_debug_mode = true;
+    }
+
+    //!
+    // @category archipelago
+    //
     // Runs the game without connecting to Archipelago, for practicing.
     //
     if (M_CheckParm("-practice"))

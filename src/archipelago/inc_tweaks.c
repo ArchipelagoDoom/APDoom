@@ -17,7 +17,8 @@ static void P_TweakSector(mapsector_t *sector, ap_maptweak_t *tweak)
         case TWEAK_SECTOR_CEILING_PIC: memcpy(sector->ceilingpic, tweak->string, 8); break;
         default: break;
     }
-    printf("P_TweakSector: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+    if (ap_debug_mode)
+        printf("P_TweakSector: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
 static void P_TweakMapThing(mapthing_t *mapthing, ap_maptweak_t *tweak)
@@ -37,7 +38,8 @@ static void P_TweakMapThing(mapthing_t *mapthing, ap_maptweak_t *tweak)
         case TWEAK_MAPTHING_DONT_RANDOMIZE:  mapthing->options |= ( APMTF_DONT_RANDOMIZE * (!!tweak->value)); break;
         default: break;
     }
-    printf("P_TweakMapThing: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+    if (ap_debug_mode)
+        printf("P_TweakMapThing: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
 static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
@@ -50,7 +52,8 @@ static void P_TweakHub(mapthing_t *hub, ap_maptweak_t *tweak)
         case TWEAK_HUB_ANGLE: hub->angle = tweak->value; break;
         default: break;
     }
-    printf("P_TweakHub: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+    if (ap_debug_mode)
+        printf("P_TweakHub: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
 static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
@@ -63,7 +66,8 @@ static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
         case TWEAK_LINEDEF_FLAGS:   linedef->flags = tweak->value;   break;
         default: break;
     }
-    printf("P_TweakLinedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+    if (ap_debug_mode)
+        printf("P_TweakLinedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
 static void P_TweakSidedef(mapsidedef_t *sidedef, ap_maptweak_t *tweak)
@@ -78,7 +82,8 @@ static void P_TweakSidedef(mapsidedef_t *sidedef, ap_maptweak_t *tweak)
         case TWEAK_SIDEDEF_Y:      sidedef->rowoffset = tweak->value;                break;
         default: break;
     }
-    printf("P_TweakSidedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+    if (ap_debug_mode)
+        printf("P_TweakSidedef: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
 
 static void P_TweakMeta(ap_maptweak_t *tweak)
@@ -123,5 +128,6 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
         default:
             break;
     }
-    printf("P_TweakMeta: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
+    if (ap_debug_mode)
+        printf("P_TweakMeta: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }

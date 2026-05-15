@@ -187,10 +187,16 @@ void select_map_dir(int dir)
 
 static void level_select_nav_enter()
 {
-    if (ap_get_level_state(ap_make_level_index(selected_ep + 1, selected_level[selected_ep] + 1))->unlocked)
+    ap_level_index_t idx = ap_make_level_index(selected_ep + 1, selected_level[selected_ep] + 1);
+    if (ap_get_level_state(idx)->unlocked)
     {
         S_StartSound(NULL, sfx_dorcls);
         play_level(selected_ep, selected_level[selected_ep]);
+    }
+    else if (ap_practice_mode && ap_debug_mode) // If offline debug, unlock the level
+    {
+        S_StartSound(NULL, sfx_dorcls);
+        ap_get_level_state(idx)->unlocked = true;
     }
     else
     {

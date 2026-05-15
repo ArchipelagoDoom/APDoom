@@ -76,6 +76,7 @@ int ap_episode_count = -1;
 
 int ap_race_mode = false; // Server reports this is a race, not casual.
 int ap_practice_mode = false; // Not connected to a server, simulate play.
+int ap_debug_mode = false; // -apdebug: Give extra info, if offline then enable some extra tools.
 int ap_force_disable_behaviors = false; // For demo compatibility.
 long int initial_timestamp = 0; // Time that the seed was started.
 
@@ -187,6 +188,7 @@ void APSend(std::string msg);
 
 static void ap_fake_item_msg(int item_id, const char *sender);
 static void ap_energylink_pool_update(void);
+static void ap_energylink_simulate(void);
 
 // ===== PWAD SUPPORT =========================================================
 // All of these are loaded from json on game startup.
@@ -593,6 +595,10 @@ int apdoom_init(ap_settings_t* settings)
 		ap_seed_string = "practmp_" + std::to_string(rand());
 		ap_save_path = std::filesystem::current_path() / ap_seed_string;
 		std::filesystem::create_directories(ap_save_path);
+
+		// If debugging, enable EnergyLink menus.
+		if (ap_debug_mode)
+			ap_energylink_simulate();
 	}
 	else
 	{
@@ -645,22 +651,26 @@ int apdoom_init(ap_settings_t* settings)
 				printf("APDOOM: Authenticated\n");
 				AP_GetRoomInfo(&ap_room_info);
 
-				printf("APDOOM: Room Info:\n");
-				printf("  Network Version: %i.%i.%i\n", ap_room_info.version.major, ap_room_info.version.minor, ap_room_info.version.build);
-				printf("  Tags:\n");
-				for (const auto& tag : ap_room_info.tags)
-					printf("    %s\n", tag.c_str());
-				printf("  Password required: %s\n", ap_room_info.password_required ? "true" : "false");
-				printf("  Permissions:\n");
-				for (const auto& permission : ap_room_info.permissions)
-					printf("    %s = %i:\n", permission.first.c_str(), permission.second);
-				printf("  Hint cost: %i\n", ap_room_info.hint_cost);
-				printf("  Location check points: %i\n", ap_room_info.location_check_points);
-				printf("  Data package checksums:\n");
-				for (const auto& kv : ap_room_info.datapackage_checksums)
-					printf("    %s = %s:\n", kv.first.c_str(), kv.second.c_str());
-				printf("  Seed name: %s\n", ap_room_info.seed_name.c_str());
-				printf("  Time: %f\n", ap_room_info.time);
+				// If debugging, print detailed room info.
+				if (ap_debug_mode)
+				{
+					printf("APDOOM: Room Info:\n");
+					printf("  Network Version: %i.%i.%i\n", ap_room_info.version.major, ap_room_info.version.minor, ap_room_info.version.build);
+					printf("  Tags:\n");
+					for (const auto& tag : ap_room_info.tags)
+						printf("    %s\n", tag.c_str());
+					printf("  Password required: %s\n", ap_room_info.password_required ? "true" : "false");
+					printf("  Permissions:\n");
+					for (const auto& permission : ap_room_info.permissions)
+						printf("    %s = %i:\n", permission.first.c_str(), permission.second);
+					printf("  Hint cost: %i\n", ap_room_info.hint_cost);
+					printf("  Location check points: %i\n", ap_room_info.location_check_points);
+					printf("  Data package checksums:\n");
+					for (const auto& kv : ap_room_info.datapackage_checksums)
+						printf("    %s = %s:\n", kv.first.c_str(), kv.second.c_str());
+					printf("  Seed name: %s\n", ap_room_info.seed_name.c_str());
+					printf("  Time: %f\n", ap_room_info.time);
+				}
 
 				ap_was_connected = true;
 				if (ap_settings.save_dir != NULL)
@@ -763,12 +773,13 @@ int apdoom_init(ap_settings_t* settings)
 	idx_avail_levels.emplace_back(ap_level_index_t{-1, -1});
 
 	// Enable all maps by default in practice mode
+	// In practice+debug, lock all maps (to debug the level select)
 	if (ap_practice_mode)
 	{
 		for (ap_level_index_t *idx = ap_get_available_levels(); idx->ep != -1; ++idx)
 		{
 			auto level_state = ap_get_level_state(*idx);
-			level_state->unlocked = 1;
+			level_state->unlocked = (ap_debug_mode ? 0 : 1);
 			level_state->has_map = 1;
 		}
 	}
@@ -1965,10 +1976,11 @@ static std::set<std::string> upcoming_obit_tags; // List of obit tags and weight
 void f_deathlink(std::string source, std::string cause)
 {
 	if (!cause.empty() && cause.find_first_not_of(' ') != std::string::npos)
-		deathlink_message = "~5" + cause;
+		deathlink_message = cause;
 	else
-		deathlink_message = "~5" + source + " killed you.";
+		deathlink_message = source + " killed you.";
 	printf("APDOOM: Received death: %s\n", deathlink_message.c_str());
+	deathlink_message = "~5" + deathlink_message;
 }
 
 void APDOOM_ObitTags_Clear(void)
@@ -1996,7 +2008,7 @@ void APDOOM_ObitTags_Add(const char *fmt, ...)
 
 const char *APDOOM_SendDeath()
 {
-	if (!ap_settings.always_show_obituaries)
+	if (!ap_debug_mode && !ap_settings.always_show_obituaries)
 	{
 		if (ap_practice_mode || !AP_DeathLinkEnabled())
 			return NULL;
@@ -2015,11 +2027,11 @@ const char *APDOOM_SendDeath()
 		}
 	}
 
-	// Show debug info if we're showing the default obituary when forced
-	if (ap_settings.always_show_obituaries && best_score == 0)
+	// If debugging, show tags related to a given death.
+	if (ap_debug_mode)
 	{
 		bool first = true;
-		printf("No obituaries matched the following tags: ");
+		printf("APDOOM: Obituary tags: ");
 		for (const std::string &tag : upcoming_obit_tags)
 		{
 			if (tag == "GENERIC") continue;
@@ -2295,6 +2307,16 @@ void f_energylink(std::string json_blob)
 	}
 }
 
+static void ap_energylink_simulate(void)
+{
+	// Enables EnergyLink when offline; we handle the calculations ourselves
+	if (ap_practice_mode)
+	{
+		energylink_enabled = true;
+		energylink_available = 10000 * AP_ENERGYLINK_RATIO;
+	}
+}
+
 static void ap_energylink_pool_update(void)
 {
 	// Only send updates about once every 8 seconds, unless a Take occurs.
@@ -2305,35 +2327,55 @@ static void ap_energylink_pool_update(void)
 	if (!energylink_unsent_adds && !energylink_unsent_takes)
 		return;
 
-	std::string addstr;
-	std::string takestr;
-	std::string zero = "0";
+	if (ap_practice_mode)
+	{
+		// We're offline, don't send anything to the server. Do the adjustments ourselves.
+		energylink_available += energylink_unsent_adds;
+		energylink_available -= energylink_unsent_takes;
+		if (energylink_available < 0)
+			energylink_available = 0;
+		else if (energylink_available > AP_ENERGYLINK_MAX)
+			energylink_available = AP_ENERGYLINK_MAX;
 
-	AP_SetServerDataRequest rq;
-	rq.key = energylink_pool;
-	rq.default_value = &zero;
-	rq.type = AP_DataType::Raw;
-	rq.want_reply = true;
+		if (energylink_pending_item)
+		{
+			ap_fake_item_msg(energylink_pending_item, "EnergyLink");
+			f_itemrecv(energylink_pending_item, true);
+			energylink_pause_takes = false;
+		}
+	}
+	else
+	{
+		std::string addstr;
+		std::string takestr;
+		std::string zero = "0";
 
-	if (energylink_unsent_adds)
-	{
-		addstr = std::to_string(energylink_unsent_adds);
-		rq.operations.push_back(AP_DataStorageOperation{"add", &addstr});
-	}
-	if (energylink_unsent_takes)
-	{
-		takestr = std::to_string(energylink_unsent_takes * -1);
-		rq.operations.push_back(AP_DataStorageOperation{"add", &takestr});
-	}
-	if (energylink_pending_item)
-	{
-		// Since this is so simple, let's not waste time with the Json library
-		rq.extra_data = "{\"item\": " + std::to_string(energylink_pending_item) + "}";
+		AP_SetServerDataRequest rq;
+		rq.key = energylink_pool;
+		rq.default_value = &zero;
+		rq.type = AP_DataType::Raw;
+		rq.want_reply = true;
+
+		if (energylink_unsent_adds)
+		{
+			addstr = std::to_string(energylink_unsent_adds);
+			rq.operations.push_back(AP_DataStorageOperation{"add", &addstr});
+		}
+		if (energylink_unsent_takes)
+		{
+			takestr = std::to_string(energylink_unsent_takes * -1);
+			rq.operations.push_back(AP_DataStorageOperation{"add", &takestr});
+		}
+		if (energylink_pending_item)
+		{
+			// Since this is so simple, let's not waste time with the Json library
+			rq.extra_data = "{\"item\": " + std::to_string(energylink_pending_item) + "}";
+		}
+
+		rq.operations.push_back(AP_DataStorageOperation{"max", &zero});
+		AP_SetServerData(&rq);
 	}
 	energylink_unsent_adds = energylink_unsent_takes = energylink_pending_item = 0;
-
-	rq.operations.push_back(AP_DataStorageOperation{"max", &zero});
-	AP_SetServerData(&rq);
 }
 
 int APDOOM_EnergyLink_Enabled(void)

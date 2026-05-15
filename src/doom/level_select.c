@@ -256,6 +256,11 @@ static void level_select_nav_enter()
         S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn);
         play_level(selected_ep, selected_level[selected_ep]);
     }
+    else if (ap_practice_mode && ap_debug_mode) // If offline debug, unlock the level
+    {
+        S_StartSoundOptional(NULL, sfx_mnusli, sfx_swtchn);
+        ap_get_level_state(idx)->unlocked = true;
+    }
     else
     {
         S_StartSound(NULL, sfx_noway);
