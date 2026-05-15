@@ -15,6 +15,8 @@
 static SDL_Window *main_window;
 static SDL_Renderer *renderer;
 
+#include "launcher_icon.c"
+
 layer_t layertop;
 layer_t *layerbot = NULL;
 
@@ -105,6 +107,14 @@ static void LV_CreateRenderer(void)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
+
+    SDL_Surface *icon = SDL_CreateRGBSurfaceFrom(
+        (void *)launcher_icon_data, launcher_icon_w, launcher_icon_h,
+        32, launcher_icon_w * 4,
+        0xffu << 24, 0xffu << 16,
+        0xffu << 8, 0xffu << 0);
+    SDL_SetWindowIcon(main_window, icon);
+    SDL_FreeSurface(icon);
 }
 
 static void LV_EnterBackground(void)
