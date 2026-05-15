@@ -229,9 +229,9 @@ HandlerReturnType EnergyLink_Handler(int key)
             S_StartSound(NULL, sfx_artiuse);
 #endif
     }
-    else if ((key == key_menu_right || key == key_right) && !mousextobutton)
+    else if ((key == key_menu_right || key == key_right || key == key_alt_straferight) && !mousextobutton)
         ++MenuRef->x;
-    else if ((key == key_menu_left || key == key_left) && !mousextobutton)
+    else if ((key == key_menu_left || key == key_left || key == key_alt_strafeleft) && !mousextobutton)
         --MenuRef->x;
 
     if (MenuRef->x > menumax - 1)
