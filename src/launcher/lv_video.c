@@ -103,10 +103,6 @@ static void LV_OnExit(void)
 static void LV_CreateRenderer(void)
 {
     main_window = SDL_CreateWindow("Archipelago Doom - Launcher", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
-    renderer = SDL_CreateRenderer(main_window, -1, 0);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
 
     SDL_Surface *icon = SDL_CreateRGBSurfaceFrom(
         (void *)launcher_icon_data, launcher_icon_w, launcher_icon_h,
@@ -115,6 +111,11 @@ static void LV_CreateRenderer(void)
         0xffu << 8, 0xffu << 0);
     SDL_SetWindowIcon(main_window, icon);
     SDL_FreeSurface(icon);
+
+    renderer = SDL_CreateRenderer(main_window, -1, 0);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
 }
 
 static void LV_EnterBackground(void)
