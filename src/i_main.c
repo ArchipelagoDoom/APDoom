@@ -57,10 +57,6 @@ void D_DoomMain (void);
 
 int main(int argc, char **argv)
 {
-#ifdef _WIN32
-    CloseAutoConsole();
-#endif
-
     // save arguments
 
     myargc = argc;
@@ -74,6 +70,11 @@ int main(int argc, char **argv)
 
     // [crispy] Print date and time in the Load/Save Game menus in the current locale
     setlocale(LC_TIME, "");
+
+#ifdef _WIN32
+    if (!M_ParmExists("-console") || !M_ParmExists("-apdebug"))
+        CloseAutoConsole();
+#endif
 
     //!
     // Print the program version and exit.
