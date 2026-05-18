@@ -2097,6 +2097,10 @@ static boolean CrispyLevelTime(int option)
 
 static boolean CrispyPlayerCoords(int option)
 {
+    // [AP] refuse to toggle when in race mode, player coordinate displays are banned
+    if (ap_race_mode)
+        return true;
+
     // disable "always" and "status bar" setting
     ChangeSettingEnum(&crispy->playercoords, option, NUM_WIDGETS - 2);
     return true;
@@ -3557,8 +3561,8 @@ static void DrawCrispness2(void)
 
     // Show level time
     DrawCrispnessMultiItem(crispy->leveltime, 179, 95, multiitem_widgets, false);
-    // Show player coords
-    DrawCrispnessMultiItem(crispy->playercoords, 211, 105, multiitem_widgets, false);
+    // Show player coords -- [AP] show unavailable in race mode
+    DrawCrispnessMultiItem(crispy->playercoords, 211, 105, multiitem_widgets, ap_race_mode);
 
     // Show secret message
     DrawCrispnessMultiItem(crispy->secretmessage, 250, 115, multiitem_secretmessage, false);

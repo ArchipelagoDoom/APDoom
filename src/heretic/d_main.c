@@ -237,7 +237,9 @@ static void CrispyDrawStats (void)
         MN_DrTextA(str, left_widget_x, 4*height);
     }
 
-    if (crispy->playercoords == WIDGETS_ALWAYS || (automapactive && crispy->playercoords == WIDGETS_AUTOMAP))
+    // [AP] coordinate displays are banned in race mode
+    if (!ap_race_mode &&
+        (crispy->playercoords == WIDGETS_ALWAYS || (automapactive && crispy->playercoords == WIDGETS_AUTOMAP)))
     {
         right_widget_w = coord_w;
 

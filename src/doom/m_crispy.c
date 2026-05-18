@@ -529,6 +529,10 @@ void M_CrispyTogglePitch(int choice)
 
 void M_CrispyTogglePlayerCoords(int choice)
 {
+    // [AP] refuse to toggle when in race mode, player coordinate displays are banned
+    if (ap_race_mode)
+        return;
+
     // [crispy] disable "always" setting
     ChangeSettingEnum(&crispy->playercoords, choice, NUM_WIDGETS - 2);
 }

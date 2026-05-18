@@ -1002,7 +1002,9 @@ void HU_Drawer(void)
 	HUlib_drawTextLine(&w_ltime, false);
     }
 
-    if (crispy->playercoords == WIDGETS_ALWAYS || (automapactive && crispy->playercoords == WIDGETS_AUTOMAP))
+    // [AP] coordinate displays are banned in race mode
+    if (!ap_race_mode &&
+        (crispy->playercoords == WIDGETS_ALWAYS || (automapactive && crispy->playercoords == WIDGETS_AUTOMAP)))
     {
 	HUlib_drawTextLine(&w_coordx, false);
 	HUlib_drawTextLine(&w_coordy, false);
@@ -1557,7 +1559,9 @@ void HU_Ticker(void)
 	    HUlib_addCharToTextLine(&w_ltime, *(s++));
     }
 
-    if (crispy->playercoords == WIDGETS_ALWAYS || (automapactive && crispy->playercoords == WIDGETS_AUTOMAP))
+    // [AP] coordinate displays are banned in race mode
+    if (!ap_race_mode &&
+        (crispy->playercoords == WIDGETS_ALWAYS || (automapactive && crispy->playercoords == WIDGETS_AUTOMAP)))
     {
 	M_snprintf(str, sizeof(str), "%sX\t%s%-5d", cr_stat2, crstr[CR_GRAY],
 	        (plr->mo->x)>>FRACBITS);
