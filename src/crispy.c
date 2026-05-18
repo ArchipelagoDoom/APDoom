@@ -19,6 +19,7 @@
 
 
 #include "crispy.h"
+#include "apdoom.h" // [AP] ap_race_mode
 
 // [crispy] "regular" config variables
 static crispy_t crispy_s = {
@@ -47,6 +48,10 @@ const crispy_t *critical = &critical_s;
 // [crispy] update the "singleplayer" variable and the "critical" struct
 void CheckCrispySingleplayer (boolean singleplayer)
 {
+	// [AP] unconditionally disable in race mode
+	if (ap_race_mode)
+		singleplayer = false;
+
 	if ((crispy->singleplayer = singleplayer))
 	{
 		critical = &crispy_s;
