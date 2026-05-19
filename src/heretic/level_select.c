@@ -48,7 +48,6 @@ int ep_anim = 0;
 int urh_anim = 0;
 int activating_level_select_anim = 200;
 
-// These key graphics are added for APDoom, so we don't need to work around PU_CACHE
 const char* KEY_LUMP_NAMES[] = {"LSKEY0", "LSKEY1", "LSKEY2"};
 
 
@@ -340,7 +339,7 @@ void TickLevelSelect()
 
 int DrawLSPatch(const ap_levelselect_patch_t *lspatch, int x, int y)
 {
-    patch_t* patch = W_CacheLumpName(lspatch->graphic, PU_CACHE);
+    patch_t* patch = W_CacheLumpNameSafe(lspatch->graphic);
     V_DrawPatch(x + lspatch->x, y + lspatch->y, patch);
     return patch->width; // Save width if needed
 }
@@ -414,14 +413,16 @@ void DrawEpisodicLevelSelectStats()
                     break;
             }
 
+#define key_graphic KEY_LUMP_NAMES[k]
+
             for (int k = 0; k < 3; ++k)
             {
                 if (!ap_level_info->keys[k])
                     continue;
 
-                V_DrawPatch(key_x, key_y, W_CacheLumpName("LSKEYBG", PU_CACHE));
+                V_DrawPatch(key_x, key_y, W_CacheLumpNameSafe("LSKEYBG"));
                 if (ap_level_state->keys[k])
-                    V_DrawPatch(key_x, key_y, W_CacheLumpName(KEY_LUMP_NAMES[k], PU_CACHE));
+                    V_DrawPatch(key_x, key_y, W_CacheLumpNameSafe(key_graphic));
 
                 key_x += mapinfo->keys.spacing_x;
                 key_y += mapinfo->keys.spacing_y;
@@ -461,7 +462,7 @@ void DrawEpisodicLevelSelectStats()
                     break;
             }
             SB_RightAlignedSmallNum(progress_x, progress_y, ap_level_state->check_count);
-            V_DrawPatch(progress_x + 1, progress_y, W_CacheLumpName("STYSLASH", PU_CACHE));
+            V_DrawPatch(progress_x + 1, progress_y, W_CacheLumpNameSafe("STYSLASH"));
             SB_LeftAlignedSmallNum(progress_x + 7, progress_y, ap_total_check_count(ap_level_info));
         }
     }
@@ -474,7 +475,7 @@ void DrawEpisodicLevelSelectStats()
         // Level name (non-"Individual" modes)
         if (mapinfo->map_name_display > LS_MAP_DISPLAY_NONE)
         {
-            patch_t *patch = W_CacheLumpName(mapinfo->map_name.graphic, PU_CACHE);
+            patch_t *patch = W_CacheLumpNameSafe(mapinfo->map_name.graphic);
             const int x = (ORIGWIDTH - patch->width) / 2;
             const int y = (mapinfo->map_text_display == LS_MAP_DISPLAY_UPPER) ? 2 : (ORIGHEIGHT - patch->height) - 2;
             DrawLSPatch(&mapinfo->map_name, x, y);
@@ -516,7 +517,7 @@ void DrawLevelSelectStats()
 
 void DrawLevelSelect()
 {
-    patch_t *primary_image = W_CacheLumpName(LS_CurrentEpisodeInfo()->background_image, PU_CACHE);
+    patch_t *primary_image = W_CacheLumpNameSafe(LS_CurrentEpisodeInfo()->background_image);
 
     // Just in case, always fill with black, then draw the current selected episode background
     // But for Heretic we need to not do this until the intro anim is over
@@ -530,8 +531,8 @@ void DrawLevelSelect()
         // We may have room to draw the images for previous and next episodes...
         if (SCREENWIDTH != NONWIDEWIDTH)
         {
-            patch_t *left_image = W_CacheLumpName(LS_PrevEpisodeInfo()->background_image, PU_CACHE);
-            patch_t *right_image = W_CacheLumpName(LS_NextEpisodeInfo()->background_image, PU_CACHE);
+            patch_t *left_image = W_CacheLumpNameSafe(LS_PrevEpisodeInfo()->background_image);
+            patch_t *right_image = W_CacheLumpNameSafe(LS_NextEpisodeInfo()->background_image);
 
             dp_translation = cr[CR_DARK];
             V_DrawPatch(-320, activating_level_select_anim, left_image);
@@ -545,12 +546,12 @@ void DrawLevelSelect()
     }
     else if (ep_anim > 0)
     {
-        patch_t *secondary_image = W_CacheLumpName(LS_PrevEpisodeInfo()->background_image, PU_CACHE);
+        patch_t *secondary_image = W_CacheLumpNameSafe(LS_PrevEpisodeInfo()->background_image);
         V_DrawPatch(-(10 - ep_anim) * 32, 0, secondary_image);
     }
     else // ep_anim < 0
     {
-        patch_t *secondary_image = W_CacheLumpName(LS_NextEpisodeInfo()->background_image, PU_CACHE);
+        patch_t *secondary_image = W_CacheLumpNameSafe(LS_NextEpisodeInfo()->background_image);
         V_DrawPatch((10 + ep_anim) * 32, 0, secondary_image);
     }
 }

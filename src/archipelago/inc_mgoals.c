@@ -198,7 +198,7 @@ void ShowGoals_Drawer(void)
                 TextDrawFunc(dot_x, y, ".");
 
             dp_translation = NULL;
-            V_DrawPatch(290, y - 1, W_CacheLumpName((effect == effect_spacer_ok) ? "CHECKMRK" : "REDX", PU_CACHE));
+            V_DrawPatch(290, y - 1, W_CacheLumpNameSafe((effect == effect_spacer_ok) ? "CHECKMRK" : "REDX"));
             break;
         case effect_clearcount:
             M_snprintf(buf, sizeof(buf), "%s%i / %i",
@@ -220,9 +220,9 @@ void ShowGoals_Drawer(void)
 #elif defined(AP_INC_HERETIC)
     // Use patches instead, the font doesn't work for this.
     if (MenuRef->x > -9)
-        V_DrawPatch(4,     8, W_CacheLumpName((MenuTime&8) ? "GEMUP1" : "GEMUP2", PU_CACHE));
+        V_DrawPatch(4,     8, W_CacheLumpNameSafe((MenuTime&8) ? "GEMUP1" : "GEMUP2"));
     if (MenuRef->x < sgm_levelcount - 12)
-        V_DrawPatch(4, 192-8, W_CacheLumpName((MenuTime&8) ? "GEMDN1" : "GEMDN2", PU_CACHE));
+        V_DrawPatch(4, 192-8, W_CacheLumpNameSafe((MenuTime&8) ? "GEMDN1" : "GEMDN2"));
 #endif
 }
 

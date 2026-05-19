@@ -82,6 +82,9 @@ void W_ReadLump(lumpindex_t lump, void *dest);
 void *W_CacheLumpNum(lumpindex_t lump, int tag);
 void *W_CacheLumpName(const char *name, int tag);
 
+void *W_CacheLumpNumSafe(lumpindex_t lump); // [AP]
+void *W_CacheLumpNameSafe(const char *name); // [AP]
+
 void W_GenerateHashTable(void);
 
 extern unsigned int W_LumpNameHash(const char *s);

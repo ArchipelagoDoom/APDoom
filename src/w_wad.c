@@ -691,3 +691,42 @@ int W_LumpDump (const char *lumpname)
 
     return i;
 }
+
+// [AP] Workaround for some APDoom specific features, to avoid memory issues from retagging.
+// These functions cache as PU_CACHE if not present, but don't change tag if it is present.
+
+void *W_CacheLumpNumSafe(lumpindex_t lumpnum)
+{
+    byte *result;
+    lumpinfo_t *lump;
+
+    if ((unsigned)lumpnum >= numlumps)
+    {
+    I_Error ("W_CacheLumpNumSafe: %i >= numlumps", lumpnum);
+    }
+
+    lump = lumpinfo[lumpnum];
+
+    if (lump->wad_file->mapped != NULL)
+    {
+        // Memory mapped file, return from the mmapped region.
+        result = lump->wad_file->mapped + lump->position;
+    }
+    else if (lump->cache != NULL)
+    {
+        result = lump->cache; // Already cached
+    }
+    else
+    {
+        lump->cache = Z_Malloc(W_LumpLength(lumpnum), PU_CACHE, &lump->cache);
+        W_ReadLump (lumpnum, lump->cache);
+        result = lump->cache;
+    }
+    
+    return result;
+}
+
+void *W_CacheLumpNameSafe(const char *name)
+{
+    return W_CacheLumpNumSafe(W_GetNumForName(name));
+}

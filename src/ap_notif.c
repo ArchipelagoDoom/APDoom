@@ -62,7 +62,7 @@ static pixel_t* convert_cache_icon(const char* name)
     icon->next = NULL;
     cache_tail = (cache_tail->next = icon);
 
-    patch_t *patch = W_CacheLumpNum(lumpnum, PU_CACHE);
+    patch_t *patch = W_CacheLumpNumSafe(lumpnum);
     pixel_t *raw = malloc(patch->width * patch->height);
     memset(raw, 0, patch->width * patch->height);
 
@@ -120,7 +120,7 @@ void APC_DrawNotifBox(int x, int y, const char *sprite, boolean disabled)
 
     V_DrawPatch(x - AP_NOTIF_SIZE/2, 
                 y - AP_NOTIF_SIZE/2, 
-                W_CacheLumpName("NOTIFBG", PU_CACHE));
+                W_CacheLumpNameSafe("NOTIFBG"));
 
     V_DrawScaledBlockTransparency(
         x - AP_NOTIF_ICONSIZE/2,

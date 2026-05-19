@@ -2516,11 +2516,6 @@ void ST_DrawDemoTimer (const int time)
 //--------------------------------------------------------------------------
 // [AP] used for level select, to avoid re-tagging static graphics (causing later memory issues)
 
-void ST_DrawKey(int x, int y, int which)
-{
-    V_DrawPatch(x + 2, y + 1, keys[which]);
-}
-
 void ST_RightAlignedShortNum(int x, int y, int digit)
 {
     x -= 4;

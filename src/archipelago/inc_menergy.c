@@ -93,13 +93,13 @@ void EnergyLink_Drawer(void)
 
     // Draw an EnergyLink header.
 #if defined(AP_INC_DOOM)
-    patch_t *header = W_CacheLumpName("M_ENERGY", PU_CACHE);
+    patch_t *header = W_CacheLumpNameSafe("M_ENERGY");
     V_DrawPatchDirect(ORIGWIDTH/2 - header->width/2, 15, header);
 #elif defined(AP_INC_HERETIC)
     MN_DrTextB("ENERGY LINK", ORIGWIDTH/2 - MN_TextBWidth("ENERGY LINK")/2, 15);
 #endif
 
-    patch_t *icon_sel = W_CacheLumpName("NOTIFSEL", PU_CACHE);
+    patch_t *icon_sel = W_CacheLumpNameSafe("NOTIFSEL");
     char text_buffer[80];
 
     for (int i = 0; elshop_items[i]; ++i)
@@ -182,9 +182,9 @@ void EnergyLink_Drawer(void)
 
     // Use patches instead, the font doesn't work as well for this.
     if (MenuRef->x > 0)
-        V_DrawPatch(8, 70, W_CacheLumpName((MenuTime&8) ? "INVGEML1" : "INVGEML2", PU_CACHE));
+        V_DrawPatch(8, 70, W_CacheLumpNameSafe((MenuTime&8) ? "INVGEML1" : "INVGEML2"));
     if (MenuRef->x < menumax - 1)
-        V_DrawPatch((ORIGWIDTH - 8) - 8, 70, W_CacheLumpName((MenuTime&8) ? "INVGEMR1" : "INVGEMR2", PU_CACHE));
+        V_DrawPatch((ORIGWIDTH - 8) - 8, 70, W_CacheLumpNameSafe((MenuTime&8) ? "INVGEMR1" : "INVGEMR2"));
 #endif
 }
 
