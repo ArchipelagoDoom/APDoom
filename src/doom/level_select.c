@@ -459,20 +459,24 @@ void DrawEpisodicLevelSelectStats()
                 if (!ap_level_info->keys[k])
                     continue;
 
+                // Hack for backwards compatibility
+                const int real_key_x = key_x + (mapinfo->keys.use_custom_gfx ? 0 : 2);
+                const int real_key_y = key_y + (mapinfo->keys.use_custom_gfx ? 0 : 1);
+
                 V_DrawPatch(key_x, key_y, W_CacheLumpNameSafe("LSKEYBG"));
                 if (mapinfo->keys.use_checkmark)
                 {
                     const int checkmark_x = key_x + mapinfo->keys.checkmark_x;
                     const int checkmark_y = key_y + mapinfo->keys.checkmark_y;
 
-                    V_DrawPatch(key_x, key_y, W_CacheLumpNameSafe(key_graphic));
+                    V_DrawPatch(real_key_x, real_key_y, W_CacheLumpNameSafe(key_graphic));
                     if (ap_level_state->keys[k])
                         V_DrawPatch(checkmark_x, checkmark_y, W_CacheLumpNameSafe("CHECKMRK"));
                 }
                 else
                 {
                     if (ap_level_state->keys[k])
-                        V_DrawPatch(key_x, key_y, W_CacheLumpNameSafe(key_graphic));
+                        V_DrawPatch(real_key_x, real_key_y, W_CacheLumpNameSafe(key_graphic));
                 }
 
                 key_x += mapinfo->keys.spacing_x;
