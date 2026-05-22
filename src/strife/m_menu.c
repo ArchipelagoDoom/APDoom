@@ -2247,7 +2247,6 @@ boolean M_Responder (event_t* ev)
     int             ch;
     int             key;
     int             i;
-    static  int     joywait = 0;
     static  int     mousewait = 0;
     static  int     mousey = 0;
     static  int     lasty = 0;
@@ -2257,7 +2256,7 @@ boolean M_Responder (event_t* ev)
 
     // In testcontrols mode, none of the function keys should do anything
     // - the only key is escape to quit.
-
+#if 0 // [AP] Split up, so joystick controls can exit the game when testing.
     if (testcontrols)
     {
         if (ev->type == ev_quit
@@ -2270,10 +2269,18 @@ boolean M_Responder (event_t* ev)
 
         return false;
     }
+#endif
 
     // "close" button pressed on window?
     if (ev->type == ev_quit)
     {
+        // [AP] split off from just above
+        if (testcontrols)
+        {
+            I_Quit();
+            return true;
+        }
+
         // First click on close button = bring up quit confirm message.
         // Second click on close button = confirm quit
 
@@ -2295,46 +2302,27 @@ boolean M_Responder (event_t* ev)
     ch = 0;
     key = -1;
 
-    if (ev->type == ev_joystick && joywait < I_GetTime())
+    if (ev->type == ev_joystick)
     {
-        if (JOY_GET_DPAD(ev->data6) != JOY_DIR_NONE)
-        {
-            dir = JOY_GET_DPAD(ev->data6);
-        }
-        else if (JOY_GET_LSTICK(ev->data6) != JOY_DIR_NONE)
-        {
-            dir = JOY_GET_LSTICK(ev->data6);
-        }
-        else
-        {
-            dir = JOY_GET_RSTICK(ev->data6);
-        }
+        dir = JOY_GET_UMENUNAV(ev->data6); // [AP] Universal menu navigation
 
         if (dir & JOY_DIR_UP)
         {
             key = key_menu_up;
-            joywait = I_GetTime() + 5;
         }
         else if (dir & JOY_DIR_DOWN)
         {
             key = key_menu_down;
-            joywait = I_GetTime() + 5;
         }
         if (dir & JOY_DIR_LEFT)
         {
             key = key_menu_left;
-            joywait = I_GetTime() + 5;
         }
         else if (dir & JOY_DIR_RIGHT)
         {
             key = key_menu_right;
-            joywait = I_GetTime() + 5;
         }
-
-#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
-#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (ev->data1 & (1 << (x))) != 0)
-
-        if (JOY_BUTTON_PRESSED(joybfire))
+        if (dir & JOY_DIR_FORWARD)
         {
             // Simulate a 'Y' keypress when Doom show a Y/N dialog with Fire button.
             if (messageToPrint && messageNeedsInput)
@@ -2345,9 +2333,8 @@ boolean M_Responder (event_t* ev)
             {
                 key = key_menu_forward;
             }
-            joywait = I_GetTime() + 5;
         }
-        if (JOY_BUTTON_PRESSED(joybuse))
+        if (dir & JOY_DIR_BACK)
         {
             // Simulate a 'N' keypress when Doom show a Y/N dialog with Use button.
             if (messageToPrint && messageNeedsInput)
@@ -2358,12 +2345,11 @@ boolean M_Responder (event_t* ev)
             {
                 key = key_menu_back;
             }
-            joywait = I_GetTime() + 5;
         }
-        if (JOY_BUTTON_PRESSED(joybmenu))
+
+        IF_INPUT_NOREPEAT(JOY_BUTTON_PRESSED(ev->data1, joybmenu))
         {
             key = key_menu_activate;
-            joywait = I_GetTime() + 5;
         }
     }
     else
@@ -2446,6 +2432,17 @@ boolean M_Responder (event_t* ev)
 
     if (key == -1)
         return false;
+
+    // [AP] moved testcontrols checks from above down here
+    if (testcontrols)
+    {
+        if (key == key_menu_activate || key == key_menu_quit)
+        {
+            I_Quit();
+            return true;
+        }
+        return false;
+    }
 
     // Save Game string input
     if (saveStringEnter)

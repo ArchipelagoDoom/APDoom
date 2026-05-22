@@ -83,6 +83,10 @@
 
 #include "strife_icon.c"
 
+#include "ap_basic.h"
+#include "apdoom.h"
+#include "ap_spec.h"
+
 //
 // D-DoomLoop()
 // Not a globally visible function,
@@ -1596,6 +1600,9 @@ void D_DoomMain (void)
     char            file[256];
     char            demolumpname[9];
 
+    ap_settings_t ap_settings;
+    memset(&ap_settings, 0, sizeof(ap_settings));
+
     I_AtExit(D_Endoom, false);
 
     // haleyjd 20110206 [STRIFE]: -nograph parameter
@@ -1634,6 +1641,9 @@ void D_DoomMain (void)
 
     //DEH_printf("Z_Init: Init zone memory allocation daemon. \n"); [STRIFE] removed
     Z_Init ();
+
+    // Handle Archipelago settings / setup.
+    APC_ParseCommandLine(&ap_settings, "strife");
 
     //!
     // @category net
@@ -1932,6 +1942,17 @@ void D_DoomMain (void)
                 }
             }
         }
+    }
+
+    // Initialize AP
+    ap_settings.message_callback = APC_OnMessage;
+    ap_settings.give_item_callback = APC_OnGiveItem;
+    ap_settings.victory_callback = APC_OnVictory;
+    if (!apdoom_init(&ap_settings))
+    {
+        if (ap_settings.temp_init_file)
+            I_Quit(); // If from launcher, don't I_Error
+        I_Error("Failed to initialize Archipelago.");
     }
 
     //!

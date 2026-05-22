@@ -1,4 +1,6 @@
 add_library(hexen STATIC
+            ap_spec.c           ap_spec.h
+
             a_action.c
                                 am_data.h
             am_map.c            am_map.h
@@ -57,7 +59,7 @@ add_library(hexen STATIC
                                 textdefs.h
                                 xddefs.h)
 
-target_include_directories(hexen PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+target_include_directories(hexen PRIVATE "../" "${CMAKE_CURRENT_BINARY_DIR}/../../" "../archipelago/")
 if (DEFINED EMSCRIPTEN)
     set(SDL_FLAGS "-s USE_SDL=2")
     if(ENABLE_SDL2_MIXER)

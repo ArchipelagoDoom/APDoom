@@ -1940,7 +1940,7 @@ boolean MN_Responder(event_t * event)
 
     // In testcontrols mode, none of the function keys should do anything
     // - the only key is escape to quit.
-
+#if 0 // [AP] Split up, so joystick controls can exit the game when testing.
     if (testcontrols)
     {
         if (event->type == ev_quit
@@ -1954,10 +1954,18 @@ boolean MN_Responder(event_t * event)
 
         return false;
     }
+#endif
 
     // "close" button pressed on window?
     if (event->type == ev_quit)
     {
+        // [AP] split off from just above
+        if (testcontrols)
+        {
+            I_Quit();
+            return true;
+        }
+
         // First click on close = bring up quit confirm message.
         // Second click = confirm quit.
 
@@ -1981,47 +1989,27 @@ boolean MN_Responder(event_t * event)
     if (event->type == ev_joystick)
     {
         // Simulate key presses from joystick events to interact with the menu.
+        dir = JOY_GET_UMENUNAV(event->data6); // [AP] Universal menu navigation
 
         if (MenuActive)
         {
-            if (JOY_GET_DPAD(event->data6) != JOY_DIR_NONE)
-            {
-                dir = JOY_GET_DPAD(event->data6);
-            }
-            else if (JOY_GET_LSTICK(event->data6) != JOY_DIR_NONE)
-            {
-                dir = JOY_GET_LSTICK(event->data6);
-            }
-            else
-            {
-                dir = JOY_GET_RSTICK(event->data6);
-            }
-
             if (dir & JOY_DIR_UP)
             {
                 key = key_menu_up;
-                joywait = I_GetTime() + 5;
             }
             else if (dir & JOY_DIR_DOWN)
             {
                 key = key_menu_down;
-                joywait = I_GetTime() + 5;
             }
             if (dir & JOY_DIR_LEFT)
             {
                 key = key_menu_left;
-                joywait = I_GetTime() + 5;
             }
             else if (dir & JOY_DIR_RIGHT)
             {
                 key = key_menu_right;
-                joywait = I_GetTime() + 5;
             }
-
-#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
-#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (event->data1 & (1 << (x))) != 0)
-
-            if (JOY_BUTTON_PRESSED(joybfire))
+            if (dir & JOY_DIR_FORWARD)
             {
                 // Simulate pressing "Enter" when we are supplying a save slot name
                 if (FileMenuKeySteal)
@@ -2037,9 +2025,8 @@ boolean MN_Responder(event_t * event)
                     }
                     key = key_menu_forward;
                 }
-                joywait = I_GetTime() + 5;
             }
-            if (JOY_BUTTON_PRESSED(joybuse))
+            if (dir & JOY_DIR_BACK)
             {
                 // If user was entering a save name, back out
                 if (FileMenuKeySteal)
@@ -2050,29 +2037,25 @@ boolean MN_Responder(event_t * event)
                 {
                     key = key_menu_back;
                 }
-                joywait = I_GetTime() + 5;
             }
         }
         else if (askforquit)
         {
-            if (JOY_BUTTON_PRESSED(joybfire))
+            if (dir & JOY_DIR_FORWARD)
             {
                 // Simulate a 'Y' keypress
                 key = key_menu_confirm;
-                joywait = I_GetTime() + 5;
             }
-            if (JOY_BUTTON_PRESSED(joybuse))
+            if (dir & JOY_DIR_BACK)
             {
                 // Simulate a 'N' keypress
                 key = key_menu_abort;
-                joywait = I_GetTime() + 5;
             }
         }
-        if (JOY_BUTTON_PRESSED(joybmenu))
+
+        IF_INPUT_NOREPEAT(JOY_BUTTON_PRESSED(event->data1, joybmenu))
         {
-            MN_ActivateMenu();
-            joywait = I_GetTime() + 5;
-            return true;
+            key = key_menu_activate;
         }
     }
     else // [crispy] allow menu control with the mouse
@@ -2154,6 +2137,17 @@ boolean MN_Responder(event_t * event)
     {
         key = event->data1;
         charTyped = event->data2;
+    }
+
+    // [AP] moved testcontrols checks from above down here
+    if (testcontrols)
+    {
+        if (key == key_menu_activate || key == key_menu_quit)
+        {
+            I_Quit();
+            return true;
+        }
+        return false;
     }
 
     if (InfoType)

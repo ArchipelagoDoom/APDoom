@@ -702,7 +702,6 @@ AM_Responder
 
     int rc;
     static int bigstate=0;
-    static int joywait = 0;
     static char buffer[20];
     int key;
 
@@ -726,11 +725,10 @@ AM_Responder
 
     rc = false;
 
-    if (ev->type == ev_joystick && joybautomap >= 0
-        && (ev->data1 & (1 << joybautomap)) != 0 && joywait < I_GetTime())
+    if (ev->type == ev_joystick)
     {
-        joywait = I_GetTime() + 5;
-
+    IF_INPUT_NOREPEAT(JOY_BUTTON_PRESSED(ev->data1, joybautomap))
+    {
         if (!automapactive)
         {
             AM_Start ();
@@ -745,6 +743,7 @@ AM_Responder
 
         return true;
     }
+    } // ev->type == ev_joystick
 
 
     if (!automapactive)

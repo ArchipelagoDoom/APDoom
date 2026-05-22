@@ -825,8 +825,10 @@ static void R_InitHSVColors (void)
 	    crstr = I_Realloc(NULL, CRMAX * sizeof(*crstr));
 
 	// [crispy] CRMAX - 2: don't override the original GREN and BLUE2 Boom tables
-	for (i = 0; i < CRMAX - 2; i++)
+	// [AP] But what about my new CYAN color! :)
+	for (i = 0; i < CRMAX/* - 2*/; i++)
 	{
+	    if (i == CRMAX - 2 || i == CRMAX - 3) continue; // [AP] don't override the original GREN and BLUE2 Boom tables
 	    for (j = 0; j < 256; j++)
 	    {
 		cr[i][j] = V_Colorize(playpal, i, j, false);

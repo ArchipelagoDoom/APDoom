@@ -47,6 +47,10 @@
 
 #include "hexen_icon.c"
 
+#include "ap_basic.h"
+#include "apdoom.h"
+#include "ap_spec.h"
+
 // MACROS ------------------------------------------------------------------
 
 #define MAXWADFILES 20
@@ -481,6 +485,9 @@ void D_DoomMain(void)
     GameMission_t gamemission;
     int p;
 
+    ap_settings_t ap_settings;
+    memset(&ap_settings, 0, sizeof(ap_settings));
+
     I_AtExit(D_HexenQuitMessage, false);
     startepisode = 1;
     autostart = false;
@@ -488,6 +495,10 @@ void D_DoomMain(void)
     gamemode = commercial;
 
     I_PrintVersionBanner();
+
+    // Handle Archipelago settings / setup.
+    APC_ParseCommandLine(&ap_settings, "hexen");
+    ap_settings.override_flip_levels = false; // Not supported by Hexen
 
     // Initialize subsystems
 
@@ -536,6 +547,17 @@ void D_DoomMain(void)
 
     ST_Message("Z_Init: Init zone memory allocation daemon.\n");
     Z_Init();
+
+    // Initialize AP
+    ap_settings.message_callback = APC_OnMessage;
+    ap_settings.give_item_callback = APC_OnGiveItem;
+    ap_settings.victory_callback = APC_OnVictory;
+    if (!apdoom_init(&ap_settings))
+    {
+        if (ap_settings.temp_init_file)
+            I_Quit(); // If from launcher, don't I_Error
+        I_Error("Failed to initialize Archipelago.");
+    }
 
     // haleyjd: removed WATCOMC
 
@@ -1210,15 +1232,21 @@ static void DrawMessage(void)
     {                           // No message
         return;
     }
+
+    int y = 0;
+    if (viewheight == SCREENHEIGHT && (!automapactive || crispy->automapoverlay))
+        y = 190;
+    else
+        y = 158 - 10;
     if (player->yellowMessage)
     {
         MN_DrTextAYellow(player->message,
-                         160 - MN_TextAWidth(player->message) / 2, 1);
+                         160 - MN_TextAWidth(player->message) / 2, y);
     }
     else
     {
         MN_DrTextA(player->message, 160 - MN_TextAWidth(player->message) / 2,
-                   1);
+                   y);
     }
 }
 

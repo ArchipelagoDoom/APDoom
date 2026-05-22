@@ -1,4 +1,6 @@
 set(STRIFE_SOURCES
+    ap_spec.c       ap_spec.h
+
     am_map.c        am_map.h
     deh_ammo.c
     deh_cheat.c
@@ -71,7 +73,7 @@ set(STRIFE_SOURCES
 
 add_library(strife STATIC ${STRIFE_SOURCES})
 
-target_include_directories(strife PRIVATE "../" "../../win32/" "${CMAKE_CURRENT_BINARY_DIR}/../../")
+target_include_directories(strife PRIVATE "../" "../../win32/" "${CMAKE_CURRENT_BINARY_DIR}/../../" "../archipelago/")
 if (DEFINED EMSCRIPTEN)
     set(SDL_FLAGS "-s USE_SDL=2")
     if(ENABLE_SDL2_MIXER)
