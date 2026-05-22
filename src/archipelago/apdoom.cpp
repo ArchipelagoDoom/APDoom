@@ -908,6 +908,8 @@ void apdoom_shutdown()
 {
 	if (ap_was_connected)
 		save_state();
+	if (!ap_practice_mode)
+		AP_Shutdown();
 }
 
 
