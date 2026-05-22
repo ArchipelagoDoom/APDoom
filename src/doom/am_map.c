@@ -912,11 +912,10 @@ AM_Responder
 
     rc = false;
 
-    if (ev->type == ev_joystick && joybautomap >= 0
-        && (ev->data1 & (1 << joybautomap)) != 0)
+    if (ev->type == ev_joystick)
     {
-        joywait = I_GetTime() + 5;
-
+    IF_INPUT_NOREPEAT(JOY_BUTTON_PRESSED(ev->data1, joybautomap))
+    {
         if (!automapactive)
         {
             AM_Start ();
@@ -931,6 +930,7 @@ AM_Responder
 
         return true;
     }
+    } // ev->type == ev_joystick
 
     if (!automapactive)
     {

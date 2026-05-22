@@ -172,6 +172,52 @@ static int DeviceIndexGamepad(void)
     return index;
 }
 
+// [AP] Universal menu navigation input (stored in ev->data6)
+static int UniversalMenuNav(int dir, int forward, int back)
+{
+    int result = dir | (forward ? JOY_DIR_FORWARD : 0) | (back ? JOY_DIR_BACK : 0);
+
+    // Nix conflicting directions.
+    if ((dir & (JOY_DIR_UP|JOY_DIR_DOWN)) == (JOY_DIR_UP|JOY_DIR_DOWN))
+        dir &= ~(JOY_DIR_UP|JOY_DIR_DOWN);
+    if ((dir & (JOY_DIR_LEFT|JOY_DIR_RIGHT)) == (JOY_DIR_LEFT|JOY_DIR_RIGHT))
+        dir &= ~(JOY_DIR_LEFT|JOY_DIR_RIGHT);
+
+    { // Handle key repeat.
+        static int64_t repeat_time = 0;
+        static int repeat_result = 0;
+        int last_result = repeat_result;
+        repeat_result = result;
+
+        if (!(result & 0xf))
+        {
+            // No directions being pressed, do nothing.
+        }
+        else if ((last_result & 0xf) == (result & 0xf))
+        {
+            // Repeated input, suppress unless repeat timer says otherwise.
+            int64_t new_time = SDL_GetTicks64();
+            if (new_time >= repeat_time)
+                repeat_time = new_time + 50;
+            else
+                result &= ~0xf;
+        }
+        else
+        {
+            // Changed input, always send through.
+            repeat_time = SDL_GetTicks64() + 500;
+        }
+
+        // Forward/back can't repeat. If they're in last input, remove them from this one.
+        if (last_result & JOY_DIR_FORWARD)
+            result &= ~JOY_DIR_FORWARD;
+        if (last_result & JOY_DIR_BACK)
+            result &= ~JOY_DIR_BACK;
+    }
+
+    return result << UMENUNAV_SHIFT;
+}
+
 void I_InitGamepad(void)
 {
     SDL_JoystickGUID guid;
@@ -439,6 +485,11 @@ void I_UpdateGamepad(void)
                                        joystick_look_invert,
                                        joystick_look_dead_zone);
         ev.data6 = GetDirectionalInputGamepad(axis_values);
+
+        // [AP] Universal menu navigation
+        ev.data6 |= UniversalMenuNav(JOY_GET_DPAD(ev.data6) | JOY_GET_LSTICK(ev.data6),
+                                     SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_A),
+                                     SDL_GameControllerGetButton(gamepad, SDL_CONTROLLER_BUTTON_B));
 
         D_PostEvent(&ev);
     }
@@ -786,6 +837,14 @@ void I_UpdateJoystick(void)
         ev.data5 = GetAxisState(joystick_look_axis, joystick_look_invert,
                                 joystick_look_dead_zone);
         ev.data6 = GetDirectionalInput(ev.data2, ev.data3);
+
+        // [AP] Universal menu navigation
+        extern int joybfire; // yuck!
+        extern int joybuse;
+        ev.data6 |= UniversalMenuNav(ev.data6,
+                                     JOY_BUTTON_PRESSED(ev.data1, joybfire),
+                                     JOY_BUTTON_PRESSED(ev.data1, joybuse));
+
         D_PostEvent(&ev);
     }
 }

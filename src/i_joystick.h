@@ -78,9 +78,11 @@
 #define DPAD_SHIFT 0
 #define LSTICK_SHIFT 4
 #define RSTICK_SHIFT 8
+#define UMENUNAV_SHIFT 16 // [AP]
 #define JOY_GET_DPAD(x) (((x) >> DPAD_SHIFT) & 0xf)
 #define JOY_GET_LSTICK(x) (((x) >> LSTICK_SHIFT) & 0xf)
 #define JOY_GET_RSTICK(x) (((x) >> RSTICK_SHIFT) & 0xf)
+#define JOY_GET_UMENUNAV(x) (((x) >> UMENUNAV_SHIFT) & 0x3f) // [AP]
 
 // 4-way direction data for gamepad directional inputs.
 enum
@@ -89,7 +91,9 @@ enum
     JOY_DIR_UP = 0x1,
     JOY_DIR_DOWN = 0x2,
     JOY_DIR_LEFT = 0x4,
-    JOY_DIR_RIGHT = 0x8
+    JOY_DIR_RIGHT = 0x8,
+    JOY_DIR_FORWARD = 0x10, // [AP] umenunav
+    JOY_DIR_BACK = 0x20 // [AP] umenunav
 };
 
 // Extend the SDL_GameControllerButton enum to include the triggers.

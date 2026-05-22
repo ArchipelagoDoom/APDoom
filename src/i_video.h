@@ -131,7 +131,7 @@ extern char *window_position;
 void I_GetWindowPosition(int *x, int *y, int w, int h);
 
 // Joystic/gamepad hysteresis
-extern unsigned int joywait;
+// extern unsigned int joywait; // [AP] not used
 
 extern int usemouse;
 

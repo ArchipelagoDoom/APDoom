@@ -22,6 +22,7 @@
 #include "doomdef.h"
 #include "doomkeys.h"
 #include "doomstat.h"
+#include "i_joystick.h"
 #include "i_system.h"
 #include "i_video.h"
 #include "d_main.h"
@@ -197,30 +198,6 @@ void select_map_dir(int dir)
 }
 
 
-static void level_select_nav_left()
-{
-    select_map_dir(0);
-}
-
-
-static void level_select_nav_right()
-{
-    select_map_dir(1);
-}
-
-
-static void level_select_nav_up()
-{
-    select_map_dir(2);
-}
-
-
-static void level_select_nav_down()
-{
-    select_map_dir(3);
-}
-
-
 static void level_select_prev_episode()
 {
     int new_ep = LS_PrevEpisode();
@@ -278,43 +255,20 @@ boolean LevelSelectResponder(event_t* ev)
     {
         case ev_joystick:
         {
-            if (ev->data4 < 0 || ev->data2 < 0)
-            {
-                level_select_nav_left();
-                joywait = I_GetTime() + 5;
-            }
-            else if (ev->data4 > 0 || ev->data2 > 0)
-            {
-                level_select_nav_right();
-                joywait = I_GetTime() + 5;
-            }
-            else if (ev->data3 < 0)
-            {
-                level_select_nav_up();
-                joywait = I_GetTime() + 5;
-            }
-            else if (ev->data3 > 0)
-            {
-                level_select_nav_down();
-                joywait = I_GetTime() + 5;
-            }
-
-#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
-#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (ev->data1 & (1 << (x))) != 0)
-
-            if (JOY_BUTTON_PRESSED(joybfire)) level_select_nav_enter();
-
-            if (JOY_BUTTON_PRESSED(joybprevweapon)) level_select_prev_episode();
-            else if (JOY_BUTTON_PRESSED(joybnextweapon)) level_select_next_episode();
-
+            const int umenunav = JOY_GET_UMENUNAV(ev->data6);
+            if (umenunav & JOY_DIR_UP) select_map_dir(2);
+            if (umenunav & JOY_DIR_DOWN) select_map_dir(3);
+            if (umenunav & JOY_DIR_LEFT) level_select_prev_episode();
+            if (umenunav & JOY_DIR_RIGHT) level_select_next_episode();
+            if (umenunav & JOY_DIR_FORWARD) level_select_nav_enter();
             break;
         }
         case ev_keydown:
         {
             if (ev->data1 == key_left || ev->data1 == key_alt_strafeleft || ev->data1 == key_strafeleft) level_select_prev_episode();
             if (ev->data1 == key_right || ev->data1 == key_alt_straferight || ev->data1 == key_straferight) level_select_next_episode();
-            if (ev->data1 == key_up || ev->data1 == key_alt_up) level_select_nav_up();
-            if (ev->data1 == key_down || ev->data1 == key_alt_down) level_select_nav_down();
+            if (ev->data1 == key_up || ev->data1 == key_alt_up) select_map_dir(2);
+            if (ev->data1 == key_down || ev->data1 == key_alt_down) select_map_dir(3);
             if (ev->data1 == key_menu_forward || ev->data1 == key_use) level_select_nav_enter();
             break;
         }

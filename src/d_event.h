@@ -147,6 +147,24 @@ void D_PostEvent (event_t *ev);
 
 event_t *D_PopEvent(void);
 
+// [AP] Extracted from various games' menu code
+// Makes the most sense to put it here, since it relies on events? I think???
+#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
+#define JOY_BUTTON_PRESSED(evdata, x) (JOY_BUTTON_MAPPED(x) && (evdata & (1 << (x))) != 0)
+
+// [AP] Macro if condition for input that needs to react one time,
+// and then never again until the input is released.
+#define __INPUTNOREP_MERGE(a,b) a##b
+#define __INPUTNOREP_LABEL(a,b) __INPUTNOREP_MERGE(a,b)
+#define __INPUTNOREP_ONCE __INPUTNOREP_LABEL(_once_, __LINE__)
+#define __INPUTNOREP_CURR __INPUTNOREP_LABEL(_curr_, __LINE__)
+#define __INPUTNOREP_RUNS __INPUTNOREP_LABEL(_runs_, __LINE__)
+#define IF_INPUT_NOREPEAT(cond) \
+    static int __INPUTNOREP_ONCE = false; \
+    const  int __INPUTNOREP_CURR = (cond); \
+    const  int __INPUTNOREP_RUNS = (__INPUTNOREP_CURR && !__INPUTNOREP_ONCE); \
+    __INPUTNOREP_ONCE = __INPUTNOREP_CURR; \
+    if (__INPUTNOREP_RUNS)
 
 #endif
 

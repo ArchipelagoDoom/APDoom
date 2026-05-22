@@ -223,7 +223,7 @@ static unsigned int last_resize_time;
 int usegamma = 0;
 
 // Joystick/gamepad hysteresis
-unsigned int joywait = 0;
+// unsigned int joywait = 0; // [AP] not used
 
 // Icon RGB data and dimensions
 static const unsigned int *icon_data;
@@ -547,10 +547,8 @@ void I_StartTic (void)
         I_ReadMouse();
     }
 
-    if (joywait < I_GetTime())
-    {
-        I_UpdateJoystick();
-    }
+    // [AP] Removed joywait
+    I_UpdateJoystick();
 }
 
 void I_UpdateFracTic(void) // [crispy]

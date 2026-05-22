@@ -23,6 +23,7 @@
 #include "doomdef.h"
 #include "doomkeys.h"
 #include "deh_str.h" // solely for PLAYPAL
+#include "i_joystick.h"
 #include "i_system.h"
 #include "i_timer.h"
 #include "i_video.h"
@@ -220,37 +221,12 @@ boolean LevelSelectResponder(event_t* ev)
     {
         case ev_joystick:
         {
-            if (ev->data4 < 0 || ev->data2 < 0)
-            {
-                select_map_dir(0);
-                joywait = I_GetTime() + 5;
-            }
-            else if (ev->data4 > 0 || ev->data2 > 0)
-            {
-                select_map_dir(1);
-                joywait = I_GetTime() + 5;
-            }
-            else if (ev->data3 < 0)
-            {
-                //select_map_dir(2);
-                level_select_prev_episode();
-                joywait = I_GetTime() + 5;
-            }
-            else if (ev->data3 > 0)
-            {
-                //select_map_dir(3);
-                joywait = I_GetTime() + 5;
-                level_select_next_episode();
-            }
-
-#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
-#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (ev->data1 & (1 << (x))) != 0)
-
-            if (JOY_BUTTON_PRESSED(joybfire)) level_select_nav_enter();
-
-            if (JOY_BUTTON_PRESSED(joybprevweapon)) level_select_prev_episode();
-            else if (JOY_BUTTON_PRESSED(joybnextweapon)) level_select_next_episode();
-
+            const int umenunav = JOY_GET_UMENUNAV(ev->data6);
+            if (umenunav & JOY_DIR_UP) select_map_dir(2);
+            if (umenunav & JOY_DIR_DOWN) select_map_dir(3);
+            if (umenunav & JOY_DIR_LEFT) level_select_prev_episode();
+            if (umenunav & JOY_DIR_RIGHT) level_select_next_episode();
+            if (umenunav & JOY_DIR_FORWARD) level_select_nav_enter();
             break;
         }
         case ev_keydown:

@@ -2538,47 +2538,27 @@ boolean M_Responder (event_t* ev)
     if (ev->type == ev_joystick)
     {
         // Simulate key presses from joystick events to interact with the menu.
+        dir = JOY_GET_UMENUNAV(ev->data6); // [AP] Universal menu navigation
 
         if (menuactive)
         {
-            if (JOY_GET_DPAD(ev->data6) != JOY_DIR_NONE)
-            {
-                dir = JOY_GET_DPAD(ev->data6);
-            }
-            else if (JOY_GET_LSTICK(ev->data6) != JOY_DIR_NONE)
-            {
-                dir = JOY_GET_LSTICK(ev->data6);
-            }
-            else
-            {
-                dir = JOY_GET_RSTICK(ev->data6);
-            }
-
             if (dir & JOY_DIR_UP)
             {
                 key = key_menu_up;
-                joywait = I_GetTime() + 5;
             }
             else if (dir & JOY_DIR_DOWN)
             {
                 key = key_menu_down;
-                joywait = I_GetTime() + 5;
             }
             if (dir & JOY_DIR_LEFT)
             {
                 key = key_menu_left;
-                joywait = I_GetTime() + 5;
             }
             else if (dir & JOY_DIR_RIGHT)
             {
                 key = key_menu_right;
-                joywait = I_GetTime() + 5;
             }
-
-#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
-#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (ev->data1 & (1 << (x))) != 0)
-
-            if (JOY_BUTTON_PRESSED(joybfire))
+            if (dir & JOY_DIR_FORWARD)
             {
                 // Simulate a 'Y' keypress when Doom show a Y/N dialog with Fire button.
                 if (messageToPrint && messageNeedsInput)
@@ -2599,9 +2579,8 @@ boolean M_Responder (event_t* ev)
                     }
                     key = key_menu_forward;
                 }
-                joywait = I_GetTime() + 5;
             }
-            if (JOY_BUTTON_PRESSED(joybuse))
+            if (dir & JOY_DIR_BACK)
             {
                 // Simulate a 'N' keypress when Doom show a Y/N dialog with Use button.
                 if (messageToPrint && messageNeedsInput)
@@ -2617,13 +2596,12 @@ boolean M_Responder (event_t* ev)
                 {
                     key = key_menu_back;
                 }
-                joywait = I_GetTime() + 5;
             }
         }
-        if (JOY_BUTTON_PRESSED(joybmenu))
+
+        IF_INPUT_NOREPEAT(JOY_BUTTON_PRESSED(ev->data1, joybmenu))
         {
             key = key_menu_activate;
-            joywait = I_GetTime() + 5;
         }
     }
     else

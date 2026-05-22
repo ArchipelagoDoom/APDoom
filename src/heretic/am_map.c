@@ -809,7 +809,6 @@ boolean AM_Responder(event_t * ev)
     int rc;
     int key;
     static int bigstate = 0;
-    static int joywait = 0;
     static char buffer[20]; // [crispy] to store mapmarkers
     extern boolean speedkeydown (void);
 
@@ -834,11 +833,10 @@ boolean AM_Responder(event_t * ev)
     key = ev->data1;
     rc = false;
 
-    if (ev->type == ev_joystick && joybautomap >= 0
-        && (ev->data1 & (1 << joybautomap)) != 0 && joywait < I_GetTime())
+    if (ev->type == ev_joystick)
     {
-        joywait = I_GetTime() + 5;
-
+    IF_INPUT_NOREPEAT(JOY_BUTTON_PRESSED(ev->data1, joybautomap))
+    {
         if (!automapactive)
         {
             AM_Start ();
@@ -851,6 +849,7 @@ boolean AM_Responder(event_t * ev)
             AM_Stop ();
         }
     }
+    } // ev->type == ev_joystick
 
     if (!automapactive)
     {
