@@ -48,9 +48,11 @@ const crispy_t *critical = &critical_s;
 // [crispy] update the "singleplayer" variable and the "critical" struct
 void CheckCrispySingleplayer (boolean singleplayer)
 {
+#ifndef SETUP_PRG
 	// [AP] unconditionally disable in race mode
 	if (ap_race_mode)
 		singleplayer = false;
+#endif
 
 	if ((crispy->singleplayer = singleplayer))
 	{
