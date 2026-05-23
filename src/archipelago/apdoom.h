@@ -393,6 +393,7 @@ extern int ap_race_mode; // Read from server. Used to disable cheats
 extern int ap_practice_mode; // Offline testing mode.
 extern int ap_debug_mode; // Additional debug info.
 extern int ap_force_disable_behaviors; // Demo compatibility, disable most apdoom stuff
+extern int ap_countdown_timer; // Last countdown number given by the server, -1 for no countdown.
 
 
 int apdoom_init(ap_settings_t* settings);

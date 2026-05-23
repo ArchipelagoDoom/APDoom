@@ -80,6 +80,9 @@ int ap_debug_mode = false; // -apdebug: Give extra info, if offline then enable 
 int ap_force_disable_behaviors = false; // For demo compatibility.
 long int initial_timestamp = 0; // Time that the seed was started.
 
+int ap_countdown_timer = -1; // Last countdown number given by the server.
+static int ap_countdown_display = 0; // Time (updates) needed to clear the timer.
+
 static bool detected_old_apworld = false;
 static int ap_weapon_count = -1;
 static int ap_ammo_count = -1;
@@ -1762,6 +1765,20 @@ void apdoom_update()
 
 		switch (msg->type)
 		{
+			case AP_MessageType::Countdown:
+			{
+				AP_CountdownMessage* o_msg = static_cast<AP_CountdownMessage*>(msg);
+				if (o_msg->text.find("Starting countdown") != std::string::npos)
+					colored_msg = "~3" + std::to_string(o_msg->timer) + "~2 second countdown starting...";
+				else if (o_msg->timer == 0)
+					colored_msg = "~3GO!";
+				// Otherwise colored_msg is left empty to not send a client message.
+
+				// Yes, we have to handle a negative countdown.
+				ap_countdown_timer = std::max(o_msg->timer, 0);
+				ap_countdown_display = (o_msg->timer > 0 ? 35*10 : 35*3);
+				break;
+			}
 			case AP_MessageType::ItemSend:
 			{
 				AP_ItemSendMessage* o_msg = static_cast<AP_ItemSendMessage*>(msg);
@@ -1789,10 +1806,13 @@ void apdoom_update()
 
 		printf("APDOOM: %s\n", msg->text.c_str());
 
-		if (ap_initialized)
-			ap_settings.message_callback(colored_msg.c_str());
-		else
-			ap_cached_messages.push_back(colored_msg);
+		if (!colored_msg.empty())
+		{
+			if (ap_initialized)
+				ap_settings.message_callback(colored_msg.c_str());
+			else
+				ap_cached_messages.push_back(colored_msg);
+		}
 
 		AP_ClearLatestMessage();
 	}
@@ -1859,6 +1879,10 @@ void apdoom_update()
 
 		++it;
 	}
+
+	// Hide countdown timer after long enough.
+	if (ap_countdown_display > 0 && --ap_countdown_display == 0)
+		ap_countdown_timer = -1;
 
 	ap_energylink_pool_update();
 }
@@ -2044,9 +2068,10 @@ const char *APDOOM_SendDeath()
 	}
 
 	// We've gotten the best obituary, now put the player's name in there
-    size_t pname_marker = deathlink_sent_msg.find("%YOU%");
+    constexpr std::string_view pname_you{"%YOU%"};
+    size_t pname_marker = deathlink_sent_msg.find(pname_you);
     if (pname_marker != std::string::npos)
-        deathlink_sent_msg.replace(pname_marker, 5, ap_settings.player_name);
+        deathlink_sent_msg.replace(pname_marker, pname_you.size(), ap_settings.player_name);
 
     if (!ap_practice_mode)
 		AP_DeathLinkSend(deathlink_sent_msg);

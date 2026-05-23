@@ -2516,14 +2516,26 @@ void ST_DrawDemoTimer (const int time)
 //--------------------------------------------------------------------------
 // [AP] used for level select, to avoid re-tagging static graphics (causing later memory issues)
 
+static int ST_NumWidth(int w, int digit)
+{
+	int len = 0;
+	do
+	{
+		len += w;
+		digit /= 10;
+	} while (digit);
+	return len;
+}
+
 void ST_RightAlignedShortNum(int x, int y, int digit)
 {
     x -= 4;
 
+	if (digit < 0)
+		digit = -digit;
     do
     {
-        int i = digit % 10;
-        V_DrawPatch(x, y, shortnum[i]);
+        V_DrawPatch(x, y, shortnum[digit % 10]);
         x -= 4;
         digit /= 10;
     }
@@ -2532,17 +2544,24 @@ void ST_RightAlignedShortNum(int x, int y, int digit)
 
 void ST_LeftAlignedShortNum(int x, int y, int digit)
 {
-    int len = 0;
-    int i = digit;
+    ST_RightAlignedShortNum(x + ST_NumWidth(4, digit), y, digit);
+}
 
-    do
-    {
-        len += 4;
-        i /= 10;
-    }
-    while (i);
+void ST_CenteredTallNum(int x, int y, int digit)
+{
+	const int w = SHORT(tallnum[0]->width);
+	if (digit < 0)
+		digit = -digit;
 
-    ST_RightAlignedShortNum(x + len, y, digit);
+	x -= w;
+	x += ST_NumWidth(w, digit) / 2;
+	do
+	{
+		V_DrawPatch(x, y, tallnum[digit % 10]);
+		x -= w;
+		digit /= 10;
+	}
+	while (digit);
 }
 
 void ST_RenderStatusBarAnywhere(void)

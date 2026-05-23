@@ -1,8 +1,11 @@
+#include "apdoom.h"
 #include "ap_msg.h"
 #include <inttypes.h>
 #include "i_timer.h"
 #include "doomdef.h"
 #include "i_video.h"
+#include "v_video.h"
+#include "m_misc.h"
 #include <stdlib.h>
 
 
@@ -138,6 +141,19 @@ void HU_DrawAPMessages()
         if (ap_messages[i].on)
             MN_DrTextA(ap_messages[i].message, (0 - WIDESCREENDELTA), ap_messages[i].y);
     }
+
+    if (ap_countdown_timer >= 0)
+    {
+        static char countdown_buf[16];
+
+        dp_translucent = true;
+        V_DrawFilledBox(0,           39 << crispy->hires,
+                        SCREENWIDTH, 18 << crispy->hires, 0);
+        dp_translucent = false;
+
+        M_snprintf(countdown_buf, 16, "%d", ap_countdown_timer);
+        MN_DrTextB(countdown_buf, ORIGWIDTH/2 - MN_TextBWidth(countdown_buf)/2, 40 - 1);
+    }
 }
 
 
@@ -224,4 +240,8 @@ void HU_ClearAPMessages()
     ap_message_buffer_count = 0;
     for (int i = 0; i < HU_MAXLINES; ++i)
         ap_messages[i].on = false;
+
+    // If the countdown timer is at exactly zero, then clear it
+    if (ap_countdown_timer == 0)
+        ap_countdown_timer = -1;
 }

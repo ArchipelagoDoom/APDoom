@@ -931,6 +931,10 @@ void V_DrawFilledBox(int x, int y, int w, int h, int c)
     pixel_t *buf, *buf1;
     int x1, y1;
 
+    // [AP] allow translucent boxes.
+    static drawpatchpx_t *const boxfillpx[2][2] = {{drawpatchpx10, drawtinttab}, {drawpatchpx00, drawpatchpx00}};
+    drawpatchpx_t *const drawpx = boxfillpx[!dp_translucent][!tranmap];
+
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
 
     for (y1 = 0; y1 < h; ++y1)
@@ -939,7 +943,8 @@ void V_DrawFilledBox(int x, int y, int w, int h, int c)
 
         for (x1 = 0; x1 < w; ++x1)
         {
-            *buf1++ = c;
+            *buf1 = drawpx(*buf1, c);
+            ++buf1;
         }
 
         buf += SCREENWIDTH;

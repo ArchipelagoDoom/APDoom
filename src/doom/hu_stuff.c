@@ -1131,6 +1131,10 @@ void HU_ClearAPMessages()
     ap_message_buffer_count = 0;
 #endif
     ap_message_anim = 0;
+
+    // If the countdown timer is at exactly zero, then clear it
+    if (ap_countdown_timer == 0)
+        ap_countdown_timer = -1;
 }
 
 
@@ -1238,11 +1242,25 @@ void HU_AddAPMessage(const char* message)
 void HU_DrawAPMessages()
 {
     hu_forced_color = true;
+
     for (int i = 0; i < 4; ++i)
     {
         if (i == 0 && ap_message_anim > 0 && HU_GetActiveAPMessageCount() == 4) continue;
         HUlib_drawSText(&w_ap_messages[i]);
     }
+
+    if (ap_countdown_timer >= 0)
+    {
+        extern void ST_CenteredTallNum(int x, int y, int digit); // Unreferenced AP only ST function
+
+        dp_translucent = true;
+        V_DrawFilledBox(0,           39 << crispy->hires,
+                        SCREENWIDTH, 18 << crispy->hires, 0);
+        dp_translucent = false;
+
+        ST_CenteredTallNum(ORIGWIDTH/2, 40, ap_countdown_timer);
+    }
+
     hu_forced_color = false;
 }
 
