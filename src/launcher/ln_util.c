@@ -65,23 +65,23 @@ void LN_OpenDialog(int type, const char *header, const char *msg)
         text_x -= LV_TextWidth(&large_font, "OK");
         text_x -= 10;
         LV_PrintText(l_dialog, text_x, 95 + wrap_height, &large_font, "OK");
-        text_x -= LV_TextWidth(&small_font, "\xF9(return)");
+        text_x -= LV_TextWidth(&small_font, "\xA9(return)");
         text_x -= 8;
-        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xF9(return)");
+        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xA9(return)");
         break;
     case DIALOG_YES_NO:
         text_x -= LV_TextWidth(&large_font, "No");
         text_x -= 10;
         LV_PrintText(l_dialog, text_x, 95 + wrap_height, &large_font, "No");
-        text_x -= LV_TextWidth(&small_font, "\xF9(esc)");
+        text_x -= LV_TextWidth(&small_font, "\xA9(esc)");
         text_x -= 8;
-        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xF9(esc)");
+        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xA9(esc)");
         text_x -= LV_TextWidth(&large_font, "Yes");
         text_x -= 20;
         LV_PrintText(l_dialog, text_x, 95 + wrap_height, &large_font, "Yes");
-        text_x -= LV_TextWidth(&small_font, "\xF9(return)");
+        text_x -= LV_TextWidth(&small_font, "\xA9(return)");
         text_x -= 8;
-        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xF9(return)");
+        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xA9(return)");
         break;
     }
 

@@ -2141,7 +2141,7 @@ const ap_savesettings_t *APDOOM_FindSaves(int *save_count)
 						tmp_savedata.practice_mode = false;
 						tmp_savedata.last_timestamp = json["_last_timestamp"].asInt64();
 						tmp_savedata.initial_timestamp = json["_initial_timestamp"].asInt64();
-						snprintf(tmp_savedata.slot_name, 16 + 1, "%s", json["slot_name"].asCString());
+						snprintf(tmp_savedata.slot_name, 64 + 1, "%s", json["slot_name"].asCString());
 						snprintf(tmp_savedata.address, 128 + 1, "%s", json["address"].asCString());
 						snprintf(tmp_savedata.password, 128 + 1, "%s", json["server_pass"].asCString());
 						snprintf(tmp_savedata.extra_cmdline, 256 + 1, "%s", json.get("extra_args", "").asCString());

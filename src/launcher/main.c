@@ -91,23 +91,23 @@ static bool TestIWAD(const char *iwad, char **error_str)
             || !strcmp(iwad, "PLUTONIA.WAD"))
         {
             descriptive_text = "\n\n"
-                "The easiest way to obtain this file is to purchase\xF2 DOOM + DOOM II\xF0 on Steam; "
+                "The easiest way to obtain this file is to purchase\xA2 DOOM + DOOM II\xA0 on Steam; "
                 "APDoom can usually load the game files from this version automatically."
                 "\n\n"
                 "If you already own this game, place the IWAD file into the same directory as APDoom. "
                 "For newer rereleases, you want to use the IWAD file that is in the /base/ directory, "
-                "and \xF1NOT\xF0 the one in the /rerelease/ directory.";
+                "and \xA1NOT\xA0 the one in the /rerelease/ directory.";
         }
         else if (!strcmp(iwad, "HERETIC.WAD"))
         {
             descriptive_text = "\n\n"
-                "The easiest way to obtain this file is to purchase\xF2 Heretic + Hexen\xF0 on Steam; "
+                "The easiest way to obtain this file is to purchase\xA2 Heretic + Hexen\xA0 on Steam; "
                 "APDoom can usually load the game files from this version automatically."
                 "\n\n"
                 "If you already own this game, place the IWAD file into the same directory as APDoom. "
                 "For newer rereleases, you want to use the IWAD file that is in the /dos/base/ directory.";
         }
-        *error_str = LN_allocsprintf("The IWAD for this game, \xF2%s\xF0, could not be found.%s",
+        *error_str = LN_allocsprintf("The IWAD for this game, \xA2%s\xA0, could not be found.%s",
             iwad, descriptive_text);
         return false;
     }
@@ -142,8 +142,8 @@ static bool TestPWAD(const char **wad_list, char **error_str)
             if (!strcmp(not_found_list[i], "nerve.wad"))
             {
                 extra_descriptive_text = "\n\n"
-                    "\xF2nerve.wad\xF0 contains the No Rest for the Living levels, and can be found in "
-                    "the /rerelease/ directory for\xF2 DOOM + DOOM II\xF0.";
+                    "\xA2nerve.wad\xA0 contains the No Rest for the Living levels, and can be found in "
+                    "the /rerelease/ directory for\xA2 DOOM + DOOM II\xA0.";
             }
         }
 
@@ -541,8 +541,8 @@ static void Main_Init(menudata_t *data)
 
 static void Main_Draw(menudata_t *data)
 {
-    DrawMenuItem(data->layer, 40, 100, false, "\xF2" "Archipelago");
-    DrawMenuItem(data->layer, 40, 180, false, "\xF2" "Offline");
+    DrawMenuItem(data->layer, 40, 100, false, "\xA2" "Archipelago");
+    DrawMenuItem(data->layer, 40, 180, false, "\xA2" "Offline");
 }
 
 static void Main_Input(menudata_t *data)
@@ -661,12 +661,12 @@ static void LoadSavedGame_Draw(menudata_t *data)
             strftime(lastdt, 48, "%B %d, %Y\n  %r", localtime(&last_timestamp));
 
             sidebar_text = LN_allocsprintf(
-                "Game:\n"        "  \xF4%s\xF0\n\n"
-                "Server:\n"      "  \xF2%s\xF0\n\n"
-                "Slot Name:\n"   "  \xF2%s\xF0\n\n"
+                "Game:\n"        "  \xA4%s\xA0\n\n"
+                "Server:\n"      "  \xA2%s\xA0\n\n"
+                "Slot Name:\n"   "  \xA2%s\xA0\n\n"
                 "Started:\n"     "  %s\n\n"
                 "Last Played:\n" "  %s\n\n"
-                "\xF4%s",
+                "\xA4%s",
                 lsg_savegame_cache[sidebar_id].world->fullname,
                 lsg_savegame_cache[sidebar_id].address,
                 lsg_savegame_cache[sidebar_id].slot_name,
@@ -680,7 +680,7 @@ static void LoadSavedGame_Draw(menudata_t *data)
     }
 
     LV_FormatText(l_primary, (SCREEN_WIDTH/4)*3, 325, &small_font, "%d of %d", data->cursor + 1, data->target_count);
-    LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3, 325-32, &small_font, "\xF9(tab)\n(esc)");
+    LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3, 325-32, &small_font, "\xA9(tab)\n(esc)");
     LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3 + 32, 325-32, &small_font, "More Options\nBack");
 }
 
@@ -806,8 +806,8 @@ static void LoadOptions_Input(menudata_t *data)
     case 2:
     {
         char *warn_msg = LN_allocsprintf(
-            "Are you sure you want to delete the save game \xF2%s\xF0?\n\n"
-            "\xF1This operation cannot be undone!",
+            "Are you sure you want to delete the save game \xA2%s\xA0?\n\n"
+            "\xA1This operation cannot be undone!",
             lsg_savegame_cache[save_cursor].path
         );
         LN_DialogResponder(DeleteGameResponder);
@@ -965,7 +965,7 @@ static int DrawGameName(int num, menudata_t *data, void *arg)
 {
     (void)arg;
     DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, "%c%s",
-        (game_settings.world ? 0xF4 : 0xF9),
+        (game_settings.world ? 0xA4 : 0xA9),
         (game_settings.world ? game_settings.world->fullname : "<no game selected>"));
 
     // Selection disabled if previous menu is the save game menu. Can't change game.
@@ -1096,7 +1096,7 @@ static void Connect_Input(menudata_t *data)
     {
     case 1:
         if (!editing_savegame) 
-            LI_SetTextInput(game_settings.slot_name, 16 + 1);
+            LI_SetTextInput(game_settings.slot_name, 64 + 1);
         else
             LI_SetTextInput(NULL, 0);
         break;
@@ -1127,7 +1127,7 @@ static void Connect_Input(menudata_t *data)
 
 static int AdvOptDrawSkill(int num, menudata_t *data, void *arg)
 {
-    const char *text = "\xF9<unchanged>";
+    const char *text = "\xA9<unchanged>";
     const int is_heretic = (game_settings.world && !strcmp(game_settings.world->iwad, "HERETIC.WAD"));
 
     switch (game_settings.skill)
@@ -1145,7 +1145,7 @@ static int AdvOptDrawSkill(int num, menudata_t *data, void *arg)
 
 static int AdvOptDrawMapThingRando(int num, menudata_t *data, void *arg)
 {
-    const char *text = "\xF9<unchanged>";
+    const char *text = "\xA9<unchanged>";
     const int value = (num == 1 ? game_settings.monster_rando : game_settings.item_rando);
 
     switch (value)
@@ -1163,7 +1163,7 @@ static int AdvOptDrawMapThingRando(int num, menudata_t *data, void *arg)
 
 static int AdvOptDrawMusicRando(int num, menudata_t *data, void *arg)
 {
-    const char *text = "\xF9<unchanged>";
+    const char *text = "\xA9<unchanged>";
     switch (game_settings.music_rando)
     {
     case 0: text = "Off"; break;
@@ -1177,11 +1177,11 @@ static int AdvOptDrawMusicRando(int num, menudata_t *data, void *arg)
 
 static int AdvOptDrawFlipLevels(int num, menudata_t *data, void *arg)
 {
-    const char *text = "\xF9<unchanged>";
+    const char *text = "\xA9<unchanged>";
     if (game_settings.world && !strcmp(game_settings.world->iwad, "HERETIC.WAD"))
     {
         LV_SetPalette(9);
-        text = "\xF9<not available>";
+        text = "\xA9<not available>";
     }
     else switch (game_settings.flip_levels)
     {
@@ -1196,7 +1196,7 @@ static int AdvOptDrawFlipLevels(int num, menudata_t *data, void *arg)
 
 static int AdvOptDrawResetLevel(int num, menudata_t *data, void *arg)
 {
-    const char *text = "\xF9<unchanged>";
+    const char *text = "\xA9<unchanged>";
     switch (game_settings.reset_level)
     {
     case 0: text = "Off"; break;
@@ -1209,11 +1209,11 @@ static int AdvOptDrawResetLevel(int num, menudata_t *data, void *arg)
 
 static int AdvOptDrawDeathLink(int num, menudata_t *data, void *arg)
 {
-    const char *text = "\xF9<unchanged>";
+    const char *text = "\xA9<unchanged>";
     if (game_settings.practice_mode)
     {
         LV_SetPalette(9);
-        text = "\xF9<not available>";
+        text = "\xA9<not available>";
     }
     else if (game_settings.no_deathlink > 0)
         text = "Force Off";

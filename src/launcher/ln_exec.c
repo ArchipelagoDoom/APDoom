@@ -212,14 +212,14 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
     if (!strcmp(init_result, "ConnectFailed"))
     {
         error_reason = LN_allocsprintf(
-            "Couldn't connect to the Archipelago server at \xF2%s\xF0.\n"
+            "Couldn't connect to the Archipelago server at \xA2%s\xA0.\n"
             "\n"
             "Check the address and port for typos, and then try again.", exec_settings->address);
     }
     else if (!strcmp(init_result, "InvalidSlot"))
     {
         error_reason = LN_allocsprintf(
-            "The server reports that the slot name \xF2%s\xF0 "
+            "The server reports that the slot name \xA2%s\xA0 "
             "does not match any players in the MultiWorld.\n"
             "\n"
             "Check the slot name for typos, and then try again.", exec_settings->slot_name);
@@ -227,7 +227,7 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
     else if (!strcmp(init_result, "InvalidGame"))
     {
         error_reason = LN_allocsprintf(
-            "The server reports that the slot name \xF2%s\xF0 "
+            "The server reports that the slot name \xA2%s\xA0 "
             "is not playing the game that you attempted to connect with.\n"
             "\n"
             "Make sure you are connecting to the correct MultiWorld and/or slot.", exec_settings->slot_name);
@@ -503,7 +503,7 @@ void LN_ExecuteGame(const ap_savesettings_t *settings)
     case -666: // Couldn't execute program
         {
             char *reason = LN_allocsprintf(
-                "The program \xF2%s\xF0 could not be executed.\n"
+                "The program \xA2%s\xA0 could not be executed.\n"
                 "\n"
                 "Please check your installation of APDoom for missing files, "
                 "and make sure the program is not blocked from executing by "
@@ -519,7 +519,7 @@ void LN_ExecuteGame(const ap_savesettings_t *settings)
         if (!initfile_buf[0])
         {
             char *reason = LN_allocsprintf(
-                "The program \xF2%s\xF0 exited unexpectedly before initializing Archipelago.\n"
+                "The program \xA2%s\xA0 exited unexpectedly before initializing Archipelago.\n"
                 "\n"
                 "Please check your installation of APDoom for missing files, "
                 "and make sure the program is not blocked from executing by "
@@ -563,7 +563,7 @@ void LN_ExecuteSetup(void)
     if (code == -666)
     {
         char *reason = LN_allocsprintf(
-            "The setup program \xF2%s\xF0 could not be executed.\n"
+            "The setup program \xA2%s\xA0 could not be executed.\n"
             "\n"
             "Please check your installation of APDoom for missing files, "
             "and make sure the program is not blocked from executing by "

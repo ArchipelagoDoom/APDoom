@@ -15,13 +15,13 @@ void LV_LoadFont(font_t *dst_font, const char *prefix, int space_x, int line_y)
     dst_font->line_y = line_y;
 
     char buffer[9];
-    for (int i = 33; i < 127; ++i)
+    for (int i = LV_FONTSTART; i <= LV_FONTEND; ++i)
     {
         snprintf(buffer, sizeof(buffer), "%s%03d", prefix, i);
 
         // Don't use CacheLumpName, because we don't want to bomb out if not found.
         const lumpindex_t idx = W_CheckNumForName(buffer);
-        dst_font->patches[i - 33] = (idx >= 0) ? (patch_t *)W_CacheLumpNum(idx, PU_STATIC) : NULL;
+        dst_font->patches[i - LV_FONTSTART] = (idx >= 0) ? (patch_t *)W_CacheLumpNum(idx, PU_STATIC) : NULL;
     }
 }
 
@@ -33,10 +33,11 @@ void LV_PrintTextRange(layer_t *layer, int orig_x, int y, font_t *f, const char 
     int orig_pal = LV_GetPalette();
     for (;*c && c < c_end;++c)
     {
-        const byte b = (byte)*c;
-        if (b >= 0xF0)
+        byte b = (byte)*c;
+        // Control codes
+        if (b >= LV_COLORSTART && b <= LV_COLORSTART+9)
         {
-            LV_SetPalette(b - 0xF0);
+            LV_SetPalette(b - LV_COLORSTART);
             continue;
         }
         else if (b == '\n')
@@ -45,15 +46,29 @@ void LV_PrintTextRange(layer_t *layer, int orig_x, int y, font_t *f, const char 
             y += f->line_y;
             continue;
         }
-        else if (b < 33 || b > 126 || !f->patches[b - 33])
-        {
-            x += f->space_x;
-            continue;
-        }
 
-        patch_t *p = f->patches[b - 33];
-        LV_DrawPatch(layer, x, y, p);
-        x += p->width;
+        // Characters
+        if ((b & 0xF0) >= 0xC0)
+        {
+            b = LV_FONTEND; // We can't draw unicode, but we do eat the correct number of characters.
+            switch (b & 0xF0)
+            {
+            case 0xF0: if (c < c_end) ++c; // fall through
+            case 0xE0: if (c < c_end) ++c; // fall through
+            default:   if (c < c_end) ++c; break;
+            }
+        }
+        else if (b < LV_FONTSTART || b > LV_FONTEND)
+            b = LV_FONTEND;
+
+        if (!f->patches[b - LV_FONTSTART])
+            x += f->space_x;
+        else
+        {
+            patch_t *p = f->patches[b - LV_FONTSTART];
+            LV_DrawPatch(layer, x, y, p);
+            x += p->width;
+        }
     }
     LV_SetPalette(orig_pal);
 }
@@ -63,13 +78,28 @@ int LV_TextWidthRange(font_t *f, const char *c, const char *c_end)
     int w = 0;
     for (;*c && c < c_end;++c)
     {
-        const byte b = (byte)*c;
-        if (b >= 0xF0)
-            continue;
-        else if (b < 33 || b > 126 || !f->patches[b - 33])
+        byte b = (byte)*c;
+        if ((b >= LV_COLORSTART && b <= LV_COLORSTART+9) || b == '\n')
+            continue; // LV text control codes
+
+        // Characters
+        if ((b & 0xF0) >= 0xC0)
+        {
+            b = LV_FONTEND; // We can't draw unicode, but we do eat the correct number of characters.
+            switch (b & 0xF0)
+            {
+            case 0xF0: if (c < c_end) ++c; // fall through
+            case 0xE0: if (c < c_end) ++c; // fall through
+            default:   if (c < c_end) ++c; break;
+            }
+        }
+        else if (b < LV_FONTSTART || b > LV_FONTEND)
+            b = LV_FONTEND;
+
+        if (!f->patches[b - LV_FONTSTART])
             w += f->space_x;
         else
-            w += f->patches[b - 33]->width;
+            w += f->patches[b - LV_FONTSTART]->width;
     }
     return w;
 }
@@ -77,8 +107,9 @@ int LV_TextWidthRange(font_t *f, const char *c, const char *c_end)
 char *LV_WrapText(font_t *f, int w, const char *str)
 {
     int running_width = 0;
+    int unicode_skip = 0;
 
-    int max_len = strlen(str) + 20;
+    int max_len = strlen(str) + 32;
     char *wrapped_str = malloc(max_len + 1);
 
     const char *in_p = str;
@@ -88,14 +119,35 @@ char *LV_WrapText(font_t *f, int w, const char *str)
 
     while (true)
     {
-        const byte b = (byte)*str;
+        byte b = (byte)*str;
 
-        if (b >= 0xF0 || b == '\n')
-            {} // no operation
-        else if (b < 33 || b > 126 || !f->patches[b - 33])
-            running_width += f->space_x;
+        if (b && unicode_skip > 0)
+        {
+            b = LV_FONTEND; // Skipping unicode continuation characters
+            --unicode_skip;
+        }
+        else if (!b || (b >= LV_COLORSTART && b <= LV_COLORSTART+9) || b == '\n')
+            {} // LV text control codes -- skip width calculation
         else
-            running_width += f->patches[b - 33]->width;
+        {
+            if ((b & 0xF0) >= 0xC0)
+            {
+                b = LV_FONTEND; // We can't draw unicode, but we do eat the correct number of characters.
+                switch (b & 0xF0)
+                {
+                case 0xF0: ++unicode_skip; // fall through
+                case 0xE0: ++unicode_skip; // fall through
+                default:   ++unicode_skip; break;
+                }
+            }
+            else if (b < LV_FONTSTART || b > LV_FONTEND)
+                b = LV_FONTEND;
+
+            if (!f->patches[b - LV_FONTSTART])
+                running_width += f->space_x;
+            else
+                running_width += f->patches[b - LV_FONTSTART]->width;
+        }
 
         if (b == ' ')
             last_space = str;

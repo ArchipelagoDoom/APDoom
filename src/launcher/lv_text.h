@@ -5,10 +5,14 @@
 #include "doomtype.h"
 #include "lv_video.h"
 
+#define LV_FONTSTART   32 // First character that can have a patch
+#define LV_FONTEND    127 // Last character that can have a patch
+#define LV_COLORSTART 160 // First character that represents a color control code
+
 typedef struct {
     int space_x;
     int line_y;
-    patch_t *patches[96];
+    patch_t *patches[1 + (LV_FONTEND - LV_FONTSTART)];
 } font_t;
 
 void LV_LoadFont(font_t *dst_font, const char *prefix, int space_x, int line_y);

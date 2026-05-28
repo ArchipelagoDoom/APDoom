@@ -499,7 +499,7 @@ void APDOOM_ObitTags_Add(const char *fmt, ...);
 // ===== SAVE DATA ============================================================
 
 typedef struct {
-    char slot_name[16 + 1]; // -applayerhex <s>
+    char slot_name[64 + 1]; // -applayer <s> (16 characters, but allow for unicode)
     char address[128 + 1]; // -apserver <s>
     char password[128 + 1]; // -password <s>
 
