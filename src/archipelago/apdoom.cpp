@@ -126,19 +126,24 @@ void f_goal(std::string json_blob)
 	ap_state.goal = json["type"].asInt();
 	switch (ap_state.goal)
 	{
-	case 3: // Specific Levels
-	case 2: // Random Levels
+	case 4: // Count and specific levels
+	case 3: // Specific levels
+	case 2: // Random levels
 		{
 			ap_state.goal_level_count = (int)json["levels"].size();
-			ap_state.goal_level_list = new ap_level_index_t[ap_state.goal_level_count];
+			ap_state.goal_level_list = new ap_level_index_t[ap_state.goal_level_count + 1];
 			for (int i = 0; i < ap_state.goal_level_count; ++i)
 			{
 				const Json::Value& j_idx = json["levels"][i];
 				ap_state.goal_level_list[i].ep = j_idx[0].asInt() - 1;
 				ap_state.goal_level_list[i].map = j_idx[1].asInt() - 1;
 			}
+			ap_state.goal_level_list[ap_state.goal_level_count].ep = -1;
+			ap_state.goal_level_list[ap_state.goal_level_count].map = -1;
 		}
-		break;
+		if (ap_state.goal != 4)
+			break;
+		// fall through -- we wind up overwriting goal level count in this case intentionally
 	case 1: // Some number of levels
 		ap_state.goal_level_count = json["count"].asInt();
 		break;
@@ -1639,14 +1644,17 @@ void apdoom_check_victory()
 
 	switch (ap_state.goal)
 	{
+	case 4: // Count and specific levels
 	case 3: // Specific levels
 	case 2: // Random levels
-		for (int i = 0; i < ap_state.goal_level_count; ++i)
+		for (int i = 0; ap_state.goal_level_list[i].ep != -1; ++i)
 		{
 			if (!ap_get_level_state(ap_state.goal_level_list[i])->completed)
 				return;
 		}
-		break;
+		if (ap_state.goal != 4)
+			break;
+		// fall through
 	case 1: // Some count of levels
 		for (int ep = 0; ep < ap_episode_count; ++ep)
 		{

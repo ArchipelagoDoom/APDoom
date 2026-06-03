@@ -79,25 +79,31 @@ static Menu_t ShowGoalsMenu = {
 
 static void ShowGoals_Init(void)
 {
+    ap_level_index_t *idx;
+
     sgm_levelcount = 0;
     sgm_clearcount = 0;
 
-    if (ap_state.goal >= 2)
+    if (ap_state.goal == 4)
     {
-        sgm_levelcount = ap_state.goal_level_count;
-        for (int i = 0; i < sgm_levelcount; ++i)
+        for (idx = ap_get_available_levels(); idx->ep != -1; ++idx)
+            sgm_clearcount += (ap_get_level_state(*idx)->completed ? 1 : 0);
+        for (idx = ap_state.goal_level_list; idx->ep != -1; ++idx)
+            ++sgm_levelcount;
+    }
+    else if (ap_state.goal >= 2)
+    {
+        for (idx = ap_state.goal_level_list; idx->ep != -1; ++idx)
         {
-            ap_level_state_t *state = ap_get_level_state(ap_state.goal_level_list[i]);
-            sgm_clearcount += (state->completed ? 1 : 0);
+            sgm_clearcount += (ap_get_level_state(*idx)->completed ? 1 : 0);
+            ++sgm_levelcount;
         }
     }
     else
     {
-        for (ap_level_index_t *idx = ap_get_available_levels(); idx->ep != -1; ++idx)
+        for (idx = ap_get_available_levels(); idx->ep != -1; ++idx)
         {
-            ap_level_state_t *state = ap_get_level_state(*idx);
-            sgm_clearcount += (state->completed ? 1 : 0);
-
+            sgm_clearcount += (ap_get_level_state(*idx)->completed ? 1 : 0);
             ++sgm_levelcount;
         }
     }
@@ -130,8 +136,10 @@ void ShowGoals_Drawer(void)
 
         if (h == -3)
             M_snprintf(buf, sizeof(buf), "%sTo win, you must complete", crstr[CR_RED]);
+        else if (h == -2 && ap_state.goal == 4)
+            M_snprintf(buf, sizeof(buf), "%s%i%s total levels, including these:", crstr[CR_GRAY], sgm_goalcount, crstr[CR_RED]);
         else if (h == -2 && ap_state.goal >= 2)
-            M_snprintf(buf, sizeof(buf), "%sthe following levels.", crstr[CR_RED]);
+            M_snprintf(buf, sizeof(buf), "%sthe following levels:", crstr[CR_RED]);
         else if (h == -2 && ap_state.goal == 1)
             M_snprintf(buf, sizeof(buf), "%s%i%s different levels.", crstr[CR_GRAY], sgm_goalcount, crstr[CR_RED]);
         else if (h == -2)
