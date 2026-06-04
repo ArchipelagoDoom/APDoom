@@ -78,7 +78,7 @@ int ap_race_mode = false; // Server reports this is a race, not casual.
 int ap_practice_mode = false; // Not connected to a server, simulate play.
 int ap_debug_mode = false; // -apdebug: Give extra info, if offline then enable some extra tools.
 int ap_force_disable_behaviors = false; // For demo compatibility.
-long int initial_timestamp = 0; // Time that the seed was started.
+int64_t initial_timestamp = 0; // Time that the seed was started.
 
 int ap_countdown_timer = -1; // Last countdown number given by the server.
 static int ap_countdown_display = 0; // Time (updates) needed to clear the timer.
@@ -691,7 +691,7 @@ int apdoom_init(ap_settings_t* settings)
 				ap_save_path /= ap_seed_string;
 
 				// Create a directory where saves will go for this AP seed.
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__GNUC__)
 				printf("APDOOM: Save directory: %ws\n", ap_save_path.c_str());
 #else
 				printf("APDOOM: Save directory: %s\n", ap_save_path.c_str());
@@ -701,7 +701,7 @@ int apdoom_init(ap_settings_t* settings)
 				// Make sure that ammo starts at correct base values no matter what
 				recalc_max_ammo();
 
-				initial_timestamp = (long int)time(NULL);
+				initial_timestamp = (int64_t)time(NULL);
 				load_state();
 
 				// Ask the server for race mode state.
@@ -983,7 +983,7 @@ void load_state()
 
 	initial_timestamp = json.get("launcher_data", Json::objectValue).get("_initial_timestamp", 0).asInt64();
 	if (!initial_timestamp)
-		initial_timestamp = (long int)time(NULL);
+		initial_timestamp = (int64_t)time(NULL);
 
 	// Player state
 	json_get_int(json["player"]["health"], ap_state.player_state.health);
@@ -1117,7 +1117,7 @@ void save_state()
 	if (!ap_practice_mode)
 	{
 		Json::Value json_launchdata;
-		json_launchdata["_last_timestamp"] = (long int)time(NULL);
+		json_launchdata["_last_timestamp"] = (int64_t)time(NULL);
 		json_launchdata["_initial_timestamp"] = initial_timestamp;
 
 		json_launchdata["game"] = ap_settings.game;
