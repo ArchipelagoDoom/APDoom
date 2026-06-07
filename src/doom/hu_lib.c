@@ -114,9 +114,9 @@ int HULib_measureText(const char* text, int len)
 				i++;
 			}
 		}
-		else if (c != ' ' && c <= '_')
+		else if (c != ' ' && c >= HU_FONTSTART && c <= '_')
 		{
-			w = SHORT(f[c - '!']->width);
+			w = SHORT(f[c - HU_FONTSTART]->width);
 			x += w;
 		}
 		else
