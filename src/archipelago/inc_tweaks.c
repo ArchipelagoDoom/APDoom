@@ -95,6 +95,11 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
             // Let any arbitrary map have normally hardcoded hacks applied to it
             if (strncmp(tweak->string, "MAP", 3) == 0)
             {
+                if (gamemode != commercial)
+                {
+                    apmeta.gameversion = exe_doom_1_9;
+                    apmeta.gamemode = commercial;
+                }
                 apmeta.gameepisode = 1;
                 apmeta.gamemap = atoi(&tweak->string[3]);
             }
@@ -102,6 +107,11 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
                 && tweak->string[1] >= '1' && tweak->string[1] <= '9'
                 && tweak->string[2] == 'M')
             {
+                if (gamemode == commercial)
+                {
+                    apmeta.gameversion = exe_ultimate;
+                    apmeta.gamemode = retail;
+                }
                 apmeta.gameepisode = (tweak->string[1] - '0');
                 apmeta.gamemap = atoi(&tweak->string[3]);
             }

@@ -547,7 +547,7 @@ void P_LoadThings (int lump)
         P_MTRando_Setup(&monster_rando, ap_state.random_monsters);
 
         // Forbid monsters that have map effects from moving, even when settings dictate otherwise.
-        if (gamemode == commercial)
+        if (apmeta.gamemode == commercial)
         {
             if (apmeta.gamemap == 7) // Dead Simple mancubi and arachnotrons
             {
@@ -1246,6 +1246,8 @@ P_SetupLevel
     mapformat_t	crispy_mapformat;
 
     // [AP] map metadata
+    apmeta.gameversion = gameversion;
+    apmeta.gamemode = gamemode;
     apmeta.gameepisode = gameepisode;
     apmeta.gamemap = gamemap;
     apmeta.secretexit = false;

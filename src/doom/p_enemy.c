@@ -1680,7 +1680,7 @@ void A_Explode (mobj_t* thingy)
 
 static boolean CheckBossEnd(mobjtype_t motype)
 {
-    if (gameversion < exe_ultimate)
+    if (apmeta.gameversion < exe_ultimate)
     {
         if (apmeta.gamemap != 8)
         {
@@ -1737,7 +1737,7 @@ static boolean CheckBossEnd(mobjtype_t motype)
 // [crispy] check if the there is a Doom 2 / Masterlevel tag 666 present in map
 boolean P_CheckMapTag666 (void)
 {
-    if (gamemode == commercial)
+    if (apmeta.gamemode == commercial)
     {
         if (gamemission == pack_master)
         {
@@ -1780,7 +1780,7 @@ void A_BossDeath (mobj_t* mo)
     line_t	junk;
     int		i;
 		
-    if ( gamemode == commercial)
+    if ( apmeta.gamemode == commercial)
     {
 	if (!P_CheckMapTag666())
 	    return;
@@ -1823,7 +1823,7 @@ void A_BossDeath (mobj_t* mo)
     }
 	
     // victory!
-    if ( gamemode == commercial)
+    if ( apmeta.gamemode == commercial)
     {
 	if (P_CheckMapTag666())
 	{

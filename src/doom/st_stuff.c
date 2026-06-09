@@ -572,7 +572,7 @@ static int ST_cheat_spechits()
 
     // [crispy] trigger tag 666/667 events
     dummy.tag = 666;
-    if (gamemode == commercial)
+    if (apmeta.gamemode == commercial)
     {
 	if (P_CheckMapTag666())
 	{

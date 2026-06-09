@@ -20,6 +20,7 @@
 #define __AP_BASIC_H__
 
 #include "apdoom.h"
+#include "d_mode.h"
 
 void APC_ParseCommandLine(ap_settings_t *ap_settings, const char *default_game_defs);
 
@@ -30,8 +31,13 @@ void APC_DumpEmbeddedFiles(void);
 
 // "Meta" map tweaks we allow -- stored here so all games can have consistent sets of tweaks
 typedef struct {
-	int gameepisode; // Acting gameepisode, regardless of real gameepisode
-	int gamemap;     // As above but for gamemap
+	// Changing executable behavior, only needed if we try to use D1 behavior in D2, or vice versa
+	GameVersion_t gameversion;
+	GameMode_t gamemode;
+
+	// Acting gameepisode/gamemap for map tweaks, allows hacks to work regardless of real map number
+	int gameepisode;
+	int gamemap;
 
 	int secretexit;  // If true, secret exits function as regular exits
 } apmeta_t;

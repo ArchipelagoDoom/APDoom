@@ -28,7 +28,7 @@
 #include "apzip.h"
 #include "embedded_files.h"
 
-apmeta_t apmeta;
+apmeta_t apmeta = { exe_ultimate, indetermined };
 
 // Parses command line options common to all games' AP implementations.
 // See each game's "d_main.c".

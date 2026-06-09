@@ -972,6 +972,8 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     mapformat_t crispy_mapformat;
 
     // [AP] map metadata
+    apmeta.gameversion = exe_heretic_1_3;
+    apmeta.gamemode = gamemode;
     apmeta.gameepisode = gameepisode;
     apmeta.gamemap = gamemap;
     apmeta.secretexit = false;
