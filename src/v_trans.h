@@ -46,7 +46,8 @@ enum
     CR_BLUE,
     CR_RED2BLUE,
     CR_RED2GREEN,
-    CR_CYAN,
+    CR_CYAN, // [AP] Daivuk's fancy blueish color
+    CR_ZERO, // [AP] 0% value, aka fullblack, potentially useful for shadows
     CRMAX
 };
 
@@ -54,6 +55,7 @@ enum
 
 extern byte *cr[CRMAX];
 extern char **crstr;
+extern const boolean constcr[CRMAX]; // [AP] guard against writing to const tables
 
 #define cr_esc '~'
 

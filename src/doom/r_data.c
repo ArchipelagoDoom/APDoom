@@ -1250,10 +1250,10 @@ static void R_InitHSVColors(void)
 	// [AP] But what about my new CYAN color! :)
 	for (i = 0; i < CRMAX/* - 2*/; i++)
 	{
-		if (i == CRMAX - 2 || i == CRMAX - 3) continue; // [AP] don't override the original GREN and BLUE2 Boom tables
+		if (!constcr[i]) // [AP] Don't attempt to overwrite const color tables
 	    for (j = 0; j < 256; j++)
 	    {
-		cr[i][j] = V_Colorize(playpal, i, j, keepgray);
+		cr[i][j] = V_Colorize(playpal, i, j, i == CR_DARK ? false : keepgray);
 	    }
 
 	    M_snprintf(c, sizeof(c), "%c%c", cr_esc, '0' + i);
