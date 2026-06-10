@@ -258,6 +258,12 @@ void M_CrispyToggleColoredhud(int choice)
     ChangeSettingEnum(&crispy->coloredhud, choice, NUM_COLOREDHUD);
 }
 
+void M_CrispyToggleShadowhud(int choice)
+{
+    choice = 0;
+    crispy->shadowhud = !crispy->shadowhud;
+}
+
 void M_CrispyToggleCrosshair(int choice)
 {
     ChangeSettingEnum(&crispy->crosshair, choice, NUM_CROSSHAIRS);

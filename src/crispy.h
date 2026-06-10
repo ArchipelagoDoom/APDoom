@@ -90,6 +90,7 @@ typedef struct
 	// [AP] new config variables
 	int ap_automapicons;
 	int ap_levelselectmusic;
+	int shadowhud;
 
 	// [crispy] in-game switches and variables
 	int screenshotmsg;

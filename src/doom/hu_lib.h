@@ -184,6 +184,7 @@ void HUlib_drawText(const char* text, int x, int y);
 void HUlib_eraseIText(hu_itext_t* it); 
 
 // [AP]
-extern boolean hu_forced_color;
+extern int hu_forced_color;
+extern int hu_forced_shadow;
 
 #endif

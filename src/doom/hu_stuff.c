@@ -1241,7 +1241,7 @@ void HU_AddAPMessage(const char* message)
 
 void HU_DrawAPMessages()
 {
-    hu_forced_color = true;
+    hu_forced_color = 1;
 
     for (int i = 0; i < 4; ++i)
     {
@@ -1261,7 +1261,7 @@ void HU_DrawAPMessages()
         ST_CenteredTallNum(ORIGWIDTH/2, 40, ap_countdown_timer);
     }
 
-    hu_forced_color = false;
+    hu_forced_color = 0;
 }
 
 boolean HU_HasAPMessageRoom()

@@ -34,8 +34,10 @@
 // boolean : whether the screen is always erased
 #define noterased viewwindowx
 
-// [AP] AP messages are always colored
-boolean hu_forced_color = false;
+// [AP] color and shadow effect forcing
+// -: force disabled, 0: behaves as normal, +: force enabled
+int hu_forced_color = 0;
+int hu_forced_shadow = 0;
 
 void HUlib_init(void)
 {
@@ -141,7 +143,9 @@ HUlib_drawTextLine
     unsigned char	c;
 
 	// [AP] AP messages are always colored
-    const int can_color = hu_forced_color || (crispy->coloredhud & COLOREDHUD_TEXT);
+    const int can_color = (hu_forced_color ? (hu_forced_color > 0) : (crispy->coloredhud & COLOREDHUD_TEXT));
+    const int can_shadow = (hu_forced_shadow ? (hu_forced_shadow > 0) : crispy->shadowhud);
+    byte *tmp_translation = NULL;
 
     // draw the new stuff
     x = l->x;
@@ -180,6 +184,16 @@ HUlib_drawTextLine
 	    w = SHORT(l->f[c - l->sc]->width);
 	    if (x+w > ORIGWIDTH + WIDESCREENDELTA)
 		break;
+
+	    if (can_shadow)
+	    {
+		tmp_translation = dp_translation;
+		dp_translation = cr[CR_ZERO];
+		dp_translucent = true;
+		V_DrawPatchDirect(x+1, y+1, l->f[c - l->sc]);
+		dp_translucent = false;
+		dp_translation = tmp_translation;
+	    }
 	    V_DrawPatchDirect(x, y, l->f[c - l->sc]);
 	    x += w;
 	}
@@ -211,7 +225,9 @@ void HUlib_drawText(const char* text, int x, int y)
 	int og_x = x;
 
 	// [AP] AP messages are always colored
-    const int can_color = hu_forced_color || (crispy->coloredhud & COLOREDHUD_TEXT);
+    const int can_color = (hu_forced_color ? (hu_forced_color > 0) : (crispy->coloredhud & COLOREDHUD_TEXT));
+    const int can_shadow = (hu_forced_shadow ? (hu_forced_shadow > 0) : crispy->shadowhud);
+    byte *tmp_translation = NULL;
 
     // draw the new stuff
     for (i=0;i<len;i++)
@@ -248,6 +264,16 @@ void HUlib_drawText(const char* text, int x, int y)
 	    w = SHORT(hu_font[c - HU_FONTSTART]->width);
 	    if (x+w > ORIGWIDTH + WIDESCREENDELTA)
 		break;
+
+	    if (can_shadow)
+	    {
+		tmp_translation = dp_translation;
+		dp_translation = cr[CR_ZERO];
+		dp_translucent = true;
+		V_DrawPatchDirect(x+1, y+1, hu_font[c - HU_FONTSTART]);
+		dp_translucent = false;
+		dp_translation = tmp_translation;
+	    }
 	    V_DrawPatchDirect(x, y, hu_font[c - HU_FONTSTART]);
 	    x += w;
 	}

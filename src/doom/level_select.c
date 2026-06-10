@@ -341,9 +341,10 @@ int DrawLSPatch(const ap_levelselect_patch_t *lspatch, int x, int y)
 
 int DrawLSText(const ap_levelselect_text_t *lstext, int x, int y)
 {
-    hu_forced_color = true; // Always respect color
+    hu_forced_color = 1; // Always respect color
+    hu_forced_shadow = -1; // But never shadow
     HUlib_drawText(lstext->text, x + lstext->x, y + lstext->y);
-    hu_forced_color = false;
+    hu_forced_color = hu_forced_shadow = 0;
     return M_StringWidth(lstext->text); // Save width if needed
 }
 

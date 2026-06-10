@@ -2667,6 +2667,14 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(crispy_widescreen),
 
     //!
+    // @game doom
+    //
+    // [AP] Show a shadow behind HUD text.
+    //
+
+    CONFIG_VARIABLE_INT(apdoom_shadowhud),
+
+    //!
     // [AP] Show Archipelago Items in automap.
     //
 

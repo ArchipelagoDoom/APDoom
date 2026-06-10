@@ -512,6 +512,7 @@ void D_BindVariables(void)
     M_BindIntVariable("crispy_widescreen",      &crispy->widescreen);
 
     // [AP] variables added
+    M_BindIntVariable("apdoom_shadowhud",           &crispy->shadowhud);
     M_BindIntVariable("apdoom_ap_automapicons",     &crispy->ap_automapicons);
     M_BindIntVariable("apdoom_ap_levelselectmusic", &crispy->ap_levelselectmusic);
 }
