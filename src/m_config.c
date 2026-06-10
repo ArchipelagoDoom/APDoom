@@ -2435,22 +2435,6 @@ static default_t extra_defaults_list[] =
     //!
     // @game doom
     //
-    // Show Archipelago Items in automap.
-    //
-
-    CONFIG_VARIABLE_INT(crispy_ap_automapicons),
-
-    //!
-    // @game doom
-    //
-    // Play music in the level select screen.
-    //
-
-    CONFIG_VARIABLE_INT(crispy_ap_levelselectmusic),
-
-    //!
-    // @game doom
-    //
     // Timer direction whan playing back a demo.
     //
 
@@ -2681,6 +2665,19 @@ static default_t extra_defaults_list[] =
     //
 
     CONFIG_VARIABLE_INT(crispy_widescreen),
+
+    //!
+    // [AP] Show Archipelago Items in automap.
+    //
+
+    CONFIG_VARIABLE_INT(apdoom_ap_automapicons),
+
+    //!
+    // [AP] Play music in the level select screen.
+    //
+
+    CONFIG_VARIABLE_INT(apdoom_ap_levelselectmusic),
+
 };
 
 static default_collection_t extra_defaults =

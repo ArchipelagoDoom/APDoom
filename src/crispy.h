@@ -87,7 +87,7 @@ typedef struct
 	int vsync;
 	int widescreen;
 
-	// "APiness" config variables
+	// [AP] new config variables
 	int ap_automapicons;
 	int ap_levelselectmusic;
 

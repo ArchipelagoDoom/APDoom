@@ -917,7 +917,6 @@ void D_BindVariables(void)
     }
 
     // [crispy] bind "crispness" config variables
-    crispy->coloredhud = COLOREDHUD_TEXT; // [AP] Default - Not used in Heretic?
     M_BindIntVariable("crispy_hires",           &crispy->hires);
     M_BindIntVariable("crispy_smoothscaling",   &smooth_pixel_scaling);
     M_BindIntVariable("crispy_automapoverlay",  &crispy->automapoverlay);
@@ -947,8 +946,10 @@ void D_BindVariables(void)
     M_BindIntVariable("crispy_uncapped",        &crispy->uncapped);
     M_BindIntVariable("crispy_vsync",           &crispy->vsync);
     M_BindIntVariable("crispy_widescreen",      &crispy->widescreen);
-    M_BindIntVariable("crispy_ap_automapicons", &crispy->ap_automapicons);
-    M_BindIntVariable("crispy_ap_levelselectmusic", &crispy->ap_levelselectmusic);
+
+    // [AP] variables added
+    M_BindIntVariable("apdoom_ap_automapicons",     &crispy->ap_automapicons);
+    M_BindIntVariable("apdoom_ap_levelselectmusic", &crispy->ap_levelselectmusic);
 }
 
 // 

@@ -65,8 +65,6 @@ void BindCompatibilityVariables(void)
         M_BindIntVariable("crispy_defaultskill",    &crispy->defaultskill);
         M_BindIntVariable("crispy_demobar",         &crispy->demobar);
         M_BindIntVariable("crispy_demotimer",       &crispy->demotimer);
-        M_BindIntVariable("crispy_ap_automapicons", &crispy->ap_automapicons);
-        M_BindIntVariable("crispy_ap_levelselectmusic", &crispy->ap_levelselectmusic);
         M_BindIntVariable("crispy_demotimerdir",    &crispy->demotimerdir);
         M_BindIntVariable("crispy_extautomap",      &crispy->extautomap);
         M_BindIntVariable("crispy_flipcorpses",     &crispy->flipcorpses);
@@ -121,8 +119,6 @@ void BindCompatibilityVariables(void)
         M_BindIntVariable("crispy_uncapped",        &crispy->uncapped);
         M_BindIntVariable("crispy_vsync",           &crispy->vsync);
         M_BindIntVariable("crispy_widescreen",      &crispy->widescreen);
-        M_BindIntVariable("crispy_ap_automapicons", &crispy->ap_automapicons);
-        M_BindIntVariable("crispy_ap_levelselectmusic", &crispy->ap_levelselectmusic);
     }
     else if (gamemission == hexen)
     {
@@ -176,5 +172,9 @@ void BindCompatibilityVariables(void)
     M_BindIntVariable("vanilla_savegame_limit", &vanilla_savegame_limit);
     M_BindIntVariable("vanilla_demo_limit",     &vanilla_demo_limit);
     }
+
+    // [AP] always bind Archipelago specific options for every game
+    M_BindIntVariable("apdoom_ap_automapicons",     &crispy->ap_automapicons);
+    M_BindIntVariable("apdoom_ap_levelselectmusic", &crispy->ap_levelselectmusic);
 }
 
