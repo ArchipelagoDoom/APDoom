@@ -169,7 +169,7 @@ void EnergyLink_Drawer(void)
     TextDrawFunc(0 - WIDESCREENDELTA, 167 - (font_height*2) - 1, text_buffer);
 
     // Use the font to draw arrows
-    dp_translation = cr[whichSkull ? CR_RED : CR_DARK];
+    dp_translation = cr[whichSkull ? CR_NONE : CR_DARK];
     if (MenuRef->x > 0)
         TextDrawFunc(8, 70, "<");
     if (MenuRef->x < menumax - 1)

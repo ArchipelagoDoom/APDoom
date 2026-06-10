@@ -219,7 +219,7 @@ void ShowGoals_Drawer(void)
 
 #if defined(AP_INC_DOOM)
     // Use the font to draw up and down arrows
-    dp_translation = cr[whichSkull ? CR_RED : CR_DARK];
+    dp_translation = cr[whichSkull ? CR_NONE : CR_DARK];
     if (MenuRef->x > -9)
         TextDrawFunc(8,     8, "^");
     if (MenuRef->x < sgm_levelcount - 12)
