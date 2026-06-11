@@ -1334,6 +1334,8 @@ boolean G_Responder (event_t* ev)
     
     if (gamestate == GS_LEVEL_SELECT)
     {
+        if (HU_Responder(ev)) 
+            return true; // chat ate the event 
         if (LevelSelectResponder(ev))
             return true; // ate the event
     }

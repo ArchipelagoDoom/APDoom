@@ -1376,6 +1376,8 @@ boolean G_Responder(event_t * ev)
 
     if (gamestate == GS_LEVEL_SELECT)
     {
+        if (CT_Responder(ev))
+            return true; // Chat ate the event
         if (LevelSelectResponder(ev))
             return true; // ate the event
     }
@@ -1688,6 +1690,7 @@ void G_Ticker(void)
             D_PageTicker();
             break;
         case GS_LEVEL_SELECT:
+            CT_Ticker();
             TickLevelSelect();
             break;
     }

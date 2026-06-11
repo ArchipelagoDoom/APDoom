@@ -72,7 +72,7 @@
 
 #define HU_INPUTTOGGLE	't'
 #define HU_INPUTX	HU_MSGX
-#define HU_INPUTY	(16 * 8)//(HU_MSGY + HU_MSGHEIGHT*(SHORT(hu_font[0]->height) +1))
+#define HU_INPUTY	(4 * 8)//(HU_MSGY + HU_MSGHEIGHT*(SHORT(hu_font[0]->height) +1))
 #define HU_INPUTWIDTH	64
 #define HU_INPUTHEIGHT	1
 
@@ -90,7 +90,7 @@ const char *player_names[] =
 };
 
 char			chat_char; // remove later.
-static player_t*	plr;
+static player_t*	plr = NULL;
 patch_t*		hu_font[HU_FONTSIZE];
 static hu_textline_t	w_title;
 static hu_textline_t	w_map;
@@ -870,11 +870,13 @@ void HU_Start(void)
     }
 #endif
 
+#if 0 // [AP] initialized with AP messages
     // create the chat widget
     HUlib_initIText(&w_chat,
 		    HU_INPUTX, HU_INPUTY,
 		    hu_font,
 		    HU_FONTSTART, &chat_on);
+#endif
 
     // create the inputbuffer widgets
     for (i=0 ; i<MAXPLAYERS ; i++)
@@ -969,7 +971,7 @@ void HU_Drawer(void)
 	HUlib_eraseSText(&w_message);
     else
     HUlib_drawSText(&w_message);
-    HUlib_drawIText(&w_chat);
+    //HUlib_drawIText(&w_chat); // [AP] moved to HU_DrawAPMessages
 
     if (crispy->coloredhud & COLOREDHUD_TEXT)
 	dp_translation = cr[CR_GOLD];
@@ -1146,6 +1148,12 @@ void HU_InitAPMessages()
                         HU_MSGX, 3 * 8 - i * 8, HU_MSGHEIGHT,
                         hu_font,
                         HU_FONTSTART, &ap_message_ons[i]);
+
+    // create the chat widget
+    HUlib_initIText(&w_chat,
+            HU_INPUTX, HU_INPUTY,
+            hu_font,
+            HU_FONTSTART, &chat_on);
 }
 
 #include "i_system.h"
@@ -1262,6 +1270,9 @@ void HU_DrawAPMessages()
     }
 
     hu_forced_color = 0;
+
+    // Draw chat box on top of all
+    HUlib_drawIText(&w_chat);
 }
 
 boolean HU_HasAPMessageRoom()
@@ -1287,6 +1298,8 @@ void HU_UpdateAPMessagePosition(int i)
 {
     w_ap_messages[i].l[0].x = HU_MSGX; // if window aspect ratio changed
     w_ap_messages[i].l[0].y = 3 * 8 - i * 8 - 4 * 8 + HU_GetActiveAPMessageCount() * 8 + ap_message_anim;
+
+    w_chat.l.x = HU_INPUTX; // if window aspect ratio changed
 }
 
 void HU_TickAPMessages()
@@ -1674,6 +1687,8 @@ boolean HU_Responder(event_t *ev)
     boolean		eatkey = false;
     static boolean	altdown = false;
     unsigned char 	c;
+
+#if 0 // [AP] dead code
     int			i;
     int			numplayers;
     
@@ -1682,6 +1697,7 @@ boolean HU_Responder(event_t *ev)
     numplayers = 0;
     for (i=0 ; i<MAXPLAYERS ; i++)
 	numplayers += playeringame[i];
+#endif
 
     if (ev->data1 == KEY_RSHIFT)
     {
@@ -1698,17 +1714,23 @@ boolean HU_Responder(event_t *ev)
 
     if (!chat_on)
     {
-	if (ev->data1 == key_message_refresh)
+	if (gamestate == GS_LEVEL && ev->data1 == key_message_refresh)
 	{
 	    message_on = true;
 	    message_counter = HU_MSGTIMEOUT;
 	    eatkey = true;
 	}
+    else if (menuactive)
+    {
+        // [AP] do not try to start chat when in menus
+        return false;
+    }
 	else if (/*netgame &&*/ /* We always enable chat in AP */ !demoplayback && ev->data2 == key_multi_msg)
 	{
 	    eatkey = true;
             StartChatInput(HU_BROADCAST);
 	}
+#if 0 // [AP] dead code
 	else if (netgame && !demoplayback && numplayers > 2)
 	{
 	    for (i=0; i<MAXPLAYERS ; i++)
@@ -1738,6 +1760,7 @@ boolean HU_Responder(event_t *ev)
 		}
 	    }
 	}
+#endif
     }
     else
     {
@@ -1761,7 +1784,8 @@ boolean HU_Responder(event_t *ev)
             // leave chat mode and notify that it was sent
             StopChatInput();
             M_StringCopy(lastmessage, chat_macros[c], sizeof(lastmessage));
-            plr->message = lastmessage;
+            if (plr && gamestate == GS_LEVEL) // [AP] needed because level select also runs here
+                plr->message = lastmessage;
             eatkey = true;
 	}
 	else
@@ -1785,7 +1809,8 @@ boolean HU_Responder(event_t *ev)
                 {
                     apdoom_send_message(w_chat.l.l);
                     M_StringCopy(lastmessage, w_chat.l.l, sizeof(lastmessage));
-                    plr->message = lastmessage;
+                    if (plr && gamestate == GS_LEVEL) // [AP] needed because level select also runs here
+                        plr->message = lastmessage;
                 }
 	    }
 	    else if (c == KEY_ESCAPE)

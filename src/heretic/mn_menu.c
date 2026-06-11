@@ -2821,6 +2821,12 @@ boolean MN_Responder(event_t * event)
 
     if (!MenuActive)
     {
+        // [AP] Do not activate the menu if chat is up!
+        // This allows the CT responder to eat escape and exit chatting
+        if (chatmodeon)
+        {
+            return (false);
+        }
         // [crispy] don't pop up the menu on other keys during a demo
         if (key == key_menu_activate || gamestate == GS_DEMOSCREEN || (demoplayback && !singledemo))
         {

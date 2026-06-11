@@ -64,7 +64,7 @@ int chat_dest[MAXPLAYERS];
 char chat_msg[MAXPLAYERS][MESSAGESIZE];
 char plr_lastmsg[MAXPLAYERS][MESSAGESIZE + 9];  // add in the length of the pre-string
 int msgptr[MAXPLAYERS];
-int msglen[MAXPLAYERS];
+//int msglen[MAXPLAYERS]; // [AP] don't limit chat by what fits on screen
 
 boolean cheated;
 
@@ -169,6 +169,11 @@ boolean CT_Responder(event_t * ev)
     }
     if (!chatmodeon)
     {
+        if (MenuActive || askforquit)
+        { // [AP] do not try to start chat when in menus
+            return false;
+        }
+
         sendto = 0;
         if (ev->data1 == key_multi_msg)
         {
@@ -358,23 +363,23 @@ void CT_Drawer(void)
 
     if (chatmodeon)
     {
-        x = 25;
+        x = 0 - WIDESCREENDELTA; // [AP] start from left boundary
         for (i = 0; i < msgptr[consoleplayer]; i++)
         {
             if (chat_msg[consoleplayer][i] < 33)
             {
-                x += 6;
+                x += 5; // [AP] correct width
             }
             else
             {
                 patch = W_CacheLumpNum(FontABaseLump +
                                        chat_msg[consoleplayer][i] - 33,
                                        PU_CACHE);
-                V_DrawSBPatch(x, 158-20, patch);
-                x += patch->width;
+                V_DrawSBPatch(x, 10*4, patch);
+                x += patch->width - 1; // [AP] correct width
             }
         }
-        V_DrawSBPatch(x, 158-20, W_CacheLumpName(DEH_String("FONTA59"), PU_CACHE));
+        V_DrawSBPatch(x, 10*4, W_CacheLumpName(DEH_String("FONTA59"), PU_CACHE));
         BorderTopRefresh = true;
         UpdateState |= I_MESSAGES;
     }
@@ -423,14 +428,19 @@ char CT_dequeueChatChar(void)
 
 void CT_AddChar(int player, char c)
 {
+#if 0 // [AP] don't limit chat by what fits on screen
     patch_t *patch;
 
     if (msgptr[player] + 1 >= MESSAGESIZE || msglen[player] >= MESSAGELEN)
+#else
+    if (msgptr[player] + 1 >= MESSAGESIZE)
+#endif
     {                           // full.
         return;
     }
     chat_msg[player][msgptr[player]] = c;
     msgptr[player]++;
+#if 0 // [AP] don't limit chat by what fits on screen
     if (c < 33)
     {
         msglen[player] += 6;
@@ -440,6 +450,7 @@ void CT_AddChar(int player, char c)
         patch = W_CacheLumpNum(FontABaseLump + c - 33, PU_CACHE);
         msglen[player] += patch->width;
     }
+#endif
 }
 
 //===========================================================================
@@ -451,14 +462,17 @@ void CT_AddChar(int player, char c)
 
 void CT_BackSpace(int player)
 {
+#if 0 // [AP] don't limit chat by what fits on screen
     patch_t *patch;
     char c;
+#endif
 
     if (msgptr[player] == 0)
     {                           // message is already blank
         return;
     }
     msgptr[player]--;
+#if 0 // [AP] don't limit chat by what fits on screen
     c = chat_msg[player][msgptr[player]];
     if (c < 33)
     {
@@ -469,6 +483,7 @@ void CT_BackSpace(int player)
         patch = W_CacheLumpNum(FontABaseLump + c - 33, PU_CACHE);
         msglen[player] -= patch->width;
     }
+#endif
     chat_msg[player][msgptr[player]] = 0;
 }
 
@@ -484,5 +499,7 @@ void CT_ClearChatMessage(int player)
 {
     memset(chat_msg[player], 0, MESSAGESIZE);
     msgptr[player] = 0;
+#if 0 // [AP] don't limit chat by what fits on screen
     msglen[player] = 0;
+#endif
 }

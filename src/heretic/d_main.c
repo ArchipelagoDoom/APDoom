@@ -310,7 +310,7 @@ void D_Display(void)
             }
             // [crispy] check for translucent HUD
             SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
-            CT_Drawer();
+            //CT_Drawer(); // [AP] moved below so it goes over top AP notifs
             UpdateState |= I_FULLVIEW;
             SB_Drawer();
             CrispyDrawStats();
@@ -368,6 +368,7 @@ void D_Display(void)
     {
         APC_DrawNotifs(MN_DrTextA);
         HU_DrawAPMessages();   // [AP] Sticky messages on top of everything
+        CT_Drawer(); // [AP] moved from above so it shows atop everything
     }
 
     // Send out any new accumulation

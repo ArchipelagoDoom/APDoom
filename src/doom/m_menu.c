@@ -3037,6 +3037,12 @@ boolean M_Responder (event_t* ev)
     // Pop-up menu?
     if (!menuactive)
     {
+    // [AP] Do not activate the menu if chat is up!
+    // This allows the HU responder to eat escape and exit chatting
+    if (chat_on)
+    {
+        return false;
+    }
 	if (key == key_menu_activate)
 	{
 	    M_StartControlPanel ();

@@ -209,6 +209,15 @@ HUlib_drawTextLine
     if (drawcursor
 	&& x + SHORT(l->f['_' - l->sc]->width) <= ORIGWIDTH + WIDESCREENDELTA)
     {
+	if (can_shadow)
+	{
+	    tmp_translation = dp_translation;
+	    dp_translation = cr[CR_ZERO];
+	    dp_translucent = true;
+	    V_DrawPatchDirect(x+1, y+1, l->f['_' - l->sc]);
+	    dp_translucent = false;
+	    dp_translation = tmp_translation;
+	}
 	V_DrawPatchDirect(x, y, l->f['_' - l->sc]);
     }
 

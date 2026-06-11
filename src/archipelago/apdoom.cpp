@@ -1541,7 +1541,7 @@ void apdoom_check_location(ap_level_index_t idx, int index)
 		// Send the item to ourselves as if we were playing.
 		if (item_type_table.count(item_id))
 		{
-			ap_fake_item_msg(item_id, "Player");
+			ap_fake_item_msg(item_id, ap_settings.player_name);
 			f_itemrecv(item_id, true);
 		}
 		return;
@@ -1694,6 +1694,13 @@ void apdoom_check_victory()
 
 void apdoom_send_message(const char* msg)
 {
+	if (ap_practice_mode)
+	{
+		// Fake "send" the message
+		std::string colored_msg = "~2" + std::string(ap_settings.player_name) + ": " + msg;
+		ap_settings.message_callback(colored_msg.c_str());
+		return;
+	}
 	Json::Value say_packet;
 	say_packet[0]["cmd"] = "Say";
 	say_packet[0]["text"] = msg;
