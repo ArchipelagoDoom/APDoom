@@ -211,12 +211,6 @@ boolean LevelSelectResponder(event_t* ev)
     if (activating_level_select_anim) return true;
     if (ep_anim) return true;
 
-    int ep_count = 0;
-    if (gamemode != commercial)
-        for (int i = 0; i < ap_episode_count; ++i)
-            if (ap_state.episodes[i])
-                ep_count++;
-
     switch (ev->type)
     {
         case ev_joystick:
