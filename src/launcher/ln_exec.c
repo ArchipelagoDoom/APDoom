@@ -353,7 +353,7 @@ static int DoExecute(int has_init_file)
     if (!process_return)
     {
         DWORD error = GetLastError();
-        fprintf(stderr, "CreateProcessW failed (%i).\n", error);
+        fprintf(stderr, "CreateProcessW failed (%li).\n", error);
         free(command);
         return -666;
     }

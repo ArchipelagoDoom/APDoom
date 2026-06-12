@@ -127,7 +127,11 @@ typedef enum
 
 #ifdef __GNUC__
 
+#if defined(__clang__)
 #define PRINTF_ATTR(fmt, first) __attribute__((format(printf, fmt, first)))
+#else
+#define PRINTF_ATTR(fmt, first) __attribute__((format(gnu_printf, fmt, first)))
+#endif
 
 #else  // __GNUC__
 

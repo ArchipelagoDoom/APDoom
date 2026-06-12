@@ -9,6 +9,7 @@ if not exist "Release\libgomp-1.dll"        ECHO Missing dependency: libgomp-1.d
 if not exist "Release\libgthread-2.0-0.dll" ECHO Missing dependency: libgthread-2.0-0.dll & SET "DEP_MISS=1"
 if not exist "Release\libinstpatch-2.dll"   ECHO Missing dependency: libinstpatch-2.dll & SET "DEP_MISS=1"
 if not exist "Release\libintl-8.dll"        ECHO Missing dependency: libintl-8.dll & SET "DEP_MISS=1"
+if not exist "Release\libpng16.dll"         ECHO Missing dependency: libpng16.dll & SET "DEP_MISS=1"
 if not exist "Release\libsndfile-1.dll"     ECHO Missing dependency: libsndfile-1.dll & SET "DEP_MISS=1"
 if not exist "Release\libstdc++-6.dll"      ECHO Missing dependency: libstdc++-6.dll & SET "DEP_MISS=1"
 if not exist "Release\libwinpthread-1.dll"  ECHO Missing dependency: libwinpthread-1.dll & SET "DEP_MISS=1"

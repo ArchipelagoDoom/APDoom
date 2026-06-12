@@ -691,7 +691,9 @@ int apdoom_init(ap_settings_t* settings)
 				ap_save_path /= ap_seed_string;
 
 				// Create a directory where saves will go for this AP seed.
-#if defined(_WIN32) && !defined(__GNUC__)
+#if defined(_WIN32) && defined(__GNUC__)
+				printf("APDOOM: Save directory: %ls\n", ap_save_path.c_str());
+#elif defined(_WIN32)
 				printf("APDOOM: Save directory: %ws\n", ap_save_path.c_str());
 #else
 				printf("APDOOM: Save directory: %s\n", ap_save_path.c_str());

@@ -33,7 +33,8 @@ if(MSVC)
     add_definitions("/D_CRT_SECURE_NO_WARNINGS" "/D_CRT_SECURE_NO_DEPRECATE"
                     "/D_CRT_NONSTDC_NO_DEPRECATE")
 else()
-    add_compile_options("-Wall" "-Wredundant-decls" "-Wno-format-truncation")
+    # [AP] -Wredundant-decls was removed because mbedtls doesn't play nice with it
+    add_compile_options("-Wall" "-Wno-format-truncation")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     set(CMAKE_INSTALL_RPATH "\$ORIGIN;\$ORIGIN/../lib")
 endif()

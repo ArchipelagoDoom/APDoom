@@ -65,7 +65,11 @@
 #define PACKEDATTR __attribute__((packed))
 #endif
 
+#if defined(__clang__)
 #define PRINTF_ATTR(fmt, first) __attribute__((format(printf, fmt, first)))
+#else
+#define PRINTF_ATTR(fmt, first) __attribute__((format(gnu_printf, fmt, first)))
+#endif
 #define PRINTF_ARG_ATTR(x) __attribute__((format_arg(x)))
 #define NORETURN __attribute__((noreturn))
 
