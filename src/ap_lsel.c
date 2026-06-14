@@ -21,6 +21,7 @@
 #include "apdoom.h"
 #include "ap_lsel.h"
 
+#include "crispy.h"
 #include "i_system.h"
 #include "m_argv.h"
 
@@ -46,6 +47,67 @@ void LS_Start(void)
 
     ap_state.ep = 0;
     ap_state.map = 0;
+}
+
+int LS_MoveCursor(int dir)
+{
+    const ap_levelselect_t* screen_defs = LS_CurrentEpisodeInfo();
+    const int from = selected_level[selected_ep];
+    int best = from;
+
+    switch (crispy->ap_levelselectorder)
+    {
+        case AP_LEVELSELECTORDER_MAP_ORDER:
+        {
+            best += screen_defs->num_map_info + dir;
+            best %= screen_defs->num_map_info;
+            break;
+        }
+        case AP_LEVELSELECTORDER_POSITION:
+        {
+            // We score each level based on its base coordinates.
+            // We *must* consider both X and Y coordinates, otherwise we might miss levels!
+            int from_pos = (screen_defs->map_info[from].y << 16) + screen_defs->map_info[from].x;
+            int top_pos = 100000000, bot_pos = -100000000;
+            int top_id = -1, bot_id = -1;
+            int best_score = 100000000;
+
+            for (int i = 0; i < screen_defs->num_map_info; ++i)
+            {
+                int cur_pos = (screen_defs->map_info[i].y << 16) + screen_defs->map_info[i].x;
+                if (cur_pos < top_pos)
+                {
+                    top_id = i;
+                    top_pos = cur_pos;
+                }
+                if (cur_pos > bot_pos)
+                {
+                    bot_id = i;
+                    bot_pos = cur_pos;
+                }
+
+                // We ignore negative "score", so, any move in the opposite direction we want to go.
+                // (This also catches trying to move to the current location.)
+                const int64_t score = (cur_pos - from_pos) * dir;
+                if (score > 0 && score < best_score)
+                {
+                    best = i;
+                    best_score = score;
+                }
+            }
+
+            // If we didn't move because we're as far up/down as we can go,
+            // then wrap around to the map on we found furthest from us
+            if (best == from && from == top_id)
+                best = bot_id;
+            else if (best == from && from == bot_id)
+                best = top_id;
+            break;
+        }
+        default:
+            break;
+    }
+    return best;
 }
 
 int LS_PrevEpisode(void)

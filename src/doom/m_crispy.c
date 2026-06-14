@@ -103,6 +103,12 @@ multiitem_t multiitem_ap_automapicons[NUM_AP_AUTOMAPICON] =
     {AP_AUTOMAPICON_ALWAYS, "always"}
 };
 
+multiitem_t multiitem_ap_levelselectorder[NUM_AP_LEVELSELECTORDER] =
+{
+    {AP_LEVELSELECTORDER_POSITION, "position"},
+    {AP_LEVELSELECTORDER_MAP_ORDER, "map order"}
+};
+
 multiitem_t multiitem_demotimerdir[] =
 {
     {0, "none"},
@@ -324,6 +330,11 @@ void M_CrispyToggleAPLevelSelectMusic(int choice)
         else
             S_StopMusic();
     }
+}
+
+void M_CrispyToggleAPLevelSelectOrder(int choice)
+{
+    ChangeSettingEnum(&crispy->ap_levelselectorder, choice, NUM_AP_LEVELSELECTORDER);
 }
 
 void M_CrispyToggleDemoTimerDir(int choice)

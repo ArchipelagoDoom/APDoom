@@ -166,6 +166,7 @@ static boolean CrispyFpsLimit(int option);
 static boolean CrispyVsync(int option);
 static boolean CrispyAPAutomapIcons(int option);
 static boolean CrispyAPLevelSelectMusic(int option);
+static boolean CrispyAPLevelSelectOrder(int option);
 static boolean CrispyNextPage(int option);
 static boolean CrispyPrevPage(int option);
 static void DrawMainMenu(void);
@@ -484,7 +485,7 @@ static Menu_t Crispness3Menu = {
 static MenuItem_t Crispness4Items[] = {
     {ITT_LRFUNC2, "SCROLL MAP ICONS:", CrispyAPAutomapIcons, 0, MENU_NONE},
     {ITT_LRFUNC2, "LEVEL SELECT MUSIC:", CrispyAPLevelSelectMusic, 0, MENU_NONE},
-    {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
+    {ITT_LRFUNC2, "LEVEL SELECT ORDERING:", CrispyAPLevelSelectOrder, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
@@ -628,6 +629,12 @@ static const multiitem_t multiitem_ap_automapicons[NUM_AP_AUTOMAPICON] =
     {AP_AUTOMAPICON_OFF, "off"},
     {AP_AUTOMAPICON_COMPUTER_AREA_MAP, "map scroll"},
     {AP_AUTOMAPICON_ALWAYS, "always"}
+};
+
+static const multiitem_t multiitem_ap_levelselectorder[NUM_AP_LEVELSELECTORDER] =
+{
+    {AP_LEVELSELECTORDER_POSITION, "position"},
+    {AP_LEVELSELECTORDER_MAP_ORDER, "map order"}
 };
 
 static Menu_t *Menus[] = {
@@ -1154,7 +1161,7 @@ void MN_Drawer(void)
 static void M_DrawAPDOOMVersion(void)
 {
     const char* version_text = APDOOM_VERSION_FULL_TEXT;
-    MN_DrTextA(version_text, 0, 200 - 9);
+    MN_DrTextA(version_text, 0 - WIDESCREENDELTA, 200 - 9);
 }
 
 static void DrawMainMenu(void)
@@ -2149,6 +2156,12 @@ static boolean CrispyAPLevelSelectMusic(int option)
             I_StopSong();
         }
     }
+    return true;
+}
+
+static boolean CrispyAPLevelSelectOrder(int option)
+{
+    ChangeSettingEnum(&crispy->ap_levelselectorder, option, NUM_AP_LEVELSELECTORDER);
     return true;
 }
 
@@ -3556,4 +3569,7 @@ static void DrawCrispness4(void)
 
     // Play music in level select screen
     DrawCrispnessItem(crispy->ap_levelselectmusic, 200, 45);
+
+    // Order to move around the level select map
+    DrawCrispnessMultiItem(crispy->ap_levelselectorder, 225, 55, multiitem_ap_levelselectorder, false);
 }

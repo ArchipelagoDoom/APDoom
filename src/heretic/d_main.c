@@ -951,6 +951,7 @@ void D_BindVariables(void)
     // [AP] variables added
     M_BindIntVariable("apdoom_ap_automapicons",     &crispy->ap_automapicons);
     M_BindIntVariable("apdoom_ap_levelselectmusic", &crispy->ap_levelselectmusic);
+    M_BindIntVariable("apdoom_ap_levelselectorder", &crispy->ap_levelselectorder);
 }
 
 // 

@@ -106,81 +106,12 @@ static void level_select_next_episode()
 
 void select_map_dir(int dir)
 {
-    const ap_levelselect_t* screen_defs = LS_CurrentEpisodeInfo();
-
-    int from = selected_level[selected_ep];
-    float fromx = (float)screen_defs->map_info[from].x;
-    float fromy = (float)screen_defs->map_info[from].y;
-
-    int best = from;
-    int top_most = 200;
-    int top_most_idx = -1;
-    int bottom_most = 0;
-    int bottom_most_idx = -1;
-    float best_score = 0.0f;
-    
-    for (int i = 0; i < screen_defs->num_map_info; ++i)
-    {
-        if (screen_defs->map_info[i].y < top_most)
-        {
-            top_most = screen_defs->map_info[i].y;
-            top_most_idx = i;
-        }
-        if (screen_defs->map_info[i].y > bottom_most)
-        {
-            bottom_most = screen_defs->map_info[i].y;
-            bottom_most_idx = i;
-        }
-        if (i == from) continue;
-
-        float tox = (float)screen_defs->map_info[i].x;
-        float toy = (float)screen_defs->map_info[i].y;
-        float score = 0.0f;
-        float dist = 10000.0f;
-
-        switch (dir)
-        {
-            case 0: // Left
-                if (tox >= fromx) continue;
-                dist = fromx - tox;
-                break;
-            case 1: // Right
-                if (tox <= fromx) continue;
-                dist = tox - fromx;
-                break;
-            case 2: // Up
-                if (toy >= fromy) continue;
-                dist = fromy - toy;
-                break;
-            case 3: // Down
-                if (toy <= fromy) continue;
-                dist = toy - fromy;
-                break;
-        }
-        score = 1.0f / dist;
-
-        if (score > best_score)
-        {
-            best_score = score;
-            best = i;
-        }
-    }
-
-    // Are we at the top? go to the bottom
-    if (from == top_most_idx && dir == 2)
-    {
-        best = bottom_most_idx;
-    }
-    else if (from == bottom_most_idx && dir == 3)
-    {
-        best = top_most_idx;
-    }
-
-    if (best != from)
+    int new_selected = LS_MoveCursor(dir);
+    if (new_selected != selected_level[selected_ep])
     {
         urh_anim = 0;
         S_StartSound(NULL, sfx_keyup);
-        selected_level[selected_ep] = best;
+        selected_level[selected_ep] = new_selected;
     }
 }
 
@@ -216,8 +147,8 @@ boolean LevelSelectResponder(event_t* ev)
         case ev_joystick:
         {
             const int umenunav = JOY_GET_UMENUNAV(ev->data6);
-            if (umenunav & JOY_DIR_UP) select_map_dir(2);
-            if (umenunav & JOY_DIR_DOWN) select_map_dir(3);
+            if (umenunav & JOY_DIR_UP) select_map_dir(-1);
+            if (umenunav & JOY_DIR_DOWN) select_map_dir(1);
             if (umenunav & JOY_DIR_LEFT) level_select_prev_episode();
             if (umenunav & JOY_DIR_RIGHT) level_select_next_episode();
             if (umenunav & JOY_DIR_FORWARD) level_select_nav_enter();
@@ -227,8 +158,8 @@ boolean LevelSelectResponder(event_t* ev)
         {
             if (ev->data1 == key_left || ev->data1 == key_alt_strafeleft || ev->data1 == key_strafeleft) level_select_prev_episode();
             if (ev->data1 == key_right || ev->data1 == key_alt_straferight || ev->data1 == key_straferight) level_select_next_episode();
-            if (ev->data1 == key_up || ev->data1 == key_alt_up) select_map_dir(2);
-            if (ev->data1 == key_down || ev->data1 == key_alt_down) select_map_dir(3);
+            if (ev->data1 == key_up || ev->data1 == key_alt_up) select_map_dir(-1);
+            if (ev->data1 == key_down || ev->data1 == key_alt_down) select_map_dir(1);
             if (ev->data1 == key_menu_forward || ev->data1 == key_use) level_select_nav_enter();
             break;
         }

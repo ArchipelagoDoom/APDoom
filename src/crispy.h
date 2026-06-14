@@ -90,6 +90,7 @@ typedef struct
 	// [AP] new config variables
 	int ap_automapicons;
 	int ap_levelselectmusic;
+	int ap_levelselectorder;
 	int shadowhud;
 
 	// [crispy] in-game switches and variables
@@ -234,6 +235,13 @@ enum
     AP_AUTOMAPICON_COMPUTER_AREA_MAP,
     AP_AUTOMAPICON_ALWAYS,
     NUM_AP_AUTOMAPICON
+};
+
+enum
+{
+	AP_LEVELSELECTORDER_POSITION,
+	AP_LEVELSELECTORDER_MAP_ORDER,
+	NUM_AP_LEVELSELECTORDER
 };
 
 enum

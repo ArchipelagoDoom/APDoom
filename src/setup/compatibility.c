@@ -178,5 +178,6 @@ void BindCompatibilityVariables(void)
     // [AP] always bind Archipelago specific options for every game
     M_BindIntVariable("apdoom_ap_automapicons",     &crispy->ap_automapicons);
     M_BindIntVariable("apdoom_ap_levelselectmusic", &crispy->ap_levelselectmusic);
+    M_BindIntVariable("apdoom_ap_levelselectorder", &crispy->ap_levelselectorder);
 }
 

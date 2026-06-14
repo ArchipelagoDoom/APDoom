@@ -2686,6 +2686,12 @@ static default_t extra_defaults_list[] =
 
     CONFIG_VARIABLE_INT(apdoom_ap_levelselectmusic),
 
+    //!
+    // [AP] Order in which to move through levels in the level select screen.
+    //
+
+    CONFIG_VARIABLE_INT(apdoom_ap_levelselectorder),
+
 };
 
 static default_collection_t extra_defaults =

@@ -26,6 +26,8 @@ extern int selected_ep;
 
 void LS_Start(void);
 
+int LS_MoveCursor(int dir);
+
 int LS_PrevEpisode(void);
 int LS_NextEpisode(void);
 
