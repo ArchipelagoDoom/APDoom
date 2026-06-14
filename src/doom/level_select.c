@@ -522,7 +522,8 @@ void DrawLevelSelect()
 
     // Just in case, always fill with black, then draw the current selected episode background
     V_DrawFilledBox(0, 0, SCREENWIDTH, SCREENHEIGHT, 0);
-    V_DrawPatch(ep_anim * 32, 0, primary_image);
+    V_DrawClippedPatch(ep_anim * 32, 0, primary_image,
+        (primary_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
 
     if (ep_anim == 0)
     {
@@ -533,8 +534,10 @@ void DrawLevelSelect()
             patch_t *right_image = W_CacheLumpNameSafe(LS_NextEpisodeInfo()->background_image);
 
             dp_translation = cr[CR_DARK];
-            V_DrawPatch(-320, 0, left_image);
-            V_DrawPatch(320, 0, right_image);
+            V_DrawClippedPatch(-320, 0, left_image,
+                (left_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
+            V_DrawClippedPatch(320, 0, right_image,
+                (right_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
             dp_translation = NULL;
         }
 
@@ -545,11 +548,13 @@ void DrawLevelSelect()
     else if (ep_anim > 0)
     {
         patch_t *secondary_image = W_CacheLumpNameSafe(LS_PrevEpisodeInfo()->background_image);
-        V_DrawPatch(-(10 - ep_anim) * 32, 0, secondary_image);
+        V_DrawClippedPatch(-(10 - ep_anim) * 32, 0, secondary_image,
+            (secondary_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
     }
     else // ep_anim < 0
     {
         patch_t *secondary_image = W_CacheLumpNameSafe(LS_NextEpisodeInfo()->background_image);
-        V_DrawPatch((10 + ep_anim) * 32, 0, secondary_image);
+        V_DrawClippedPatch((10 + ep_anim) * 32, 0, secondary_image,
+            (secondary_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
     }
 }

@@ -522,6 +522,114 @@ void V_DrawPatchDirect(int x, int y, patch_t *patch)
     V_DrawPatch(x, y, patch); 
 } 
 
+
+//
+// [AP]
+// V_DrawClippedPatch
+//
+// Draws a clipped segment of a patch.
+// Offsets ignored. px, py, pw, ph form a bounding box of patch contents to draw.
+// Negative values and values that exceed the bounds of the patch are okay.
+//
+
+void V_DrawClippedPatch(int x, int y, patch_t *patch, int px, int py, int pw, int ph)
+{
+    int count;
+    int col;
+    column_t *column;
+    pixel_t *desttop;
+    pixel_t *dest;
+    byte *source;
+    int w;
+
+    int startheight = (y * dy) >> FRACBITS;
+    int maxheight = ((y + ph) * dy) >> FRACBITS;
+    startheight = MAX(startheight, 0);
+    maxheight = MIN(maxheight, SCREENHEIGHT);
+
+    // [crispy] four different rendering functions
+    drawpatchpx_t *const drawpatchpx = drawpatchpx_a[!dp_translucent][!dp_translation];
+
+    x += WIDESCREENDELTA; // [crispy] horizontal widescreen offset
+    V_MarkRect(x, y, pw, ph);
+
+    col = dxi * ((px * dx) >> FRACBITS);
+    if (x < 0)
+    {
+    col += dxi * ((-x * dx) >> FRACBITS);
+    x = 0;
+    }
+
+    desttop = dest_screen + ((y * dy) >> FRACBITS) * SCREENWIDTH + ((x * dx) >> FRACBITS);
+
+    w = MIN(px+pw, SHORT(patch->width));
+
+    // convert x to screen position
+    x = (x * dx) >> FRACBITS;
+
+    for ( ; col<w << FRACBITS ; x++, col+=dxi, desttop++)
+    {
+        int topdelta = -1;
+        int faketopdelta = -1;
+
+        if (col < 0)
+            continue;
+
+        // [crispy] too far right / width
+        if (x >= SCREENWIDTH)
+        {
+            break;
+        }
+
+        column = (column_t *)((byte *)patch + LONG(patch->columnofs[col >> FRACBITS]));
+
+        // step through the posts in a column
+        while (column->topdelta != 0xff)
+        {
+            int top, srccol = 0;
+
+            // [crispy] support for DeePsea tall patches
+            if (column->topdelta <= topdelta)
+            {
+                topdelta += column->topdelta;
+            }
+            else
+            {
+                topdelta = column->topdelta;
+            }
+            faketopdelta = topdelta - py;
+            top = ((y + faketopdelta) * dy) >> FRACBITS;
+            source = (byte *)column + 3;
+            dest = desttop + ((faketopdelta * dy) >> FRACBITS)*SCREENWIDTH;
+            count = (column->length * dy) >> FRACBITS;
+
+            // [crispy] too low / height
+            if (top + count > maxheight)
+            {
+                count = maxheight - top;
+            }
+
+            // [crispy] nothing left to draw?
+            if (count < 1)
+            {
+                break;
+            }
+
+            while (count--)
+            {
+                // [crispy] too high
+                if (top++ >= startheight)
+                {
+                    *dest = drawpatchpx(*dest, source[srccol >> FRACBITS]);
+                }
+                srccol += dyi;
+                dest += SCREENWIDTH;
+            }
+            column = (column_t *)((byte *)column + column->length + 4);
+        }
+    }
+}
+
 //
 // V_DrawTLPatch
 //

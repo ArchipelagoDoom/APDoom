@@ -494,7 +494,8 @@ void DrawLevelSelect()
     if (!activating_level_select_anim)
         V_DrawFilledBox(0, 0, SCREENWIDTH, SCREENHEIGHT, 0);
 
-    V_DrawPatch(ep_anim * 32, activating_level_select_anim, primary_image);
+    V_DrawClippedPatch(ep_anim * 32, activating_level_select_anim, primary_image,
+        (primary_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
 
     if (ep_anim == 0)
     {
@@ -505,11 +506,12 @@ void DrawLevelSelect()
             patch_t *right_image = W_CacheLumpNameSafe(LS_NextEpisodeInfo()->background_image);
 
             dp_translation = cr[CR_DARK];
-            V_DrawPatch(-320, activating_level_select_anim, left_image);
-            V_DrawPatch(320, activating_level_select_anim, right_image);
+            V_DrawClippedPatch(-320, activating_level_select_anim, left_image,
+                (left_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
+            V_DrawClippedPatch(320, activating_level_select_anim, right_image,
+                (right_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
             dp_translation = NULL;
         }
-        V_DrawPatch(0, activating_level_select_anim, primary_image);
 
         if (!activating_level_select_anim)
             DrawLevelSelectStats();
@@ -517,11 +519,13 @@ void DrawLevelSelect()
     else if (ep_anim > 0)
     {
         patch_t *secondary_image = W_CacheLumpNameSafe(LS_PrevEpisodeInfo()->background_image);
-        V_DrawPatch(-(10 - ep_anim) * 32, 0, secondary_image);
+        V_DrawClippedPatch(-(10 - ep_anim) * 32, activating_level_select_anim, secondary_image,
+            (secondary_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
     }
     else // ep_anim < 0
     {
         patch_t *secondary_image = W_CacheLumpNameSafe(LS_NextEpisodeInfo()->background_image);
-        V_DrawPatch((10 + ep_anim) * 32, 0, secondary_image);
+        V_DrawClippedPatch((10 + ep_anim) * 32, activating_level_select_anim, secondary_image,
+            (secondary_image->width - ORIGWIDTH) / 2, 0, ORIGWIDTH, ORIGHEIGHT);
     }
 }
