@@ -426,7 +426,7 @@ int json_parse_level_select(const Json::Value& json, level_select_storage_t &out
 			store_lump_name(default_map_image, "INTERPIC");
 			break;
 		case ap_game_t::heretic:
-			store_lump_name(default_map_image, "MAPE4");
+			store_lump_name(default_map_image, "MAPGENER");
 			break;
 	}
 
