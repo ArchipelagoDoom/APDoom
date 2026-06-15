@@ -35,7 +35,7 @@
 typedef struct icon_cache_s
 {
     lumpindex_t lumpnum;
-    pixel_t* pixels;
+    byte* pixels;
     struct icon_cache_s* next;
 } icon_cache_t;
 
@@ -44,7 +44,7 @@ static icon_cache_t *cache_tail = &cache_head;
 
 // Takes a lump name (patch) and converts it to a pixel block.
 // Result is stored in the cache for later use.
-static pixel_t* convert_cache_icon(const char* name)
+static byte* convert_cache_icon(const char* name)
 {
     lumpindex_t lumpnum = W_GetNumForName(name);
 
@@ -63,7 +63,7 @@ static pixel_t* convert_cache_icon(const char* name)
     cache_tail = (cache_tail->next = icon);
 
     patch_t *patch = W_CacheLumpNumSafe(lumpnum);
-    pixel_t *raw = malloc(patch->width * patch->height);
+    byte *raw = malloc(patch->width * patch->height);
     memset(raw, 0, patch->width * patch->height);
 
     for (int x = 0; x < patch->width; ++x)
@@ -114,7 +114,7 @@ static pixel_t* convert_cache_icon(const char* name)
 
 void APC_DrawNotifBox(int x, int y, const char *sprite, boolean disabled)
 {
-    pixel_t *pixels = convert_cache_icon(sprite);
+    byte *pixels = convert_cache_icon(sprite);
 
     dp_translation = disabled ? cr[CR_DARK] : NULL;
 

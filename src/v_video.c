@@ -238,6 +238,22 @@ static const inline pixel_t drawxlatab (const pixel_t dest, const pixel_t source
 {return I_BlendOverXlatab(dest, pal_color[source]);}
 #endif
 
+// [AP] Used for filled boxes
+static const inline pixel_t boxblendnull (const pixel_t dest, const pixel_t source)
+{return source;}
+static const inline pixel_t boxblendtransmap (const pixel_t dest, const pixel_t source)
+#ifndef CRISPY_TRUECOLOR
+{return tranmap[(dest<<8)+source];}
+#else
+{return I_BlendOver(dest, source, 0xA0);}
+#endif
+static const inline pixel_t boxblendtinttab (const pixel_t dest, const pixel_t source)
+#ifndef CRISPY_TRUECOLOR
+{return tinttable[dest+(source<<8)];}
+#else
+{return I_BlendOver(dest, source, 0xA0);}
+#endif
+
 // [crispy] array of function pointers holding the different rendering functions
 typedef const pixel_t drawpatchpx_t (const pixel_t dest, const pixel_t source);
 static drawpatchpx_t *const drawpatchpx_a[2][2] = {{drawpatchpx11, drawpatchpx10}, {drawpatchpx01, drawpatchpx00}};
@@ -1040,8 +1056,8 @@ void V_DrawFilledBox(int x, int y, int w, int h, int c)
     int x1, y1;
 
     // [AP] allow translucent boxes.
-    static drawpatchpx_t *const boxfillpx[2][2] = {{drawpatchpx10, drawtinttab}, {drawpatchpx00, drawpatchpx00}};
-    drawpatchpx_t *const drawpx = boxfillpx[!dp_translucent][!tranmap];
+    static drawpatchpx_t *const boxfillpx[2][2] = {{boxblendtransmap, boxblendtinttab}, {boxblendnull, boxblendnull}};
+    drawpatchpx_t *const drawpx = boxfillpx[!dp_translucent][!!tinttable];
 
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
 
