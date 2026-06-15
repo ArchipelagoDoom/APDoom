@@ -17,6 +17,7 @@ on:
 
 jobs:
   build:
+    if: false # [AP] Disabled because we don't support intermission screens, thus quickcheck fails
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
     defaults:

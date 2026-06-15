@@ -96,8 +96,9 @@ ap_itemrando_t *json_parse_itemrando(const Json::Value& json)
 	}
 
 	ap_itemrando_t *output = new ap_itemrando_t[size];
-	int elem = 0;
+	memset(output, 0, sizeof(ap_itemrando_t) * size);
 
+	int elem = 0;
 	for (int i = 0; rgroup_types[i].group != NUM_RGROUPS; ++i)
 	{
 		if (!json.isObject() || !json.isMember(rgroup_types[i].str))

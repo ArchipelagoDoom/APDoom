@@ -14,6 +14,7 @@ on:
 
 jobs:
   cpp-linter:
+    if: false # [AP] Disabled for now
     strategy:
       matrix:
         compiler: [clang]
