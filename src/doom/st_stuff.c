@@ -2074,6 +2074,10 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
     if (st_crispyhud && (screenblocks % 3 == 2))
 	dp_translucent = true;
 
+    // Refresh the top row of the status bar when using shadow HUD with classic bar (Q and @ clip into it)
+    if (crispy->shadowhud && st_classicstatusbar && !st_firsttime)
+	V_CopyRect(ST_X, 0, st_backing_screen, SCREENWIDTH >> crispy->hires, 1, ST_X, ST_Y);
+
     // If just after ST_Start(), refresh all
     if (st_firsttime) ST_doRefresh();
     // Otherwise, update as little as possible
