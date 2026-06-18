@@ -59,6 +59,8 @@ int LS_MoveCursor(int dir)
     {
         case AP_LEVELSELECTORDER_MAP_ORDER:
         {
+            if (screen_defs->map_info[screen_defs->num_map_info-1].y < screen_defs->map_info[0].y)
+                dir *= -1; // Make menu work in reverse if maps are in reverse order.
             best += screen_defs->num_map_info + dir;
             best %= screen_defs->num_map_info;
             break;
