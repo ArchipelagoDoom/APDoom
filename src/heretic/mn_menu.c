@@ -485,7 +485,7 @@ static Menu_t Crispness3Menu = {
 static MenuItem_t Crispness4Items[] = {
     {ITT_LRFUNC2, "SCROLL MAP ICONS:", CrispyAPAutomapIcons, 0, MENU_NONE},
     {ITT_LRFUNC2, "LEVEL SELECT MUSIC:", CrispyAPLevelSelectMusic, 0, MENU_NONE},
-    {ITT_LRFUNC2, "LEVEL SELECT ORDERING:", CrispyAPLevelSelectOrder, 0, MENU_NONE},
+    {ITT_LRFUNC2, "LEVEL ORDERING:", CrispyAPLevelSelectOrder, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
@@ -634,7 +634,9 @@ static const multiitem_t multiitem_ap_automapicons[NUM_AP_AUTOMAPICON] =
 static const multiitem_t multiitem_ap_levelselectorder[NUM_AP_LEVELSELECTORDER] =
 {
     {AP_LEVELSELECTORDER_POSITION, "position"},
-    {AP_LEVELSELECTORDER_MAP_ORDER, "map order"}
+    {AP_LEVELSELECTORDER_MAP_ORDER_UP, "map order (up)"},
+    {AP_LEVELSELECTORDER_MAP_ORDER_DOWN, "map order (down)"},
+    {AP_LEVELSELECTORDER_MAP_ORDER_AUTO, "map order (auto)"}
 };
 
 static Menu_t *Menus[] = {
@@ -3571,5 +3573,5 @@ static void DrawCrispness4(void)
     DrawCrispnessItem(crispy->ap_levelselectmusic, 200, 45);
 
     // Order to move around the level select map
-    DrawCrispnessMultiItem(crispy->ap_levelselectorder, 225, 55, multiitem_ap_levelselectorder, false);
+    DrawCrispnessMultiItem(crispy->ap_levelselectorder, 175, 55, multiitem_ap_levelselectorder, false);
 }

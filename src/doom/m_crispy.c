@@ -106,7 +106,9 @@ multiitem_t multiitem_ap_automapicons[NUM_AP_AUTOMAPICON] =
 multiitem_t multiitem_ap_levelselectorder[NUM_AP_LEVELSELECTORDER] =
 {
     {AP_LEVELSELECTORDER_POSITION, "position"},
-    {AP_LEVELSELECTORDER_MAP_ORDER, "map order"}
+    {AP_LEVELSELECTORDER_MAP_ORDER_UP, "map order (up)"},
+    {AP_LEVELSELECTORDER_MAP_ORDER_DOWN, "map order (down)"},
+    {AP_LEVELSELECTORDER_MAP_ORDER_AUTO, "map order (auto)"}
 };
 
 multiitem_t multiitem_demotimerdir[] =

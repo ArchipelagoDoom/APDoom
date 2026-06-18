@@ -57,14 +57,19 @@ int LS_MoveCursor(int dir)
 
     switch (crispy->ap_levelselectorder)
     {
-        case AP_LEVELSELECTORDER_MAP_ORDER:
-        {
+        case AP_LEVELSELECTORDER_MAP_ORDER_AUTO:
+            // Make menu work in reverse if maps are in reverse order.
             if (screen_defs->map_info[screen_defs->num_map_info-1].y < screen_defs->map_info[0].y)
-                dir *= -1; // Make menu work in reverse if maps are in reverse order.
+            {
+            // fall through (this case placement is deliberate)
+        case AP_LEVELSELECTORDER_MAP_ORDER_UP:
+                dir *= -1; // Up and down swapped
+            }
+            // fall through
+        case AP_LEVELSELECTORDER_MAP_ORDER_DOWN:
             best += screen_defs->num_map_info + dir;
             best %= screen_defs->num_map_info;
             break;
-        }
         case AP_LEVELSELECTORDER_POSITION:
         {
             // We score each level based on its base coordinates.

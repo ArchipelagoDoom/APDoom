@@ -1785,7 +1785,7 @@ static void M_DrawCrispness4(void)
     M_DrawCrispnessItem(crispness_shadowhud, "Shadow behind HUD text", crispy->shadowhud, true);
     M_DrawCrispnessMultiItem(crispness_ap_automapicons, "Automap AP Icons", multiitem_ap_automapicons, crispy->ap_automapicons, true);
     M_DrawCrispnessItem(crispness_ap_levelselectmusic, "Level Select Music", crispy->ap_levelselectmusic, true);
-    M_DrawCrispnessMultiItem(crispness_ap_levelselectorder, "Level Select Ordering", multiitem_ap_levelselectorder, crispy->ap_levelselectorder, true);
+    M_DrawCrispnessMultiItem(crispness_ap_levelselectorder, "Level Ordering", multiitem_ap_levelselectorder, crispy->ap_levelselectorder, true);
 
     M_DrawCrispnessGoto(crispness4_next, "First Page >");
     M_DrawCrispnessGoto(crispness4_prev, "< Prev Page");
