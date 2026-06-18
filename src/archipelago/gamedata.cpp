@@ -972,3 +972,19 @@ int json_parse_obituaries(const Json::Value& json, obituary_storage_t &output)
 	return 1;
 }
 
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+// ============================================================================
+// CheckSanity: Handles checksanity marked locations for back-compat only
+// (json: "check_sanity")
+// ============================================================================
+
+int json_parse_check_sanity(const Json::Value& json, std::set<int64_t> &output)
+{
+	if (!json.isNull())
+	{
+		for (auto &locationnum : json)
+			output.insert(locationnum.asInt());
+	}
+	return 1;
+}
+#endif

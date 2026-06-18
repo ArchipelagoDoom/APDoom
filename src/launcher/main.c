@@ -66,6 +66,60 @@ static inline const uint32_t _SelectedColor(void)
     return 0x000054CA + (pulsating_color << 8) + (pulsating_color << 17);
 }
 
+// Used to give (Core) and (Beta) tags additional color.
+static const char *ColoredWorldName(const char *name, const char *color)
+{
+    static char buf[128];
+    buf[0] = 0;
+
+    if (!strncmp(name, "(Core)", 6))
+        M_StringConcat(buf, "\xA1(Core)", 128);
+    else if (!strncmp(name, "(Beta)", 6))
+        M_StringConcat(buf, "\xA5(Beta)", 128);
+    else
+    {
+        M_StringConcat(buf, color, 128);
+        M_StringConcat(buf, name, 128);
+        return buf;
+    }
+
+    M_StringConcat(buf, color, 128);
+    M_StringConcat(buf, &name[6], 128);
+    return buf;
+}
+
+// Used to print authorship information.
+static char *InLineList(const char *pre, const char **list, const char *post)
+{
+    int count = 0, i = 0;
+    for (; list[count]; ++count) {}
+
+    if (count == 0)
+        return calloc(1, sizeof(char)); // Technically wasteful, but whatever
+    if (count == 1)
+        return LN_allocsprintf("%s%s%s", pre, list[0], post);
+    if (count == 2)
+        return LN_allocsprintf("%s%s and %s%s", pre, list[0], list[1], post);
+
+    int len = 5; // "and ", and NULL terminator
+    len += strlen(pre);
+    len += strlen(post);
+    for (i = 0; i < count; ++i)
+        len += strlen(list[i]) + 2; // String content, and ", "
+
+    char *content = malloc(len);
+    memcpy(content, pre, strlen(pre) + 1);
+    for (i = 0; i < count - 1; ++i)
+    {
+        M_StringConcat(content, list[i], len);
+        M_StringConcat(content, ", ", len);
+    }
+    M_StringConcat(content, "and ", len);
+    M_StringConcat(content, list[i], len);
+    M_StringConcat(content, post, len);
+    return content;
+}
+
 // ============================================================================
 // Game / World Functionality Testing
 // ============================================================================
@@ -289,6 +343,7 @@ struct {
     {LoadOptions_Init, LoadOptions_Draw, LoadOptions_Input},
 };
 
+static const char* menuopt_text = NULL;
 static int menu_stack_pos = 0;
 static menulist_t menu_stack[6] = {MENU_MAIN};
 static menulist_t next_menu = MENU_NONE;
@@ -374,9 +429,10 @@ void StandardMenuDraw(menudata_t *data)
             LV_OutlineRect(data->layer, -1, y + 5 - (h/2), SCREEN_WIDTH+2, h, 1, 0x60000000 | color);
         }
 
-        if (target->draw_handler && target->draw_handler(i, data, target->arg))
-            continue;
-        DrawMenuItem(data->layer, target->x, y, data->cursor == i, target->text);
+        menuopt_text = target->text;
+        // menuopt handler may return false, or set menuopt_text to NULL, or some other value
+        if (target->draw_handler && target->draw_handler(i, data, target->arg) && menuopt_text)
+            DrawMenuItem(data->layer, target->x, y, data->cursor == i, menuopt_text);
         LV_SetPalette(pal); // Restore palette, as draw handler may change it
     }
     if (data->scroll.enable)
@@ -640,11 +696,9 @@ static void LoadSavedGame_Draw(menudata_t *data)
 
     if (!lsg_targets)
     {
-        const char *info_txt = "No saved games found.";
+        const char *info_txt = "\xA9No saved games found.";
         const int center_header = LV_TextWidth(&large_font, info_txt) / 2;
-        LV_SetPalette(9);
         LV_PrintText(l_primary, (SCREEN_WIDTH/2)-center_header, 140, &large_font, info_txt);
-        LV_SetPalette(0);
     }
     else
     {
@@ -661,13 +715,13 @@ static void LoadSavedGame_Draw(menudata_t *data)
             strftime(lastdt, 48, "%B %d, %Y\n  %r", localtime(&last_timestamp));
 
             sidebar_text = LN_allocsprintf(
-                "Game:\n"        "  \xA4%s\xA0\n\n"
+                "Game:\n"        "  %s\xA0\n\n"
                 "Server:\n"      "  \xA2%s\xA0\n\n"
                 "Slot Name:\n"   "  \xA2%s\xA0\n\n"
                 "Started:\n"     "  %s\n\n"
                 "Last Played:\n" "  %s\n\n"
                 "\xA4%s",
-                lsg_savegame_cache[sidebar_id].world->fullname,
+                ColoredWorldName(lsg_savegame_cache[sidebar_id].world->fullname, "\xA4"),
                 lsg_savegame_cache[sidebar_id].address,
                 lsg_savegame_cache[sidebar_id].slot_name,
                 initdt,
@@ -838,43 +892,22 @@ static void LoadOptions_Input(menudata_t *data)
 int world_sidebar_id = -1;
 char *world_sidebar_text = NULL;
 
-// Used to print authorship information.
-static char *InLineList(const char *pre, const char **list, const char *post)
-{
-    int count = 0, i = 0;
-    for (; list[count]; ++count) {}
-
-    if (count == 0)
-        return calloc(1, 1); // Technically wasteful, but whatever
-    if (count == 1)
-        return LN_allocsprintf("%s%s%s", pre, list[0], post);
-    if (count == 2)
-        return LN_allocsprintf("%s%s and %s%s", pre, list[0], list[1], post);
-
-    int len = 5; // "and ", and NULL terminator
-    len += strlen(pre);
-    len += strlen(post);
-    for (i = 0; i < count; ++i)
-        len += strlen(list[i]) + 2; // String content, and ", "
-
-    char *content = malloc(len);
-    memcpy(content, pre, strlen(pre) + 1);
-    for (i = 0; i < count - 1; ++i)
-    {
-        M_StringConcat(content, list[i], len);
-        M_StringConcat(content, ", ", len);
-    }
-    M_StringConcat(content, "and ", len);
-    M_StringConcat(content, list[i], len);
-    M_StringConcat(content, post, len);
-    return content;
-}
-
 static int GameActionHandler(int num, menudata_t *data, void *arg)
 {
     (void)arg;
+    int disable = false;
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+    if (all_worlds[num]->is_backcompat_world && menu_stack[menu_stack_pos-1] == MENU_PRACTICE)
+        disable = true;
+#endif
     if (!extra_world_info[num].is_functional)
+        disable = true;
+
+    if (disable)
         LV_SetPalette(9);
+    else
+        menuopt_text = ColoredWorldName(data->target_list[num].text, "\xA0");
     return false;
 }
 
@@ -932,10 +965,23 @@ static void SelectGame_Draw(menudata_t *data)
             free(world_sidebar_text);
         world_sidebar_id = data->cursor;
 
+        char *working_sidebar = calloc(1024, sizeof(char));
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+        if (all_worlds[world_sidebar_id]->is_backcompat_world)
+        {
+            M_StringConcat(working_sidebar, 
+                "Select this to connect to a game generated for previous versions of Archipelago Doom.\n\n", 1024);
+        }
+#endif
+
         // If a world has authorship information, show it!
         char *authors = InLineList("World created by ", all_worlds[world_sidebar_id]->authors, ".");
-        world_sidebar_text = LV_WrapText(&small_font, SCREEN_WIDTH/4, authors);
+        M_StringConcat(working_sidebar, authors, 1024);
         free(authors);
+
+        world_sidebar_text = LV_WrapText(&small_font, SCREEN_WIDTH/4, working_sidebar);
+        free(working_sidebar);
     }
 
     if (world_sidebar_text)
@@ -950,6 +996,13 @@ static void SelectGame_Input(menudata_t *data)
     if (result < 0)
         return;
 
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+    if (all_worlds[result]->is_backcompat_world && menu_stack[menu_stack_pos-1] == MENU_PRACTICE)
+        LN_OpenDialog(DIALOG_OK, "Can't Select Game",
+            "Worlds that were designed for previous versions of Archipelago Doom "
+            "do not support Practice Mode.");
+    else
+#endif
     if (extra_world_info[result].is_functional)
     {
         game_settings.world = all_worlds[result];
@@ -964,9 +1017,11 @@ static void SelectGame_Input(menudata_t *data)
 static int DrawGameName(int num, menudata_t *data, void *arg)
 {
     (void)arg;
-    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, "%c%s",
-        (game_settings.world ? 0xA4 : 0xA9),
-        (game_settings.world ? game_settings.world->fullname : "<no game selected>"));
+
+    const char *world_name = "\xA9<no game selected>";
+    if (game_settings.world)
+        world_name = ColoredWorldName(game_settings.world->fullname, "\xA4");
+    DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, world_name);
 
     // Selection disabled if previous menu is the save game menu. Can't change game.
     if (editing_savegame)
@@ -1004,6 +1059,11 @@ static void Practice_Init(menudata_t *data)
     game_settings.reset_level = 0;
 
     editing_savegame = false;
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+    if (game_settings.world && game_settings.world->is_backcompat_world)
+        game_settings.world = NULL;
+#endif
 }
 
 static void Practice_Draw(menudata_t *data)
@@ -1179,10 +1239,7 @@ static int AdvOptDrawFlipLevels(int num, menudata_t *data, void *arg)
 {
     const char *text = "\xA9<unchanged>";
     if (game_settings.world && !strcmp(game_settings.world->iwad, "HERETIC.WAD"))
-    {
-        LV_SetPalette(9);
         text = "\xA9<not available>";
-    }
     else switch (game_settings.flip_levels)
     {
     case 0: text = "Off"; break;
@@ -1211,10 +1268,7 @@ static int AdvOptDrawDeathLink(int num, menudata_t *data, void *arg)
 {
     const char *text = "\xA9<unchanged>";
     if (game_settings.practice_mode)
-    {
-        LV_SetPalette(9);
         text = "\xA9<not available>";
-    }
     else if (game_settings.no_deathlink > 0)
         text = "Force Off";
     DrawLabel(data->layer, data->target_list[num].x, data->target_list[num].y, text);

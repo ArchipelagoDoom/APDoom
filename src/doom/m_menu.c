@@ -1354,24 +1354,17 @@ void M_MusicVol(int choice)
 
 void M_DrawAPDOOMVersion(void)
 {
-    patch_t *patch;
-    int x = HU_MSGX;
+    const char* version_text = APDOOM_VERSION_FULL_TEXT;
+    M_WriteText(HU_MSGX, ORIGHEIGHT - hu_font[0]->height, version_text);
 
-    for (const char *p = APDOOM_VERSION_FULL_TEXT; *p; ++p)
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+    if (ap_backwards_compatibility)
     {
-        if (*p == ' ' || *p < HU_FONTSTART || *p > HU_FONTEND)
-            patch = NULL;
-        else
-            patch = hu_font[(unsigned)*p - HU_FONTSTART];
-
-        if (!patch)
-            x += 8;
-        else
-        {
-            V_DrawPatchDirect(x, ORIGHEIGHT - hu_font[0]->height, patch);
-            x += patch->width;
-        }
+        const char* compat_text = "1.2.0-compatible";
+        M_WriteText((ORIGWIDTH + WIDESCREENDELTA) - M_StringWidth(compat_text), ORIGHEIGHT - hu_font[0]->height, compat_text);
+        dp_translation = NULL;        
     }
+#endif
 }
 
 
@@ -2324,7 +2317,7 @@ M_WriteText
 	}
 		
 	w = SHORT (hu_font[c]->width);
-	if (cx+w > ORIGWIDTH)
+	if (cx+w > ORIGWIDTH+WIDESCREENDELTA)
 	    break;
 	V_DrawPatchDirect(cx, cy, hu_font[c]);
 	cx+=w;

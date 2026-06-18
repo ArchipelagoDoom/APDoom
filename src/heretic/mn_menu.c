@@ -1164,6 +1164,14 @@ static void M_DrawAPDOOMVersion(void)
 {
     const char* version_text = APDOOM_VERSION_FULL_TEXT;
     MN_DrTextA(version_text, 0 - WIDESCREENDELTA, 200 - 9);
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+    if (ap_backwards_compatibility)
+    {
+        const char* compat_text = "1.2.0-compatible";
+        MN_DrTextA(compat_text, (ORIGWIDTH + WIDESCREENDELTA) - (MN_TextAWidth(compat_text) + 1), 200 - 9);
+    }
+#endif
 }
 
 static void DrawMainMenu(void)

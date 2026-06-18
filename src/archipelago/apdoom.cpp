@@ -74,6 +74,10 @@ ap_state_t ap_state;
 int ap_is_in_game = 0;
 int ap_episode_count = -1;
 
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+int ap_backwards_compatibility = false; // Pretending to be 1.2.0
+#endif
+
 int ap_race_mode = false; // Server reports this is a race, not casual.
 int ap_practice_mode = false; // Not connected to a server, simulate play.
 int ap_debug_mode = false; // -apdebug: Give extra info, if offline then enable some extra tools.
@@ -114,15 +118,36 @@ SLOT_DATA_CALLBACK(f_random_music, ap_state.random_music, (!ap_settings.override
 SLOT_DATA_CALLBACK(f_flip_levels, ap_state.flip_levels, (!ap_settings.override_flip_levels) );
 SLOT_DATA_CALLBACK(f_reset_level_on_death, ap_state.reset_level_on_death, (!ap_settings.override_reset_level_on_death) );
 
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+SLOT_DATA_CALLBACK(f_episode1, ap_state.episodes[0], (ap_episode_count >= 0) );
+SLOT_DATA_CALLBACK(f_episode2, ap_state.episodes[1], (ap_episode_count >= 1) );
+SLOT_DATA_CALLBACK(f_episode3, ap_state.episodes[2], (ap_episode_count >= 2) );
+SLOT_DATA_CALLBACK(f_episode4, ap_state.episodes[3], (ap_episode_count >= 3) );
+SLOT_DATA_CALLBACK(f_episode5, ap_state.episodes[4], (ap_episode_count >= 4) );
+
+void f_check_sanity(int result)
+{
+	// For backwards compatibility, we start with the checksanity locations suppressed,
+	// and then unsuppress them here if checksanity is enabled.
+	if (ap_backwards_compatibility && result > 0)
+		suppressed_locations.clear();
+}
+#endif
+
 void f_goal(std::string json_blob)
 {
 	Json::Value json = AP_ReadJson(json_blob);
 	if (json.isInt())
 	{
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+		// We will fix the goal level count and list later, when we know episodes have been parsed.
+		ap_state.goal = (json.asInt() == 1 ? 3 : 0);
+#endif
 		detected_old_apworld = true;
 		return;
 	}
 
+	detected_old_apworld = false;
 	ap_state.goal = json["type"].asInt();
 	switch (ap_state.goal)
 	{
@@ -290,6 +315,14 @@ int ap_preload_defs_for_game(const char *game_name)
 		for (int map = 0; map < (int)preloaded_level_info[ep].size(); ++map)
 			idx_all_levels.emplace_back(ap_level_index_t{ep, map});
 	idx_all_levels.emplace_back(ap_level_index_t{-1, -1});
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+	if ((ap_backwards_compatibility = ap_world_info->is_backcompat_world))
+	{
+		printf("Emulating the behavior of Archipelago Doom 1.2.0.\n");
+		json_parse_check_sanity(defs_json["check_sanity"], suppressed_locations);
+	}
+#endif
 
 	return 1;
 } 
@@ -611,6 +644,10 @@ int apdoom_init(ap_settings_t* settings)
 	else
 	{
 
+	// Old versions of the Doom II APWorld did not put goal in slotdata at all.
+	// This means f_goal never gets called for those slots.
+	detected_old_apworld = true;
+
 	printf("APDOOM: Initializing Game: \"%s\", Server: %s, Slot: %s\n", settings->game, settings->ip, settings->player_name);
 	AP_NetworkVersion version = {0, 6, 3};
 	AP_SetClientVersion(&version);
@@ -627,8 +664,24 @@ int apdoom_init(ap_settings_t* settings)
 	AP_RegisterSlotDataIntCallback("random_monsters", f_random_monsters);
 	AP_RegisterSlotDataIntCallback("random_pickups", f_random_items);
 	AP_RegisterSlotDataIntCallback("random_music", f_random_music);
-	AP_RegisterSlotDataRawCallback("suppressed_locations", f_suppressed_locations);
-	AP_RegisterSlotDataRawCallback("episodes", f_episodes);
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+	if (ap_backwards_compatibility)
+	{
+		AP_RegisterSlotDataIntCallback("check_sanity", f_check_sanity);
+		AP_RegisterSlotDataIntCallback("episode1", f_episode1);
+		AP_RegisterSlotDataIntCallback("episode2", f_episode2);
+		AP_RegisterSlotDataIntCallback("episode3", f_episode3);
+		AP_RegisterSlotDataIntCallback("episode4", f_episode4);
+		AP_RegisterSlotDataIntCallback("episode5", f_episode5);
+	}
+	else
+	{
+#endif
+		AP_RegisterSlotDataRawCallback("suppressed_locations", f_suppressed_locations);
+		AP_RegisterSlotDataRawCallback("episodes", f_episodes);
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+	}
+#endif
 	AP_RegisterSlotDataRawCallback("ammo_start", f_ammo_start);
 	AP_RegisterSlotDataRawCallback("ammo_add", f_ammo_add);
 	AP_RegisterSlotDataRawCallback("energy_link", f_energylink);
@@ -648,6 +701,23 @@ int apdoom_init(ap_settings_t* settings)
 				break;
 			case AP_ConnectionStatus::Authenticated:
 			{
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+				if (detected_old_apworld && ap_backwards_compatibility)
+				{
+					if (!ap_settings.override_monster_rando && ap_state.random_monsters >= 2)
+						++ap_state.random_monsters; // Move past "same type" that didn't exist
+					if (!ap_settings.override_item_rando && ap_state.random_items >= 2)
+						++ap_state.random_items; // Move past "same type" that didn't exist
+				}
+				else if (ap_backwards_compatibility)
+				{
+					printf("APDOOM: You are trying to connect to a 2.0 slot with 1.2.0 backwards compatibility.\n");
+					printf("  Please use the regular (beta) world.\n");
+					make_init_file("IncompatibleVersion");
+					return 0;
+				}
+				else
+#endif
 				if (detected_old_apworld)
 				{
 					printf("APDOOM: Older versions of the APWorld are not supported.\n");
@@ -793,6 +863,27 @@ int apdoom_init(ap_settings_t* settings)
 			level_state->has_map = 1;
 		}
 	}
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+	if (ap_backwards_compatibility && ap_state.goal > 0)
+	{
+		// Mimic "complete boss levels" for Doom 1 and Heretic
+		ap_state.goal_level_list = new ap_level_index_t[6]; // 5 episodes + terminator
+
+		ap_state.goal_level_count = 0;
+		for (ap_level_index_t *idx = ap_get_available_levels(); idx->ep != -1; ++idx)
+		{
+			if (idx->map + 1 == 8)
+			{
+				ap_state.goal_level_list[ap_state.goal_level_count].ep = idx->ep;
+				ap_state.goal_level_list[ap_state.goal_level_count].map = idx->map;
+				++ap_state.goal_level_count;
+			}
+		}
+		ap_state.goal_level_list[ap_state.goal_level_count].ep = -1;
+		ap_state.goal_level_list[ap_state.goal_level_count].map = -1;
+	}
+#endif
 
 	// Set up true check counts now
 	for (ap_level_index_t *idx = ap_get_all_levels(); idx->ep != -1; ++idx)

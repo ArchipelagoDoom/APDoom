@@ -13,6 +13,10 @@ struct WorldInfo {
 	std::string path; // Path to external file containing world data
 	const embedded_file_t *embedded; // Embedded file version of the above
 
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+	int is_backcompat_world; // World pretends to be 1.2.0
+#endif
+
 	// Required fields
 	std::string shortname; // -game arguments: e.g. "doom", "doom2" ...
 	std::string fullname; // Displayed in launcher
@@ -75,6 +79,11 @@ static ap_worldinfo_t *make_c_world(WorldInfo &w)
 	w.c_world_info.optional_wads = w.c_optional_wads.data();
 	w.c_world_info.included_wads = w.c_included_wads.data();
 	w.c_world_info.authors = w.c_authors.data();
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+	w.c_world_info.is_backcompat_world = w.is_backcompat_world;
+#endif
+
 	return &w.c_world_info;
 }
 
@@ -124,11 +133,20 @@ static WorldInfo *parse_world(APZipReader *world)
 		}
 	}
 
+#ifndef BACKWARDS_COMPATIBILITY_1_2_0
+	// If no backwards compatibility available, ignore backwards compatibility worlds
+	if (apdoom_json.get("backwards_compatibility", false).asBool())
+		return NULL;
+#endif
+
 	WorldInfo w;
 	w.apname = json["game"].asString();
 	w.shortname = apdoom_json["short_name"].asString();
 	w.iwad = apdoom_json["iwad"].asString();
 	w.definitions = apdoom_json["definitions"].asString();
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+	w.is_backcompat_world = apdoom_json.get("backwards_compatibility", false).asBool();
+#endif
 
 	w.fullname = apdoom_json.get("full_name", w.apname).asString();
 

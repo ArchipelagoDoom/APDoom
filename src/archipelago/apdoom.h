@@ -30,6 +30,8 @@ extern "C"
 // Displayed in menus, uses shortened "APDOOM" instead of full name.
 #define APDOOM_VERSION_FULL_TEXT "APDOOM " PACKAGE_VERSION
 
+// Define to allow backwards compatibility for 1.2.0 / Core games.
+#define BACKWARDS_COMPATIBILITY_1_2_0
 
 #define AP_CHECK_MAX 999 // 999 is enforced by ID format
 #define AP_MAX_THING 10240 // List is dynamically allocated; this is more to guard against malformed defs
@@ -395,6 +397,9 @@ extern int ap_debug_mode; // Additional debug info.
 extern int ap_force_disable_behaviors; // Demo compatibility, disable most apdoom stuff
 extern int ap_countdown_timer; // Last countdown number given by the server, -1 for no countdown.
 
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+extern int ap_backwards_compatibility; // Pretending to be 1.2.0
+#endif
 
 int apdoom_init(ap_settings_t* settings);
 void apdoom_shutdown();
@@ -477,6 +482,12 @@ typedef struct {
 
     // NULL-terminated list of PWADs included in the world zip, by relative path
     const char **included_wads;
+
+#ifdef BACKWARDS_COMPATIBILITY_1_2_0
+    // Zero if world is designed for Archipelago Doom 2.0.
+    // Non-zero if world is providing backwards compatibility for earlier versions.
+    int is_backcompat_world;
+#endif
 } ap_worldinfo_t;
 
 const ap_worldinfo_t **ap_list_worlds(void);
