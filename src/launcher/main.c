@@ -1360,6 +1360,27 @@ static void AdvancedOptions_Input(menudata_t *data)
 // Main Loop
 // ============================================================================
 
+static void PrintAllGames(int playable_only, int single_line)
+{
+    if (playable_only)
+        TestWorldFunctionality();
+    if (!single_line)
+        printf("Currently available%s games:\n", playable_only ? " and playable" : "");
+
+    const ap_worldinfo_t **games_list = ap_list_worlds();
+    for (int i = 0; games_list[i]; ++i)
+    {
+        if (playable_only && !extra_world_info[i].is_functional)
+            continue;
+        if (single_line)
+            printf("%s%s", (i != 0 ? " " : "") , games_list[i]->shortname);
+        else
+            printf(" - '%s' -> %s\n", games_list[i]->shortname, games_list[i]->fullname);
+    }
+    if (single_line)
+        printf("\n");
+}
+
 void D_Cleanup(void)
 {
     for (int i = 0; all_worlds[i]; ++i)
@@ -1372,6 +1393,12 @@ void D_Cleanup(void)
 
 void D_DoomMain(void)
 {
+    if (M_CheckParm("-list_games"))
+    {
+        PrintAllGames(M_CheckParm("-playable"), M_CheckParm("-short"));
+        return;
+    }
+
     I_PrintBanner("Archipelago Doom Launcher " PACKAGE_VERSION);
 
     // If a game is specified, go directly to the game executable
@@ -1384,10 +1411,9 @@ void D_DoomMain(void)
             const ap_worldinfo_t *world = ap_get_world(myargv[p + 1]);
             if (!world)
             {
-                printf("No valid apworld for the game '%s' exists.\n    Currently available games are:\n", myargv[p + 1]);
-                const ap_worldinfo_t **games_list = ap_list_worlds();
-                for (int i = 0; games_list[i]; ++i)
-                    printf("    - '%s' -> %s\n", games_list[i]->shortname, games_list[i]->fullname);
+                printf("No valid apworld for the game '%s' exists.\n\n", myargv[p + 1]);
+                PrintAllGames(false, false);
+                printf("\n");
                 I_Error("Please select a valid game.");
             }
             LN_ImmediateExecute(world);
