@@ -430,8 +430,9 @@ void StandardMenuDraw(menudata_t *data)
         }
 
         menuopt_text = target->text;
-        // menuopt handler may return false, or set menuopt_text to NULL, or some other value
-        if (target->draw_handler && target->draw_handler(i, data, target->arg) && menuopt_text)
+        // menuopt handler may return true to inhibit normal menu option drawing
+        // it may also set menuopt_text to NULL, or some other value
+        if (!(target->draw_handler && target->draw_handler(i, data, target->arg)) && menuopt_text)
             DrawMenuItem(data->layer, target->x, y, data->cursor == i, menuopt_text);
         LV_SetPalette(pal); // Restore palette, as draw handler may change it
     }
