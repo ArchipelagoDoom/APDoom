@@ -93,10 +93,11 @@ char			chat_char; // remove later.
 static player_t*	plr = NULL;
 patch_t*		hu_font[HU_FONTSIZE];
 static hu_textline_t	w_title;
-static hu_textline_t	w_map;
+//static hu_textline_t	w_map; // [AP] unreferenced
 static hu_textline_t	w_kills;
 static hu_textline_t	w_items;
 static hu_textline_t	w_scrts;
+static hu_textline_t    w_allstats; // [AP] less hackish inline
 static hu_textline_t	w_ltime;
 static hu_textline_t	w_coordx;
 static hu_textline_t	w_coordy;
@@ -442,7 +443,11 @@ static void CrispyReplaceColor (const char *str, const int cr, const char *col)
     free(str_replace);
 }
 
-static const char *cr_stat, *cr_stat2, *kills;
+static const char *cr_stat, *cr_stat2;
+// stats prefix variants: stacked, inlined
+static const char *tx_kill[2] = {"K\t", "K "};
+static const char *tx_item[2] = {"I\t", "I "};
+static const char *tx_scrt[2] = {"S\t", "S "};
 
 void HU_Init(void)
 {
@@ -463,7 +468,8 @@ void HU_Init(void)
     {
 	cr_stat = crstr[CR_GREEN];
 	cr_stat2 = crstr[CR_GOLD];
-	kills = "F\t";
+	tx_kill[0] = "F\t";
+	tx_kill[1] = "F ";
     }
     else
     {
@@ -476,7 +482,6 @@ void HU_Init(void)
 		cr_stat = crstr[CR_RED];
 	}
 	cr_stat2 = crstr[CR_GREEN];
-	kills = "K\t";
     }
 
     // [crispy] initialize the crosshair types
@@ -688,43 +693,53 @@ void HU_Start(void)
 		       HU_FONTSTART);
 
     // [crispy] create the generic map title, kills, items, secrets and level time widgets
+#if 0 // [AP] unreferenced
     HUlib_initTextLine(&w_map,
 		       HU_TITLEX, HU_TITLEY - SHORT(hu_font[0]->height + 1),
 		       hu_font,
 		       HU_FONTSTART);
+#endif
 
+    // [AP] stats moved to be above messages
     HUlib_initTextLine(&w_kills,
-		       HU_TITLEX, HU_MSGY + 1 * 8,
+		       HU_TITLEX, w_message_y - (3 * 8),
 		       hu_font,
 		       HU_FONTSTART);
 
     HUlib_initTextLine(&w_items,
-		       HU_TITLEX, HU_MSGY + 2 * 8,
+		       HU_TITLEX, w_message_y - (2 * 8),
 		       hu_font,
 		       HU_FONTSTART);
 
     HUlib_initTextLine(&w_scrts,
-		       HU_TITLEX, HU_MSGY + 3 * 8,
+		       HU_TITLEX, w_message_y - (1 * 8),
 		       hu_font,
 		       HU_FONTSTART);
 
+    // [AP] instead of hijacking w_kills, give inline stats its own widget
+    HUlib_initTextLine(&w_allstats,
+		       HU_TITLEX, w_message_y - (1 * 8),
+		       hu_font,
+		       HU_FONTSTART);
+
+    // [AP] moved to the right side, pushing coordinates down a line
     HUlib_initTextLine(&w_ltime,
-		       HU_TITLEX, HU_MSGY + 4 * 8,
-		       hu_font,
-		       HU_FONTSTART);
-
-    HUlib_initTextLine(&w_coordx,
 		       HU_COORDX, HU_MSGY + 1 * 8,
 		       hu_font,
 		       HU_FONTSTART);
 
-    HUlib_initTextLine(&w_coordy,
+    HUlib_initTextLine(&w_coordx,
 		       HU_COORDX, HU_MSGY + 2 * 8,
 		       hu_font,
 		       HU_FONTSTART);
 
-    HUlib_initTextLine(&w_coorda,
+    HUlib_initTextLine(&w_coordy,
 		       HU_COORDX, HU_MSGY + 3 * 8,
+		       hu_font,
+		       HU_FONTSTART);
+
+    HUlib_initTextLine(&w_coorda,
+		       HU_COORDX, HU_MSGY + 4 * 8,
 		       hu_font,
 		       HU_FONTSTART);
 
@@ -982,16 +997,18 @@ void HU_Drawer(void)
 	HUlib_drawTextLine(&w_title, false);
     }
 
-    if (crispy->automapstats == WIDGETS_STBAR && (!automapactive || w_title.y != HU_TITLEY))
+    if (crispy->automapstats == WIDGETS_STBAR_ALWAYS || (automapactive && crispy->automapstats >= WIDGETS_STBAR))
     {
-	HUlib_drawTextLine(&w_kills, false);
+	HUlib_drawTextLine(&w_allstats /* &w_kills */, false);
     }
     else
-    if ((crispy->automapstats & WIDGETS_ALWAYS) || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
+    if (crispy->automapstats == WIDGETS_ALWAYS || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
     {
+#if 0 // [AP] Removed, never written to
 	// [crispy] move obtrusive line out of player view
 	if (automapactive && (!crispy->automapoverlay || screenblocks < CRISPY_HUD - 1))
 	    HUlib_drawTextLine(&w_map, false);
+#endif
 
 	HUlib_drawTextLine(&w_kills, false);
 	HUlib_drawTextLine(&w_items, false);
@@ -1053,6 +1070,7 @@ void HU_Erase(void)
     HUlib_eraseTextLine(&w_kills);
     HUlib_eraseTextLine(&w_items);
     HUlib_eraseTextLine(&w_scrts);
+    HUlib_eraseTextLine(&w_allstats);
     HUlib_eraseTextLine(&w_ltime);
     HUlib_eraseTextLine(&w_coordx);
     HUlib_eraseTextLine(&w_coordy);
@@ -1429,17 +1447,7 @@ void HU_Ticker(void)
 
     } // else message_on = false;
 
-
-    // [AP] Check if status bar leaves some space on the side, we will put our stats there (Only in wide screen)
-    int base_y = 17 * 8;
-
-    //if (w_kills.x <= -50)
-    //    base_y += 30 + 8;
-
-    w_kills.y = base_y;
-    w_items.y = base_y + 8;
-    w_scrts.y = base_y + 16;
-
+    // w_kills.y = HU_MSGY + 1 * 8; // [AP] ???
 
     // check for incoming chat characters
     if (netgame)
@@ -1480,6 +1488,7 @@ void HU_Ticker(void)
 		players[i].cmd.chatchar = 0;
 	    }
 	}
+#if 0 // [AP] Stats are in a different place entirely...
     // [crispy] shift widgets one line down so chat typing line may appear
     if (crispy->automapstats != WIDGETS_STBAR)
     {
@@ -1494,6 +1503,7 @@ void HU_Ticker(void)
         w_coordy.y = HU_MSGY + 2 * 8 + chat_line;
         w_coorda.y = HU_MSGY + 3 * 8 + chat_line;
     }
+#endif
     }
 
     if (automapactive)
@@ -1505,6 +1515,7 @@ void HU_Ticker(void)
 	    w_title.y = HU_TITLEY;
     }
 
+#if 0 // [AP] We do this a bit less hackishly, and don't take over w_kills
     if (crispy->automapstats == WIDGETS_STBAR && (!automapactive || w_title.y != HU_TITLEY))
     {
 	crispy_statsline_func_t crispy_statsline = crispy_statslines[crispy->statsformat];
@@ -1530,33 +1541,36 @@ void HU_Ticker(void)
 	    HUlib_addCharToTextLine(&w_kills, *(s++));
     }
     else
-    if ((crispy->automapstats & WIDGETS_ALWAYS) || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
+#endif
+    if (crispy->automapstats == WIDGETS_ALWAYS || crispy->automapstats == WIDGETS_STBAR_ALWAYS 
+     || (automapactive && crispy->automapstats != WIDGETS_OFF))
     {
+	// [AP] replaced items with AP items
+	ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
+	const ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
 
+	const boolean w_isinlined = (crispy->automapstats >= WIDGETS_STBAR);
 	crispy_statsline_func_t crispy_statsline = crispy_statslines[crispy->statsformat];
 
-	w_kills.x = HU_TITLEX; // to handle switching from Status bar to Always and Automap kills line options
-
-	crispy_statsline(str, sizeof(str), kills, plr->killcount, totalkills, extrakills);
+	HUlib_clearTextLine(&w_allstats);
 	HUlib_clearTextLine(&w_kills);
-	s = str;
-	while (*s)
-	    HUlib_addCharToTextLine(&w_kills, *(s++));
-
-    // AP replaced items with AP items
-    ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
-    const ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
-	crispy_statsline(str, sizeof(str), "I\t", level_state->check_count, ap_total_check_count(level_info), 0);
 	HUlib_clearTextLine(&w_items);
-	s = str;
-	while (*s)
-	    HUlib_addCharToTextLine(&w_items, *(s++));
-
-	crispy_statsline(str, sizeof(str), "S\t", plr->secretcount, totalsecret, 0);
 	HUlib_clearTextLine(&w_scrts);
+
+	crispy_statsline(str, sizeof(str), tx_kill[w_isinlined], plr->killcount, totalkills, extrakills);
 	s = str;
 	while (*s)
-	    HUlib_addCharToTextLine(&w_scrts, *(s++));
+	    HUlib_addCharToTextLine(w_isinlined ? &w_allstats : &w_kills, *(s++));
+
+	crispy_statsline(str, sizeof(str), tx_item[w_isinlined], level_state->check_count, ap_total_check_count(level_info), 0);
+	s = str;
+	while (*s)
+	    HUlib_addCharToTextLine(w_isinlined ? &w_allstats : &w_items, *(s++));
+
+	crispy_statsline(str, sizeof(str), tx_scrt[w_isinlined], plr->secretcount, totalsecret, 0);
+	s = str;
+	while (*s)
+	    HUlib_addCharToTextLine(w_isinlined ? &w_allstats : &w_scrts, *(s++));
     }
 
     if (crispy->leveltime == WIDGETS_ALWAYS || (automapactive && crispy->leveltime == WIDGETS_AUTOMAP))

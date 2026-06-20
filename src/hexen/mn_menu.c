@@ -494,7 +494,8 @@ static const multiitem_t multiitem_widgets[NUM_WIDGETS] =
     {WIDGETS_OFF, "NEVER"},
     {WIDGETS_AUTOMAP, "IN AUTOMAP"},
     {WIDGETS_ALWAYS, "ALWAYS"},
-    {WIDGETS_STBAR, "STATUS BAR"},
+    {WIDGETS_STBAR, "IN AUTOMAP (IN-LINE)"},
+    {WIDGETS_STBAR_ALWAYS, "ALWAYS (IN-LINE)"},
 };
 
 static const multiitem_t multiitem_freelook_hh[NUM_FREELOOKS_HH] =
@@ -1844,7 +1845,7 @@ static void CrispySndChannels(int option)
 static void CrispyPlayerCoords(int option)
 {
     // disable "always" and "status bar" setting
-    ChangeSettingEnum(&crispy->playercoords, option, NUM_WIDGETS - 2);
+    ChangeSettingEnum(&crispy->playercoords, option, NUM_WIDGETS_BASIC - 1);
 }
 
 static void CrispyFreelook(int option)

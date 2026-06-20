@@ -2225,10 +2225,10 @@ void AM_Drawer(void)
     // [crispy] check for translucent HUD
     SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
     // [AP] Show episode 6 names
-    if ((gameepisode <= numepisodes && gamemap < 10) || (gameepisode == 6 && gamemap < 4))
+    if (!(plr->messageTics > 0) && ((gameepisode <= numepisodes && gamemap < 10) || (gameepisode == 6 && gamemap < 4)))
     {
         level_name = LevelNames[(gameepisode - 1) * 9 + gamemap - 1];
-        MN_DrTextA(DEH_String(level_name), 20, 145);
+        MN_DrTextA(DEH_String(level_name), 26, 158 - 10);
     }
     SB_Translucent(false);
 //  I_Update();

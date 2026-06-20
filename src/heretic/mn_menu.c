@@ -557,7 +557,8 @@ static const multiitem_t multiitem_widgets[NUM_WIDGETS] =
     {WIDGETS_OFF, "NEVER"},
     {WIDGETS_AUTOMAP, "IN AUTOMAP"},
     {WIDGETS_ALWAYS, "ALWAYS"},
-    {WIDGETS_STBAR, "STATUS BAR"},
+    {WIDGETS_STBAR, "IN AUTOMAP (IN-LINE)"},
+    {WIDGETS_STBAR_ALWAYS, "ALWAYS (IN-LINE)"},
 };
 
 static const multiitem_t multiitem_secretmessage[NUM_SECRETMESSAGE] =
@@ -2108,7 +2109,7 @@ static boolean CrispyAutomapStats(int option)
 static boolean CrispyLevelTime(int option)
 {
     // disable "status bar" setting
-    ChangeSettingEnum(&crispy->leveltime, option, NUM_WIDGETS - 1);
+    ChangeSettingEnum(&crispy->leveltime, option, NUM_WIDGETS_BASIC);
     return true;
 }
 
@@ -2119,7 +2120,7 @@ static boolean CrispyPlayerCoords(int option)
         return true;
 
     // disable "always" and "status bar" setting
-    ChangeSettingEnum(&crispy->playercoords, option, NUM_WIDGETS - 2);
+    ChangeSettingEnum(&crispy->playercoords, option, NUM_WIDGETS_BASIC - 1);
     return true;
 }
 

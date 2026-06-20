@@ -176,7 +176,8 @@ multiitem_t multiitem_widgets[NUM_WIDGETS] =
     {WIDGETS_OFF, "never"},
     {WIDGETS_AUTOMAP, "in Automap"},
     {WIDGETS_ALWAYS, "always"},
-    {WIDGETS_STBAR, "status bar"},
+    {WIDGETS_STBAR, "in Automap (in-line)"},
+    {WIDGETS_STBAR_ALWAYS, "always (in-line)"},
 };
 
 multiitem_t multiitem_widescreen[NUM_RATIOS] =
@@ -501,7 +502,7 @@ void M_CrispyToggleJumping(int choice)
 
 void M_CrispyToggleLeveltime(int choice)
 {
-    ChangeSettingEnum(&crispy->leveltime, choice, NUM_WIDGETS - 1);
+    ChangeSettingEnum(&crispy->leveltime, choice, NUM_WIDGETS_BASIC);
 }
 
 void M_CrispyToggleMouseLook(int choice)
@@ -553,7 +554,7 @@ void M_CrispyTogglePlayerCoords(int choice)
         return;
 
     // [crispy] disable "always" setting
-    ChangeSettingEnum(&crispy->playercoords, choice, NUM_WIDGETS - 2);
+    ChangeSettingEnum(&crispy->playercoords, choice, NUM_WIDGETS_BASIC - 1);
 }
 
 void M_CrispyToggleSecretmessage(int choice)

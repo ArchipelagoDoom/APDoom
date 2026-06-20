@@ -189,6 +189,10 @@ static void CrispyDrawStats (void)
     player_t *const player = &players[consoleplayer];
     int left_widget_x, right_widget_x;
 
+    // [AP] replaced items with AP items
+    ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
+    const ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
+
     if (!height || !coord_x || !coord_w)
     {
         const int FontABaseLump = W_GetNumForName(DEH_String("FONTA_S")) + 1;
@@ -203,38 +207,34 @@ static void CrispyDrawStats (void)
     left_widget_x = 0 - WIDESCREENDELTA;
     right_widget_x = coord_x + WIDESCREENDELTA;
 
-    if (crispy->automapstats == WIDGETS_ALWAYS
-            || (automapactive && (crispy->automapstats == WIDGETS_AUTOMAP
-                                || crispy->automapstats == WIDGETS_STBAR))
-            || (screenblocks > 10 && crispy->automapstats == WIDGETS_STBAR))
+    if (crispy->automapstats == WIDGETS_ALWAYS || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
     {
         M_snprintf(str, sizeof(str), "K %d/%d", player->killcount, totalkills);
-        MN_DrTextA(str, left_widget_x, 1*height);
+        MN_DrTextA(str, left_widget_x, (158 - 10) - (3*height));
         left_widget_w = MN_TextAWidth(str); // Assume that kills is longest string
 
-        ap_level_state_t* level_state = ap_get_level_state(ap_make_level_index(gameepisode, gamemap));
-        const ap_level_info_t* level_info = ap_get_level_info(ap_make_level_index(gameepisode, gamemap));
         M_snprintf(str, sizeof(str), "I %d/%d", level_state->check_count, ap_total_check_count(level_info));
-        MN_DrTextA(str, left_widget_x, 2*height);
+        MN_DrTextA(str, left_widget_x, (158 - 10) - (2*height));
 
         M_snprintf(str, sizeof(str), "S %d/%d", player->secretcount, totalsecret);
-        MN_DrTextA(str, left_widget_x, 3*height);
+        MN_DrTextA(str, left_widget_x, (158 - 10) - (1*height));
     }
-    else if (crispy->automapstats == WIDGETS_STBAR)
+    else if (crispy->automapstats == WIDGETS_STBAR_ALWAYS || (automapactive && crispy->automapstats == WIDGETS_STBAR))
     {
         M_snprintf(str, sizeof(str), "K %d/%d I %d/%d S %d/%d",
                     player->killcount, totalkills,
-                    player->itemcount, totalitems,
+                    level_state->check_count, ap_total_check_count(level_info),
                     player->secretcount, totalsecret);
-        MN_DrTextA(str, 20, 145); // same location as level name in automap
+        MN_DrTextA(str, left_widget_x, (158 - 10) - (1*height));
     }
 
     if (crispy->leveltime == WIDGETS_ALWAYS || (automapactive && crispy->leveltime == WIDGETS_AUTOMAP))
     {
         const int time = leveltime / TICRATE;
+        right_widget_w = coord_w;
 
         M_snprintf(str, sizeof(str), "%02d:%02d", time/60, time%60);
-        MN_DrTextA(str, left_widget_x, 4*height);
+        MN_DrTextA(str, right_widget_x, 1*height);
     }
 
     // [AP] coordinate displays are banned in race mode
@@ -244,18 +244,18 @@ static void CrispyDrawStats (void)
         right_widget_w = coord_w;
 
         M_snprintf(str, sizeof(str), "X %-5d", player->mo->x>>FRACBITS);
-        MN_DrTextA(str, right_widget_x, 1*height);
-
-        M_snprintf(str, sizeof(str), "Y %-5d", player->mo->y>>FRACBITS);
         MN_DrTextA(str, right_widget_x, 2*height);
 
-        M_snprintf(str, sizeof(str), "A %-5d", player->mo->angle/ANG1);
+        M_snprintf(str, sizeof(str), "Y %-5d", player->mo->y>>FRACBITS);
         MN_DrTextA(str, right_widget_x, 3*height);
+
+        M_snprintf(str, sizeof(str), "A %-5d", player->mo->angle/ANG1);
+        MN_DrTextA(str, right_widget_x, 4*height);
 
         if (player->cheats & CF_SHOWFPS)
         {
             M_snprintf(str, sizeof(str), "%d FPS", crispy->fps);
-            MN_DrTextA(str, right_widget_x, 4*height + 1);
+            MN_DrTextA(str, right_widget_x, 0);
         }
     }
     else if (player->cheats & CF_SHOWFPS)
@@ -263,7 +263,7 @@ static void CrispyDrawStats (void)
         right_widget_w = coord_w;
 
         M_snprintf(str, sizeof(str), "%d FPS", crispy->fps);
-        MN_DrTextA(str, right_widget_x, 1*height);
+        MN_DrTextA(str, right_widget_x, 0);
     }
 }
 
