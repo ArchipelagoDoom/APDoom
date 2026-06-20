@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     setlocale(LC_TIME, "");
 
 #ifdef _WIN32
-    if (!M_ParmExists("-console") || !M_ParmExists("-apdebug"))
+    if (!M_ParmExists("-console") && !M_ParmExists("-apdebug"))
         CloseAutoConsole();
 #endif
 
