@@ -166,7 +166,23 @@ void A_CheckCollected(mobj_t* mo)
 
 void A_EnableHUB(mobj_t *mo)
 {
-    if (leveltimesinceload > MINHUBTIME)
+    // If any player is standing on top of the HUB just before it would turn on, delay it
+    if (leveltimesinceload == MINHUBTIME)
+    {
+        for (int i = 0; i < MAXPLAYERS; ++i)
+        {
+            if (!playeringame[i] || !players[i].mo)
+                continue;
+            if (abs(mo->x - players[i].mo->x) < mo->radius + players[i].mo->radius
+             && abs(mo->y - players[i].mo->y) < mo->radius + players[i].mo->radius)
+            {
+                // Standing on HUB, try again next tic
+                leveltimesinceload = MINHUBTIME - 1;
+                return;
+            }
+        }
+    }
+    else if (leveltimesinceload > MINHUBTIME)
         P_SetMobjState(mo, mo->info->seestate);
 }
 

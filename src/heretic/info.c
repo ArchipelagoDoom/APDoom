@@ -13,6 +13,9 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
+
+#include <stdlib.h>
+
 #include "doomdef.h"
 #include "p_action.h"
 #include "apdoom.h"
@@ -52,7 +55,23 @@ void A_CheckCollected(mobj_t *actor, player_t *player, pspdef_t *psp)
 
 void A_EnableHUB(mobj_t *actor, player_t *player, pspdef_t *psp)
 {
-    if (leveltimesinceload > MINHUBTIME)
+    // If any player is standing on top of the HUB just before it would turn on, delay it
+    if (leveltimesinceload == MINHUBTIME)
+    {
+        for (int i = 0; i < MAXPLAYERS; ++i)
+        {
+            if (!playeringame[i] || !players[i].mo)
+                continue;
+            if (abs(actor->x - players[i].mo->x) < actor->radius + players[i].mo->radius
+             && abs(actor->y - players[i].mo->y) < actor->radius + players[i].mo->radius)
+            {
+                // Standing on HUB, try again next tic
+                leveltimesinceload = MINHUBTIME - 1;
+                return;
+            }
+        }
+    }
+    else if (leveltimesinceload > MINHUBTIME)
         P_SetMobjState(actor, actor->info->seestate);
 }
 
