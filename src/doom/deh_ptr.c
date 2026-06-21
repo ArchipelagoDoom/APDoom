@@ -80,6 +80,7 @@ static void *DEH_PointerStart(deh_context_t *context, char *line)
         return NULL;
     }
 
+    SKIP_AP_STATES(frame_number);
     if (frame_number < 0 || frame_number >= NUMSTATES)
     {
         DEH_Warning(context, "Invalid frame number: %i", frame_number);
@@ -119,6 +120,7 @@ static void DEH_PointerParseLine(deh_context_t *context, char *line, void *tag)
 
     if (!strcasecmp(variable_name, "Codep frame"))
     {
+        SKIP_AP_STATES(ivalue);
         if (ivalue < 0 || ivalue >= NUMSTATES)
         {
             DEH_Warning(context, "Invalid state '%i'", ivalue);

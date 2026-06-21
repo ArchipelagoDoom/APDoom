@@ -1258,7 +1258,7 @@ typedef enum
 
     // [BH] extra dehacked states
     EXTRASTATES,
-    NUMSTATES = 4000
+    NUMSTATES = 4050 // [AP] Compensate for AP states
 } statenum_t;
 
 
@@ -1453,6 +1453,7 @@ typedef enum {
     MT_EXTRA85, MT_EXTRA86, MT_EXTRA87, MT_EXTRA88, MT_EXTRA89,
     MT_EXTRA90, MT_EXTRA91, MT_EXTRA92, MT_EXTRA93, MT_EXTRA94,
     MT_EXTRA95, MT_EXTRA96, MT_EXTRA97, MT_EXTRA98, MT_EXTRA99,
+    // [AP] Any new mobj types must go down here
     NUMMOBJTYPES
 
 } mobjtype_t;
@@ -1503,5 +1504,8 @@ typedef struct
 } mobjinfo_t;
 
 extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
+
+// Macro to skip AP states, for use in DEHACKED lumps
+#define SKIP_AP_STATES(x) if ((x) >= S_APJI) { (x) += (EXTRASTATES - S_APJI); }
 
 #endif

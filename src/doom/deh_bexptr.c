@@ -249,6 +249,7 @@ static void DEH_BEXPtrParseLine(deh_context_t *context, char *line, void *tag)
 	return;
     }
 
+    SKIP_AP_STATES(frame_number);
     if (frame_number < 0 || frame_number >= NUMSTATES)
     {
 	DEH_Warning(context, "Invalid frame number: %i", frame_number);

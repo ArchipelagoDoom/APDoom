@@ -22,6 +22,7 @@
 #include "doomtype.h"
 
 #include "d_items.h"
+#include "info.h"
 
 #include "deh_defs.h"
 #include "deh_main.h"
@@ -35,6 +36,18 @@ DEH_BEGIN_MAPPING(weapon_mapping, weaponinfo_t)
   DEH_MAPPING("Shooting frame",   atkstate)
   DEH_MAPPING("Firing frame",     flashstate)
 DEH_END_MAPPING
+
+static void DEH_APWeaponCorrections(char *varname, int *value)
+{
+    if (!strcasecmp(varname, "Deselect frame")
+     || !strcasecmp(varname, "Select frame")
+     || !strcasecmp(varname, "Bobbing frame")
+     || !strcasecmp(varname, "Shooting frame")
+     || !strcasecmp(varname, "Firing frame"))
+    {
+        SKIP_AP_STATES(*value);
+    }
+}
 
 static void *DEH_WeaponStart(deh_context_t *context, char *line)
 {
@@ -76,6 +89,7 @@ static void DEH_WeaponParseLine(deh_context_t *context, char *line, void *tag)
 
     ivalue = atoi(value);
 
+    DEH_APWeaponCorrections(variable_name, &ivalue);
     DEH_SetMapping(context, &weapon_mapping, weapon, variable_name, ivalue);
 }
 

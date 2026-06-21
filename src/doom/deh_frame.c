@@ -37,6 +37,15 @@ DEH_BEGIN_MAPPING(state_mapping, state_t)
   DEH_UNSUPPORTED_MAPPING("Codep frame")
 DEH_END_MAPPING
 
+static void DEH_APFrameCorrections(char *varname, int *value)
+{
+    if (!strcasecmp(varname, "Next frame")
+     || !strcasecmp(varname, "Codep frame"))
+    {
+        SKIP_AP_STATES(*value);
+    }
+}
+
 static void *DEH_FrameStart(deh_context_t *context, char *line)
 {
     int frame_number = 0;
@@ -48,6 +57,7 @@ static void *DEH_FrameStart(deh_context_t *context, char *line)
         return NULL;
     }
     
+    SKIP_AP_STATES(frame_number);
     if (frame_number < 0 || frame_number >= NUMSTATES)
     {
         DEH_Warning(context, "Invalid frame number: %i", frame_number);
@@ -136,6 +146,7 @@ static void DEH_FrameParseLine(deh_context_t *context, char *line, void *tag)
     {
         // set the appropriate field
 
+        DEH_APFrameCorrections(variable_name, &ivalue);
         DEH_SetMapping(context, &state_mapping, state, variable_name, ivalue);
     }
 }

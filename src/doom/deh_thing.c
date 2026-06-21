@@ -111,6 +111,21 @@ DEH_BEGIN_MAPPING(thing_mapping, mobjinfo_t)
   DEH_MAPPING("Missile chance multiplier",  missilechancemult)
 DEH_END_MAPPING
 
+static void DEH_APThingCorrections(char *varname, int *value)
+{
+    if (!strcasecmp(varname, "Initial frame")
+     || !strcasecmp(varname, "First moving frame")
+     || !strcasecmp(varname, "Injury frame")
+     || !strcasecmp(varname, "Close attack frame")
+     || !strcasecmp(varname, "Far attack frame")
+     || !strcasecmp(varname, "Death frame")
+     || !strcasecmp(varname, "Exploding frame")
+     || !strcasecmp(varname, "Respawn frame"))
+    {
+        SKIP_AP_STATES(*value);
+    }
+}
+
 // [crispy] initialize Thing extra properties (keeping vanilla props in info.c)
 static void DEH_InitThingProperties (void)
 {
@@ -253,6 +268,7 @@ static void DEH_ThingParseLine(deh_context_t *context, char *line, void *tag)
 
     // Set the field value
 
+    DEH_APThingCorrections(variable_name, &ivalue);
     DEH_SetMapping(context, &thing_mapping, mobj, variable_name, ivalue);
 }
 
