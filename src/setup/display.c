@@ -30,6 +30,8 @@
 
 #define WINDOW_HELP_URL "https://www.chocolate-doom.org/setup-display"
 
+#define SIZEREF(x,y) (((x)*1000)+(y))
+#define SIZECUSTOM   (-1)
 
 typedef struct
 {
@@ -82,6 +84,10 @@ static int startup_delay = 1000;
 static int max_scaling_buffer_pixels = 16000000;
 static int usegamma = 0;
 
+// [AP] Customize window width inside setup
+static int window_size_selection = SIZEREF(800, 600); // "Index" for ratio button (SIZEREF or SIZECUSTOM)
+static window_size_t window_custom_size = {  0,   0}; // Currently used custom size
+
 int graphical_startup = 0; // [crispy]
 int show_endoom = 0; // [crispy]
 int show_diskicon = 1;
@@ -127,6 +133,7 @@ static void WindowSizeSelected(TXT_UNCAST_ARG(widget), TXT_UNCAST_ARG(size))
 
     window_width = size->w;
     window_height = size->h;
+    window_size_selection = (size == &window_custom_size) ? SIZECUSTOM : SIZEREF(size->w, size->h);
 }
 
 static txt_radiobutton_t *SizeSelectButton(window_size_t *size)
@@ -134,8 +141,8 @@ static txt_radiobutton_t *SizeSelectButton(window_size_t *size)
     char buf[15];
     txt_radiobutton_t *result;
 
-    M_snprintf(buf, sizeof(buf), "%ix%i", size->w, size->h);
-    result = TXT_NewRadioButton(buf, &window_width, size->w);
+    M_snprintf(buf, sizeof(buf), "%-4i x %-4i", size->w, size->h);
+    result = TXT_NewRadioButton(buf, &window_size_selection, SIZEREF(size->w, size->h));
     TXT_SignalConnect(result, "selected", WindowSizeSelected, size);
 
     return result;
@@ -170,19 +177,24 @@ static void GenerateSizesTable(TXT_UNCAST_ARG(widget),
     for (i = 0; sizes[i].w != 0; ++i)
     {
         TXT_AddWidget(sizes_table, SizeSelectButton(&sizes[i]));
-        have_size = have_size || window_width == sizes[i].w;
+        if (window_width == sizes[i].w && window_height == sizes[i].h)
+        {
+            window_size_selection = SIZEREF(sizes[i].w, sizes[i].h);
+            have_size = true;
+        }
     }
 
     // Windows can be any arbitrary size. We key off the width of the
     // window in pixels. If the current size is not in the list of
     // standard (integer multiply) sizes, create a special button to
     // mean "the current window size".
+    // [AP] Instead of a new button, we have a "Custom" option, just
+    // set the custom width/height appropriately.
     if (!have_size)
     {
-        static window_size_t current_size;
-        current_size.w = window_width;
-        current_size.h = window_height;
-        TXT_AddWidget(sizes_table, SizeSelectButton(&current_size));
+        window_size_selection = SIZECUSTOM;
+        window_custom_size.w = window_width;
+        window_custom_size.h = window_height;
     }
 }
 
@@ -225,6 +237,11 @@ void ConfigDisplay(TXT_UNCAST_ARG(widget), void *user_data)
     txt_table_t *sizes_table;
     txt_window_action_t *advanced_button;
 
+    // [AP] Custom w/h option
+    txt_radiobutton_t *custom_option;
+    txt_inputbox_t *custom_w_option;
+    txt_inputbox_t *custom_h_option;
+
     // Open the window
     window = TXT_NewWindow("Display Configuration");
     TXT_SetWindowHelpURL(window, WINDOW_HELP_URL);
@@ -233,10 +250,24 @@ void ConfigDisplay(TXT_UNCAST_ARG(widget), void *user_data)
     TXT_AddWidgets(window,
         TXT_NewCheckBox("Full screen", &fullscreen),
         TXT_NewConditional(&fullscreen, 0,
-            sizes_table = TXT_NewTable(3)),
+            TXT_MakeTable(1,
+                sizes_table = TXT_NewTable(3),
+                TXT_MakeTable(4,
+                    custom_option = TXT_NewRadioButton("Custom resolution:", &window_size_selection, SIZECUSTOM),
+                    custom_w_option = TXT_NewIntInputBox(&window_custom_size.w, 4),
+                    TXT_NewLabel("x "),
+                    custom_h_option = TXT_NewIntInputBox(&window_custom_size.h, 4),
+                    NULL),
+                NULL)
+            ),
         NULL);
 
-    TXT_SetColumnWidths(window, 42);
+    // [AP] Changing custom width/height should auto move ratio button to custom, too
+    TXT_SignalConnect(custom_option, "selected", WindowSizeSelected, &window_custom_size);
+    TXT_SignalConnect(custom_w_option, "changed", WindowSizeSelected, &window_custom_size);
+    TXT_SignalConnect(custom_h_option, "changed", WindowSizeSelected, &window_custom_size);
+
+    TXT_SetColumnWidths(window, 48);
 
     // The window is set at a fixed vertical position.  This keeps
     // the top of the window stationary when switching between
