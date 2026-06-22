@@ -570,6 +570,16 @@ int json_parse_level_select(const Json::Value& json, level_select_storage_t &out
 	return 1;
 }
 
+void deallocate_level_select(level_select_storage_t &input)
+{
+	for (int ep = 0; ep < (int)input.size(); ++ep)
+	{
+		delete[] input[ep].text;
+		delete[] input[ep].patches;
+		delete[] input[ep].map_info;
+	}
+}
+
 
 // ============================================================================
 // Map tweaks - softlock removal, other AP quality of life things
@@ -903,6 +913,13 @@ int json_parse_level_info(const Json::Value& json, level_info_storage_t &output)
 		}
 	}
 	return 1;
+}
+
+void deallocate_level_info(level_info_storage_t &input)
+{
+	for (int ep = 0; ep < (int)input.size(); ++ep)
+		for (int map = 0; map < (int)input[ep].size(); ++map)
+			delete[] input[ep][map].thing_infos;
 }
 
 

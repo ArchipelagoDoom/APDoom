@@ -172,6 +172,9 @@ int json_parse_rename_lumps(const Json::Value& json, rename_lumps_storage_t &out
 int json_parse_obituaries(const Json::Value& json, obituary_storage_t &output);
 int json_parse_energylink_shop(const Json::Value& json, energylink_shop_storage_t &output);
 
+void deallocate_level_select(level_select_storage_t &input);
+void deallocate_level_info(level_info_storage_t &input);
+
 #ifdef BACKWARDS_COMPATIBILITY_1_2_0
 int json_parse_check_sanity(const Json::Value& json, std::set<int64_t> &output);
 #endif

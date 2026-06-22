@@ -291,8 +291,6 @@ int ap_preload_defs_for_game(const char *game_name)
 			ap_base_game = ap_game_t::doom2;
 	}
 
-	ap_game_info.ammo_types = new ap_ammo_info_t[ap_episode_count * max_map_count];
-
 	if (!json_parse_location_types(defs_json["ap_location_types"], preloaded_location_types)
 		|| !json_parse_type_sprites(defs_json["type_sprites"], preloaded_type_sprites)
 		|| !json_parse_item_table(defs_json["item_table"], preloaded_item_table)
@@ -1011,6 +1009,10 @@ void apdoom_shutdown()
 		save_state();
 	if (!ap_practice_mode)
 		AP_Shutdown();
+
+	// May as well clean up after ourselves
+	deallocate_level_select(level_select_screens);
+	deallocate_level_info(preloaded_level_info);
 }
 
 
