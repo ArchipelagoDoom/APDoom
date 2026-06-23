@@ -83,6 +83,14 @@ void LV_SetAlpha(int alpha)
 
 // ------------------------------------------------------------------------------------
 
+static void LV_DestroyRenderer(void)
+{
+    SDL_DestroyRenderer(renderer);
+    renderer = NULL;
+    SDL_DestroyWindow(main_window);
+    main_window = NULL;
+}
+
 static void LV_OnExit(void)
 {
     layer_t *layer2free = layertop._next;
@@ -98,6 +106,8 @@ static void LV_OnExit(void)
     }
 
     layerbot = NULL;
+    LV_DestroyRenderer();
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 static void LV_CreateRenderer(void)
@@ -128,9 +138,7 @@ static void LV_EnterBackground(void)
             SDL_DestroyTexture(layercur->tex);
         layercur->tex = NULL;
     }
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(main_window);
+    LV_DestroyRenderer();
 }
 
 static void LV_LeaveBackground(void)

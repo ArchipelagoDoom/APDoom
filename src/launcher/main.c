@@ -135,7 +135,7 @@ extrainfo_t *extra_world_info = NULL;
 
 static bool TestIWAD(const char *iwad, char **error_str)
 {
-    const char *iwad_path = D_FindWADByName(iwad);
+    char *iwad_path = D_FindWADByName(iwad);
     if (!iwad_path)
     {
         const char *descriptive_text = "";
@@ -149,8 +149,7 @@ static bool TestIWAD(const char *iwad, char **error_str)
                 "APDoom can usually load the game files from this version automatically."
                 "\n\n"
                 "If you already own this game, place the IWAD file into the same directory as APDoom. "
-                "For newer rereleases, you want to use the IWAD file that is in the /base/ directory, "
-                "and \xA1NOT\xA0 the one in the /rerelease/ directory.";
+                "For newer rereleases, you want to use the IWAD file that is in the /base/ directory.";
         }
         else if (!strcmp(iwad, "HERETIC.WAD"))
         {
@@ -165,6 +164,8 @@ static bool TestIWAD(const char *iwad, char **error_str)
             iwad, descriptive_text);
         return false;
     }
+    else
+        free(iwad_path);
     return true;
 }
 
@@ -175,9 +176,11 @@ static bool TestPWAD(const char **wad_list, char **error_str)
 
     for (int i = 0; wad_list[i]; ++i)
     {
-        const char *pwad_path = D_FindWADByName(wad_list[i]);
+        char *pwad_path = D_FindWADByName(wad_list[i]);
         if (!pwad_path)
             not_found_list[not_found++] = wad_list[i];
+        else
+            free(pwad_path);
         if (not_found == 8)
             break;
     }
