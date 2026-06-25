@@ -226,11 +226,30 @@ static void CommonPostExecLoop(int has_init_file, int (*waitfunc)(void))
     }
     else if (!strcmp(init_result, "InvalidGame"))
     {
+        const char *extra_text = "";
+        if (!strcmp(exec_settings->world->shortname, "doom")
+         || !strcmp(exec_settings->world->shortname, "doom2")
+         || !strcmp(exec_settings->world->shortname, "heretic"))
+        {
+            extra_text =
+                "\n\nIf you are certain that everything is correct, "
+                "you may need to use the \xA1(Core)\xA0 version of this game instead.";
+        }
+        else if (!strcmp(exec_settings->world->shortname, "compat_doom")
+         || !strcmp(exec_settings->world->shortname, "compat_doom2")
+         || !strcmp(exec_settings->world->shortname, "compat_heretic"))
+        {
+            extra_text =
+                "\n\nIf you are certain that everything is correct, "
+                "you may need to use the \xA5(Beta)\xA0 version of this game instead.";
+        }
+
         error_reason = LN_allocsprintf(
             "The server reports that the slot name \xA2%s\xA0 "
             "is not playing the game that you attempted to connect with.\n"
             "\n"
-            "Make sure you are connecting to the correct MultiWorld and/or slot.", exec_settings->slot_name);
+            "Make sure you are connecting to the correct MultiWorld and/or slot.%s",
+            exec_settings->slot_name, extra_text);
     }
     else if (!strcmp(init_result, "IncompatibleVersion"))
     {
