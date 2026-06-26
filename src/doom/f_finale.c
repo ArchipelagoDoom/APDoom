@@ -37,6 +37,7 @@
 
 #include "doomstat.h"
 #include "r_state.h"
+#include "i_joystick.h" // [AP] UMENUNAV
 #include "m_controls.h" // [crispy] key_*
 #include "m_misc.h" // [crispy] M_StringDuplicate()
 #include "m_random.h" // [crispy] Crispy_Random()
@@ -194,22 +195,31 @@ void F_StartFinale (void)
 
 boolean F_Responder (event_t *event)
 {
+    boolean advance = false;
     if (finalestage == F_STAGE_CAST)
 	return F_CastResponder (event);
 
     if (finalecount < 35 * 3)
         return false;
 
-    if (event->type == ev_keydown)
+    switch (event->type)
     {
-        switch (event->data1)
-        {
-            case KEY_ENTER:
-            case 'e':
-            case ' ':
-                ShowLevelSelect();
-                return true;
-        }
+        case ev_joystick:
+            if (JOY_GET_UMENUNAV(event->data6) & JOY_DIR_FORWARD)
+            	advance = true;
+            break;
+        case ev_keydown:
+            if (event->data1 == key_menu_forward || event->data1 == key_use)
+            	advance = true;
+            break;
+        default:
+            break;
+
+    }
+    if (advance)
+    {
+    	ShowLevelSelect();
+    	return true;
     }
 	
     return false;

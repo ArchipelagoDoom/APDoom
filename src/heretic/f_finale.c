@@ -25,8 +25,11 @@
 #include "v_video.h"
 #include "am_map.h"
 #include "doomkeys.h"
+
 #include "apdoom.h"
 #include "level_select.h"
+#include "i_joystick.h"
+#include "m_controls.h"
 
 static int finalestage;                // 0 = text, 1 = art screen
 static int finalecount;
@@ -95,6 +98,8 @@ void F_StartFinale(void)
 
 boolean F_Responder(event_t * event)
 {
+    boolean advance = false;
+
     if (event->type != ev_keydown)
     {
         return false;
@@ -116,16 +121,24 @@ boolean F_Responder(event_t * event)
     if (finalecount < 35 * 3)
         return false;
 
-    if (event->type == ev_keydown)
+    switch (event->type)
     {
-        switch (event->data1)
-        {
-            case KEY_ENTER:
-            case 'e':
-            case ' ':
-                ShowLevelSelect();
-                return true;
-        }
+        case ev_joystick:
+            if (JOY_GET_UMENUNAV(event->data6) & JOY_DIR_FORWARD)
+                advance = true;
+            break;
+        case ev_keydown:
+            if (event->data1 == key_menu_forward || event->data1 == key_use)
+                advance = true;
+            break;
+        default:
+            break;
+
+    }
+    if (advance)
+    {
+        ShowLevelSelect();
+        return true;
     }
 
     return false;
