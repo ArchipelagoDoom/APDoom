@@ -124,6 +124,18 @@ SLOT_DATA_CALLBACK(f_episode2, ap_state.episodes[1], (ap_episode_count >= 1) );
 SLOT_DATA_CALLBACK(f_episode3, ap_state.episodes[2], (ap_episode_count >= 2) );
 SLOT_DATA_CALLBACK(f_episode4, ap_state.episodes[3], (ap_episode_count >= 3) );
 SLOT_DATA_CALLBACK(f_episode5, ap_state.episodes[4], (ap_episode_count >= 4) );
+SLOT_DATA_CALLBACK(f_ammo1start, ap_state.max_ammo_start[0], (ap_ammo_count > 0 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo2start, ap_state.max_ammo_start[1], (ap_ammo_count > 1 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo3start, ap_state.max_ammo_start[2], (ap_ammo_count > 2 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo4start, ap_state.max_ammo_start[3], (ap_ammo_count > 3 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo5start, ap_state.max_ammo_start[4], (ap_ammo_count > 4 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo6start, ap_state.max_ammo_start[5], (ap_ammo_count > 5 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo1add, ap_state.max_ammo_add[0], (ap_ammo_count > 0 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo2add, ap_state.max_ammo_add[1], (ap_ammo_count > 1 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo3add, ap_state.max_ammo_add[2], (ap_ammo_count > 2 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo4add, ap_state.max_ammo_add[3], (ap_ammo_count > 3 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo5add, ap_state.max_ammo_add[4], (ap_ammo_count > 4 && result > 0) );
+SLOT_DATA_CALLBACK(f_ammo6add, ap_state.max_ammo_add[5], (ap_ammo_count > 5 && result > 0) );
 
 void f_check_sanity(int result)
 {
@@ -671,17 +683,29 @@ int apdoom_init(ap_settings_t* settings)
 		AP_RegisterSlotDataIntCallback("episode3", f_episode3);
 		AP_RegisterSlotDataIntCallback("episode4", f_episode4);
 		AP_RegisterSlotDataIntCallback("episode5", f_episode5);
+		AP_RegisterSlotDataIntCallback("ammo1start", f_ammo1start);
+		AP_RegisterSlotDataIntCallback("ammo2start", f_ammo2start);
+		AP_RegisterSlotDataIntCallback("ammo3start", f_ammo3start);
+		AP_RegisterSlotDataIntCallback("ammo4start", f_ammo4start);
+		AP_RegisterSlotDataIntCallback("ammo5start", f_ammo5start);
+		AP_RegisterSlotDataIntCallback("ammo6start", f_ammo6start);
+		AP_RegisterSlotDataIntCallback("ammo1add", f_ammo1add);
+		AP_RegisterSlotDataIntCallback("ammo2add", f_ammo2add);
+		AP_RegisterSlotDataIntCallback("ammo3add", f_ammo3add);
+		AP_RegisterSlotDataIntCallback("ammo4add", f_ammo4add);
+		AP_RegisterSlotDataIntCallback("ammo5add", f_ammo5add);
+		AP_RegisterSlotDataIntCallback("ammo6add", f_ammo6add);
 	}
 	else
 	{
 #endif
 		AP_RegisterSlotDataRawCallback("suppressed_locations", f_suppressed_locations);
 		AP_RegisterSlotDataRawCallback("episodes", f_episodes);
+		AP_RegisterSlotDataRawCallback("ammo_start", f_ammo_start);
+		AP_RegisterSlotDataRawCallback("ammo_add", f_ammo_add);
 #ifdef BACKWARDS_COMPATIBILITY_1_2_0
 	}
 #endif
-	AP_RegisterSlotDataRawCallback("ammo_start", f_ammo_start);
-	AP_RegisterSlotDataRawCallback("ammo_add", f_ammo_add);
 	AP_RegisterSlotDataRawCallback("energy_link", f_energylink);
 	if (ap_base_game != ap_game_t::heretic)
 		AP_RegisterSlotDataIntCallback("flip_levels", f_flip_levels);
