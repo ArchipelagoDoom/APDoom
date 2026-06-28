@@ -173,7 +173,8 @@ void populate_worlds(void)
 	// This folder is allowed to be missing.
 	try {
 		const std::filesystem::path cwd_dir(std::filesystem::current_path() / "games");
-		for (auto const &entry : std::filesystem::recursive_directory_iterator(cwd_dir))
+		const std::filesystem::directory_options opts = std::filesystem::directory_options::follow_directory_symlink;
+		for (auto const &entry : std::filesystem::recursive_directory_iterator(cwd_dir, opts))
 		{
 			if (!entry.is_regular_file() || entry.path().extension() != ".apworld")
 				continue;
