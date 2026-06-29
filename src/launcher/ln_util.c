@@ -7,6 +7,7 @@
 #include "ln_util.h"
 #include "lv_video.h"
 #include "lv_text.h"
+#include "lv_ctrl.h"
 #include "m_misc.h"
 
 // ----------------------------------------------------------------------------
@@ -20,6 +21,9 @@ extern font_t small_font;
 int dialog_open = false;
 static int dialog_type = DIALOG_OK;
 static void (*dialog_responder)(int) = NULL;
+
+static const char *ctrl_ok[4] = {"OK", NULL, NULL, NULL};
+static const char *ctrl_yesno[4] = {"Yes", NULL, NULL, "No"};
 
 void LN_DialogResponder(void (*responder)(int))
 {
@@ -56,32 +60,15 @@ void LN_OpenDialog(int type, const char *header, const char *msg)
         LV_OutlineRect(l_dialog, (SCREEN_WIDTH/2) - 180, 90 + wrap_height, 360, 20, 1, 0xFF700000);
     }
 
-    int text_x = ((SCREEN_WIDTH/2) + 180);
     switch (dialog_type)
     {
-    default:
-        break;
     case DIALOG_OK:
-        text_x -= LV_TextWidth(&large_font, "OK");
-        text_x -= 10;
-        LV_PrintText(l_dialog, text_x, 95 + wrap_height, &large_font, "OK");
-        text_x -= LV_TextWidth(&small_font, "\xA9(return)");
-        text_x -= 8;
-        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xA9(return)");
+        LV_PrintControls(l_dialog, ((SCREEN_WIDTH/2) + 170), 95 + wrap_height, ctrl_ok);
         break;
     case DIALOG_YES_NO:
-        text_x -= LV_TextWidth(&large_font, "No");
-        text_x -= 10;
-        LV_PrintText(l_dialog, text_x, 95 + wrap_height, &large_font, "No");
-        text_x -= LV_TextWidth(&small_font, "\xA9(esc)");
-        text_x -= 8;
-        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xA9(esc)");
-        text_x -= LV_TextWidth(&large_font, "Yes");
-        text_x -= 20;
-        LV_PrintText(l_dialog, text_x, 95 + wrap_height, &large_font, "Yes");
-        text_x -= LV_TextWidth(&small_font, "\xA9(return)");
-        text_x -= 8;
-        LV_PrintText(l_dialog, text_x, 100 + wrap_height, &small_font, "\xA9(return)");
+        LV_PrintControls(l_dialog, ((SCREEN_WIDTH/2) + 170), 95 + wrap_height, ctrl_yesno);
+        break;
+    default:
         break;
     }
 

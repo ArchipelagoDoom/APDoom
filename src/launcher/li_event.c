@@ -3,6 +3,7 @@
 
 #include "i_system.h"
 #include "li_event.h"
+#include "lv_ctrl.h"
 #include "m_misc.h"
 
 enum {
@@ -22,6 +23,30 @@ static int text_input_size;
 static navigation_t held_nav; // Time each key is held
 static char axis_regions[16][2];
 
+static int ControllerTypeToStyle(SDL_JoystickID which)
+{
+    switch (SDL_GameControllerTypeForIndex(which))
+    {
+    case SDL_CONTROLLER_TYPE_XBOX360:
+    case SDL_CONTROLLER_TYPE_XBOXONE:
+        return STYLE_XBOX;
+
+    case SDL_CONTROLLER_TYPE_PS3:
+    case SDL_CONTROLLER_TYPE_PS4:
+    case SDL_CONTROLLER_TYPE_PS5:
+        return STYLE_PS;
+
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
+#if SDL_VERSION_ATLEAST(2, 30, 0)
+    case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
+#endif
+        return STYLE_NINTENDO;
+
+    default:
+        return STYLE_STEAM;
+    }
+}
+
 static void SetNavKey(SDL_Keycode key, char state)
 {
     switch (key)
@@ -37,6 +62,8 @@ static void SetNavKey(SDL_Keycode key, char state)
     case SDLK_BACKSPACE: held_nav[NAV_BACKSPACE] = state; break;
     default: return;
     }
+    if (key != SDLK_BACKSPACE)
+        LV_SetButtonStyle(STYLE_KEYBOARD);
 }
 
 static void SetNavControllerButton(SDL_JoystickID which, Uint8 button, char state)
@@ -54,6 +81,7 @@ static void SetNavControllerButton(SDL_JoystickID which, Uint8 button, char stat
     case SDL_CONTROLLER_BUTTON_DPAD_LEFT:     held_nav[NAV_LEFT] = state;      break;
     case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:    held_nav[NAV_RIGHT] = state;     break;
     }
+    LV_SetButtonStyle(ControllerTypeToStyle(which));
 }
 
 static void SetNavControllerAxis(SDL_JoystickID which, Uint8 axis, Sint16 value)
@@ -96,6 +124,7 @@ static void SetNavControllerAxis(SDL_JoystickID which, Uint8 axis, Sint16 value)
             held_nav[neg_dir[axis]] = false;
             break;
         }
+        LV_SetButtonStyle(ControllerTypeToStyle(which));
     }
 }
 

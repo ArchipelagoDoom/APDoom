@@ -2,6 +2,7 @@ add_library(launcher STATIC
             li_event.c li_event.h
             ln_exec.c  ln_exec.h
             ln_util.c  ln_util.h
+            lv_ctrl.c  lv_ctrl.h
             lv_text.c  lv_text.h
             lv_video.c lv_video.h
             main.c)

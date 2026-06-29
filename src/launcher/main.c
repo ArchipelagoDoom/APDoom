@@ -7,6 +7,7 @@
 #include "ln_util.h"
 #include "lv_video.h"
 #include "lv_text.h"
+#include "lv_ctrl.h"
 
 #include "tables.h"
 #include "d_iwad.h"
@@ -25,6 +26,7 @@ layer_t *l_bg_primary;
 layer_t *l_primary;
 layer_t *l_bg_secondary;
 layer_t *l_secondary;
+layer_t *l_control;
 layer_t *l_dialog;
 
 font_t large_font;
@@ -55,6 +57,9 @@ bool invalidate_savegame_cache = false;
 
 // We're editing connection info for an already present save, which limits what we can do.
 static bool editing_savegame = false;
+
+// If controls are outdated and need refreshing.
+static int refresh_controls = true;
 
 static inline const uint32_t _DeselectedColor(void)
 {
@@ -299,6 +304,10 @@ typedef struct menudata_s {
         // dest: The true position of the menu that we're aiming towards.
         int cur, inter, dest;
     } scroll;
+
+    // Textual list of controls this menu uses.
+    // In order: Primary, Secondary, Options, Back
+    const char *controls[4];
 } menudata_t;
 
 static void Main_Init(menudata_t *data);
@@ -597,6 +606,7 @@ static void Main_Init(menudata_t *data)
 {
     data->target_count = 5;
     data->target_list = MainTargets;
+    data->controls[NAV_BACK    - NAV_ISBUTTON] = "Exit";
 }
 
 static void Main_Draw(menudata_t *data)
@@ -685,6 +695,9 @@ static void LoadSavedGame_Init(menudata_t *data)
         lsg_lastpath[0] = 0;
     }
 
+    data->controls[NAV_PRIMARY - NAV_ISBUTTON] = "Load";
+    data->controls[NAV_OPTIONS - NAV_ISBUTTON] = "Options";
+    data->controls[NAV_BACK    - NAV_ISBUTTON] = "Back";
     sidebar_id = -1;
 }
 
@@ -738,8 +751,6 @@ static void LoadSavedGame_Draw(menudata_t *data)
     }
 
     LV_FormatText(l_primary, (SCREEN_WIDTH/4)*3, 325, &small_font, "%d of %d", data->cursor + 1, data->target_count);
-    LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3, 325-32, &small_font, "\xA9(tab)\n(esc)");
-    LV_PrintText(l_primary, (SCREEN_WIDTH/4)*3 + 32, 325-32, &small_font, "More Options\nBack");
 }
 
 static void LoadSavedGame_Input(menudata_t *data)
@@ -1310,6 +1321,7 @@ static void AdvancedOptions_Init(menudata_t *data)
 {
     data->target_count = 9;
     data->target_list = AdvancedOptsTargets;
+    data->controls[NAV_PRIMARY - NAV_ISBUTTON] = NULL;
 }
 
 static void AdvancedOptions_Draw(menudata_t *data)
@@ -1461,14 +1473,21 @@ void D_DoomMain(void)
     l_primary = LV_MakeLayer(true);
     l_bg_secondary = LV_MakeLayer(false);
     l_secondary = LV_MakeLayer(false);
+    l_control = LV_MakeLayer(true);
     l_dialog = LV_MakeLayer(false);
     LI_Init();
 
     LV_LoadFont(&small_font, "F_SML", 4, 8);
     LV_LoadFont(&large_font, "F_LRG", 7, 16);
+    LV_SetStyleChangeVar(&refresh_controls);
+    refresh_controls = true;
 
     for (int i = MENU_MAIN; i < NUM_MENUS; ++i)
+    {
         menus[i].data.layer = l_primary;
+        menus[i].data.controls[NAV_PRIMARY - NAV_ISBUTTON] = "Select";
+        menus[i].data.controls[NAV_BACK    - NAV_ISBUTTON] = "Back";
+    }
 
     menus[MENU_MAIN].data.cursor = 0;
     menus[MENU_MAIN].initfunc(&menus[MENU_MAIN].data);
@@ -1480,13 +1499,6 @@ void D_DoomMain(void)
     // TODO: Try to load these dynamically from IWAD/PWADs?
     LV_DrawBackground(l_bg_primary, W_CacheLumpName("INTERPIC", PU_CACHE));
     LV_DrawPatch(l_bg_primary, 94+160, 10, W_CacheLumpName("LN_DOOM1", PU_CACHE));
-
-    { // Print version on background
-        char *ver_str = LN_allocsprintf("v%s", PACKAGE_VERSION);
-        const int ver_width = LV_TextWidth(&small_font, ver_str);
-        LV_PrintText(l_bg_primary, (SCREEN_WIDTH-1) - ver_width, (SCREEN_HEIGHT-8), &small_font, ver_str);
-        free(ver_str);
-    }
 
     while (true)
     {
@@ -1506,6 +1518,18 @@ void D_DoomMain(void)
             StandardMenuDraw(&menus[cur_menu].data);
         if (menus[cur_menu].drawfunc)
             menus[cur_menu].drawfunc(&menus[cur_menu].data);
+
+        if (refresh_controls)
+        {
+            refresh_controls = false;
+            LV_ClearLayer(l_control);
+            LV_PrintControls(l_control, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 14, menus[cur_menu].data.controls);
+
+            // Print version on control layer
+            char *ver_str = LN_allocsprintf("v%s", PACKAGE_VERSION);
+            LV_PrintText(l_control, 2, (SCREEN_HEIGHT-8), &small_font, ver_str);
+            free(ver_str);
+        }
 
         if (++anim_step > 14)
             anim_step = 14;
@@ -1537,6 +1561,7 @@ void D_DoomMain(void)
             --menu_stack_pos;
             LV_SetBrightness(l_primary, 128, 0);
             LV_SetBrightness(l_primary, 255, 16);
+            refresh_controls = true;
             anim_step = 0;
             break;
 
@@ -1554,6 +1579,7 @@ void D_DoomMain(void)
             menus[next_menu].initfunc(&menus[next_menu].data);
             LV_SetBrightness(menus[next_menu].data.layer, 128, 0);
             LV_SetBrightness(menus[next_menu].data.layer, 255, 16);
+            refresh_controls = true;
             anim_step = 0;
 
             // Set scrolling positions to equal destination from start
