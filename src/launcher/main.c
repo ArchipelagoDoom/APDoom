@@ -126,6 +126,47 @@ static char *InLineList(const char *pre, const char **list, const char *post)
 }
 
 // ============================================================================
+// Steam Deck OSK
+// ============================================================================
+
+// We have an on-screen keyboard available, usually via Steam Deck.
+bool steam_osk_available = false;
+
+// The OSK is open (as far as we know).
+// Note that we don't have a way to query the actual state of the OSK,
+// we just have to keep track of if we did it ourselves.
+bool steam_osk_open = false;
+
+static void OpenOnScreenKeyboard(int text_height)
+{
+#ifndef _WIN32
+    if (!steam_osk_available)
+        return;
+
+    char *url = LN_allocsprintf(
+        "steam://open/keyboard?XPosition=%i&YPosition=%i&Width=%i&Height=%i&Mode=0",
+        (SCREEN_WIDTH/2)*2, (text_height+16)*2, (SCREEN_WIDTH/2)*2, (12)*2);
+    SDL_OpenURL(url);
+    free(url);
+
+    steam_osk_open = true;
+#else
+    (void)text_height;
+#endif
+}
+
+static void CloseOnScreenKeyboard(void)
+{
+#ifndef _WIN32
+    if (!steam_osk_available || !steam_osk_open)
+        return;
+
+    SDL_OpenURL("steam://close/keyboard");
+    steam_osk_open = false;
+#endif
+}
+
+// ============================================================================
 // Game / World Functionality Testing
 // ============================================================================
 
@@ -286,6 +327,7 @@ typedef struct {
 
 typedef struct menudata_s {
     int cursor;
+    int prev_cursor;
 
     int target_count;
     const menutarget_t *target_list;
@@ -464,8 +506,6 @@ int StandardMenuInput(menudata_t *data, int *interaction_type)
         return -1;
     }
 
-    int oldcursor = data->cursor;
-
     if (data->scroll.enable)
         RunMenuScroll(data);
 
@@ -528,7 +568,7 @@ int StandardMenuInput(menudata_t *data, int *interaction_type)
         // On a scrollable page, if the new target is either off the edge or close to it,
         // scroll the contents of the page to put it a little closer to the center.
         // We want to show at least one extra option above or below if it's available.
-        if (data->scroll.enable && oldcursor != data->cursor)
+        if (data->scroll.enable && data->prev_cursor != data->cursor)
         {
             const menutarget_t *target = &data->target_list[data->cursor];
             int y = target->y - data->scroll.dest;
@@ -544,7 +584,7 @@ int StandardMenuInput(menudata_t *data, int *interaction_type)
         }
     }
 
-    if (data->cursor != oldcursor)
+    if (data->cursor != data->prev_cursor)
         anim_step = 0;
 
     if (nav[NAV_BACK])
@@ -860,6 +900,16 @@ static void LoadOptions_Input(menudata_t *data)
 
     LI_SetTextInput((data->cursor == 1 ? editable_memo_buffer : NULL), 64 + 1);
 
+    if (steam_osk_available && data->prev_cursor != data->cursor)
+    {
+        const bool was_select = (data->controls[0][1] == 'e');
+
+        data->controls[0] = (data->cursor == 1 ? "Show Keyboard" : "Select");
+        if ((data->controls[0][1] == 'e') ^ (was_select))
+            refresh_controls = true;
+        CloseOnScreenKeyboard();
+    }
+
     if (nav[NAV_OPTIONS]) // Pressing options/TAB again goes back.
         next_menu = MENUSPEC_BACK;
 
@@ -867,11 +917,12 @@ static void LoadOptions_Input(menudata_t *data)
     {
     default: break;
     case 0:
-    {
         memcpy(&game_settings, &lsg_savegame_cache[save_cursor], sizeof(ap_savesettings_t));
         next_menu = MENU_CONNECT;
         break;
-    }
+    case 1:
+        OpenOnScreenKeyboard(data->target_list[result].y);
+        break;
     case 2:
     {
         char *warn_msg = LN_allocsprintf(
@@ -1180,6 +1231,23 @@ static void Connect_Input(menudata_t *data)
     default: LI_SetTextInput(NULL, 0); break;
     }
 
+    if (steam_osk_available && data->prev_cursor != data->cursor)
+    {
+        const bool was_select = (data->controls[0][1] == 'e');
+
+        data->controls[0] = "Select";
+        switch (data->cursor)
+        {
+        case 1: if (editing_savegame) break; // fall through
+        case 2: // fall through
+        case 3: data->controls[0] = "Show Keyboard";
+        }
+
+        if ((data->controls[0][1] == 'e') ^ (was_select))
+            refresh_controls = true;
+        CloseOnScreenKeyboard();
+    }
+
     if (result < 0)
         return;
 
@@ -1187,6 +1255,9 @@ static void Connect_Input(menudata_t *data)
     {
     default: break;
     case 0: if (!editing_savegame) { next_menu = MENU_SELECT_GAME; } break;
+    case 1: if (editing_savegame) break; // fall through
+    case 2: // fall through
+    case 3: OpenOnScreenKeyboard(data->target_list[result].y); break;
     case 4: next_menu = MENUSPEC_EXECUTE_GAME; break;
     case 5: next_menu = MENU_ADVANCED_OPTIONS; break;
     case 6: next_menu = MENUSPEC_BACK; break;
@@ -1336,6 +1407,16 @@ static void AdvancedOptions_Input(menudata_t *data)
 
     LI_SetTextInput((data->cursor == 7 ? game_settings.extra_cmdline : NULL), 256 + 1);
 
+    if (steam_osk_available && data->prev_cursor != data->cursor)
+    {
+        const bool was_null = (data->controls[0] == NULL);
+
+        data->controls[0] = (data->cursor == 7 ? "Show Keyboard" : NULL);
+        if ((data->controls[0] == NULL) ^ (was_null))
+            refresh_controls = true;
+        CloseOnScreenKeyboard();
+    }
+
     if (result < 0)
         return;
 
@@ -1362,6 +1443,8 @@ static void AdvancedOptions_Input(menudata_t *data)
         }
         break;
     case 7:
+        if (interaction_type == INTERACT_SELECT)
+            OpenOnScreenKeyboard(data->target_list[result].y);
         break;
     case 8:
         if (interaction_type == INTERACT_SELECT)
@@ -1482,6 +1565,12 @@ void D_DoomMain(void)
     LV_SetStyleChangeVar(&refresh_controls);
     refresh_controls = true;
 
+    if (SDL_GetHintBoolean("SteamDeck", false))
+    {
+        LV_SetButtonStyle(STYLE_STEAM);
+        steam_osk_available = true;
+    }
+
     for (int i = MENU_MAIN; i < NUM_MENUS; ++i)
     {
         menus[i].data.layer = l_primary;
@@ -1512,7 +1601,10 @@ void D_DoomMain(void)
         if (dialog_open)
             LN_HandleDialog();
         else
-            menus[cur_menu].inputfunc(&menus[cur_menu].data);            
+        {
+            menus[cur_menu].data.prev_cursor = menus[cur_menu].data.cursor;
+            menus[cur_menu].inputfunc(&menus[cur_menu].data);
+        }
 
         if (menus[cur_menu].data.target_list)
             StandardMenuDraw(&menus[cur_menu].data);
@@ -1540,7 +1632,10 @@ void D_DoomMain(void)
             continue;
 
         if (next_menu) // Disable text input on any menu switch.
+        {
             LI_SetTextInput(NULL, 0);
+            CloseOnScreenKeyboard();
+        }
 
         switch (next_menu)
         {

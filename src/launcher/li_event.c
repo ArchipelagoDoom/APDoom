@@ -56,14 +56,18 @@ static void SetNavKey(SDL_Keycode key, char state)
     case SDLK_LEFT:      held_nav[NAV_LEFT] = state;      break;
     case SDLK_RIGHT:     held_nav[NAV_RIGHT] = state;     break;
     case SDLK_RETURN:    held_nav[NAV_PRIMARY] = state;   break;
-    case SDLK_SPACE:     held_nav[NAV_SECONDARY] = state; break;
+    case SDLK_SPACE:     held_nav[NAV_SECONDARY] = state; return;
     case SDLK_TAB:       held_nav[NAV_OPTIONS] = state;   break;
     case SDLK_ESCAPE:    held_nav[NAV_BACK] = state;      break;
-    case SDLK_BACKSPACE: held_nav[NAV_BACKSPACE] = state; break;
+    case SDLK_BACKSPACE: held_nav[NAV_BACKSPACE] = state; return;
     default: return;
     }
-    if (key != SDLK_BACKSPACE)
+
+    extern bool steam_osk_open;
+    if (!steam_osk_open)
         LV_SetButtonStyle(STYLE_KEYBOARD);
+    else if (key == SDLK_RETURN) // Suppress ENTER response when OSK is open
+        held_nav[NAV_PRIMARY] = 0;
 }
 
 static void SetNavControllerButton(SDL_JoystickID which, Uint8 button, char state)
