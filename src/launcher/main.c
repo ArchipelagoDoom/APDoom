@@ -1565,11 +1565,13 @@ void D_DoomMain(void)
     LV_SetStyleChangeVar(&refresh_controls);
     refresh_controls = true;
 
+#ifndef _WIN32
     if (SDL_GetHintBoolean("SteamDeck", false))
     {
         LV_SetButtonStyle(STYLE_STEAM);
         steam_osk_available = true;
     }
+#endif
 
     for (int i = MENU_MAIN; i < NUM_MENUS; ++i)
     {
