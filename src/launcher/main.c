@@ -632,6 +632,16 @@ static int TextInputDrawer(int num, menudata_t *data, void *arg)
     return false;
 }
 
+
+static int TextInputDrawerHidden(int num, menudata_t *data, void *arg)
+{
+    static const char concealed[] = "****************************************";
+    const char *text = (const char *)arg;
+    const int offset = strlen(concealed) - strlen(text);
+    const char* partial_concealed = concealed + (offset < 0 ? 0 : offset);
+    return TextInputDrawer(num, data, (void*)partial_concealed);
+}
+
 // ----- Main Menu ------------------------------------------------------------
 
 static const menutarget_t MainTargets[] = {
@@ -1177,7 +1187,7 @@ static const menutarget_t ConnectTargets[] = {
     {40, 120, "Select Game...", DrawGameName},
     {40, 160, "Slot Name", TextInputDrawer, &game_settings.slot_name},
     {40, 180, "Server Address", TextInputDrawer, &game_settings.address},
-    {40, 200, "Server Password", TextInputDrawer, &game_settings.password},
+    {40, 200, "Server Password", TextInputDrawerHidden, &game_settings.password},
     {40, 240, "Connect to Server", DisableStartIfNotReady},
     {40, 280, "Advanced Options..."},
     {40, 320, "Back"},
