@@ -536,7 +536,7 @@ int json_parse_level_select(const Json::Value& json, level_select_storage_t &out
 		if (episode_defs["patches"].isArray() && episode_defs["patches"].size() > 0)
 		{
 			epinfo->num_patches = (int)episode_defs["patches"].size();
-			epinfo->patches = new ap_levelselect_patch_t[epinfo->num_text];
+			epinfo->patches = new ap_levelselect_patch_t[epinfo->num_patches];
 			for (int i = 0; i < epinfo->num_patches; ++i)
 			{
 				memset(&epinfo->patches[i], 0, sizeof(ap_levelselect_patch_t));
