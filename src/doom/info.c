@@ -158,6 +158,8 @@ void A_BetaSkullAttack();
 extern void P_RemoveMobj(mobj_t*);
 extern void P_SetMobjState(mobj_t*, statenum_t);
 
+extern void S_StartSound(void*, int);
+
 void A_CheckCollected(mobj_t* mo)
 {
     if (ap_is_location_checked(ap_make_level_index(gameepisode, gamemap), mo->index))
@@ -183,7 +185,10 @@ void A_EnableHUB(mobj_t *mo)
         }
     }
     else if (leveltimesinceload > MINHUBTIME)
+    {
         P_SetMobjState(mo, mo->info->seestate);
+        S_StartSound(mo, sfx_itmbk);
+    }
 }
 
 void A_DisableHUB(mobj_t *mo)
