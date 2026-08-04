@@ -313,6 +313,7 @@ static player_t *plr; // the player represented by an arrow
 
 static patch_t *marknums[10]; // numbers used for marking by the automap
 static patch_t *amap;
+static patch_t *ahub;
 static mpoint_t markpoints[AM_NUMMARKPOINTS]; // where the points are
 static int markpointnum = 0; // next point to be assigned
 
@@ -600,6 +601,7 @@ void AM_loadPics(void)
     }
 
     amap = W_CacheLumpName("AMAP", PU_STATIC);
+    ahub = W_CacheLumpName("AHUB", PU_STATIC);
 }
 
 void AM_unloadPics(void)
@@ -2194,7 +2196,7 @@ void AM_drawMarks(void)
 }
 
 
-void AM_drawLocations(void)
+void AM_drawLocations(int items)
 {
     int		i, fx, fy;
     int fx_flip; // [crispy] support for marks drawing in flipped levels
@@ -2204,9 +2206,11 @@ void AM_drawLocations(void)
 
     for (i=0;i<numsectors;i++)
     {
-        for (mobj_t *t = sectors[i].thinglist; t; t = t->snext)
+      for (mobj_t *t = sectors[i].thinglist; t; t = t->snext)
 	    {
-            if (!(t->type == MT_APJI || t->type == MT_APPI))
+            if (!(t->type == MT_APJI || t->type == MT_APPI || t->type == MT_LVSTEL))
+                continue;
+            if (!items && (t->type == MT_APJI || t->type == MT_APPI))
                 continue;
 
             // [crispy] center marks around player
@@ -2219,7 +2223,7 @@ void AM_drawLocations(void)
             fy = (CYMTOF(pt.y) >> crispy->hires) - 2;
             fx_flip = (flipscreenwidth[CXMTOF(pt.x)] >> crispy->hires) - 1;
             if (fx >= f_x && fx <= (f_w >> crispy->hires) - w && fy >= f_y && fy <= (f_h >> crispy->hires) - h)
-                V_DrawPatch(fx_flip - WIDESCREENDELTA, fy, amap);
+                V_DrawPatch(fx_flip - WIDESCREENDELTA, fy, t->type == MT_LVSTEL ? ahub : amap);
         }
     }
 }
@@ -2294,9 +2298,9 @@ void AM_Drawer (void)
     AM_drawPlayers();
     if (cheating==2)
 	AM_drawThings(THINGCOLORS, THINGRANGE);
-    if (((plr->powers[pw_allmap] && crispy->ap_automapicons == 1) || crispy->ap_automapicons == 2) && !crispy->automapoverlay)
+    if (crispy->ap_automapicons && !crispy->automapoverlay)
     {
-        AM_drawLocations();
+        AM_drawLocations((plr->powers[pw_allmap] && crispy->ap_automapicons == 1) || crispy->ap_automapicons == 2);
     }
     AM_drawCrosshair(XHAIRCOLORS, false);
 

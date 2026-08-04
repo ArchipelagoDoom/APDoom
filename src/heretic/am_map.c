@@ -137,6 +137,7 @@ static fixed_t scale_ftom;
 
 static player_t *plr;           // the player represented by an arrow
 static patch_t *amap;
+static patch_t *ahub;
 
 // [crispy] toggleable pan/zoom speed
 static int f_paninc;
@@ -683,6 +684,7 @@ void AM_loadPics(void)
     }
     maplump = W_CacheLumpName(DEH_String("AUTOPAGE"), PU_STATIC);
     amap = W_CacheLumpName("AMAP", PU_STATIC);
+    ahub = W_CacheLumpName("AHUB", PU_STATIC);
 }
 
 // [crispy] small numbers have to remain PU_STATIC, never release
@@ -2096,7 +2098,7 @@ void AM_drawkeys(void)
     }
 }
 
-void AM_drawLocations(void)
+void AM_drawLocations(int items)
 {
     int     i, fx, fy;
     //int fx_flip; // [crispy] support for marks drawing in flipped levels
@@ -2108,7 +2110,9 @@ void AM_drawLocations(void)
     {
         for (mobj_t *t = sectors[i].thinglist; t; t = t->snext)
         {
-            if (!(t->type == MT_APJI || t->type == MT_APPI))
+            if (!(t->type == MT_APJI || t->type == MT_APPI || t->type == MT_LVSTEL))
+                continue;
+            if (!items && (t->type == MT_APJI || t->type == MT_APPI))
                 continue;
 
             // [crispy] center marks around player
@@ -2121,7 +2125,7 @@ void AM_drawLocations(void)
             fy = (CYMTOF(pt.y) >> crispy->hires) - 2;
             //fx_flip = (flipscreenwidth[CXMTOF(pt.x)] >> crispy->hires) - 1;
             if (fx >= f_x && fx <= (f_w >> crispy->hires) - w && fy >= f_y && fy <= (f_h >> crispy->hires) - h)
-                V_DrawPatch(fx /* fx_flip */ - WIDESCREENDELTA, fy, amap);
+                V_DrawPatch(fx /* fx_flip */ - WIDESCREENDELTA, fy, t->type == MT_LVSTEL ? ahub : amap);
         }
     }
 }
@@ -2203,8 +2207,10 @@ void AM_Drawer(void)
         AM_drawThings(THINGCOLORS, THINGRANGE);
     AM_drawCrosshair(XHAIRCOLORS, false);
 
-    if (((plr->powers[pw_allmap] && crispy->ap_automapicons == 1) || crispy->ap_automapicons == 2) && !crispy->automapoverlay)
-        AM_drawLocations();
+    if (crispy->ap_automapicons && !crispy->automapoverlay)
+    {
+        AM_drawLocations((plr->powers[pw_allmap] && crispy->ap_automapicons == 1) || crispy->ap_automapicons == 2);
+    }
 
 #if 0 // [AP] There are no keys
     if (gameskill == sk_baby || crispy->keysloc)
