@@ -1573,6 +1573,14 @@ void HU_Ticker(void)
 	    HUlib_addCharToTextLine(w_isinlined ? &w_allstats : &w_scrts, *(s++));
     }
 
+    int notifications = 0;
+    ap_get_notification_icons(&notifications);
+    int stats_pos = HU_TITLEX + (notifications > 0 ? 36 : 0);
+    hu_textline_t* notification_targets[4] = {&w_allstats, &w_kills, &w_items, &w_scrts};
+    for (int n = 0; n < 4; ++n)
+      if (notification_targets[n]->x != stats_pos)
+        notification_targets[n]->x += notification_targets[n]->x < stats_pos ? 1 : -1;
+
     if (crispy->leveltime == WIDGETS_ALWAYS || (automapactive && crispy->leveltime == WIDGETS_AUTOMAP))
     {
 	const int time = leveltime / TICRATE;

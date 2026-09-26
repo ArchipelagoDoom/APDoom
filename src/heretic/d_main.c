@@ -181,6 +181,7 @@ void DrawCenterMessage(void)
 //---------------------------------------------------------------------------
 
 int left_widget_w, right_widget_w; // [crispy]
+int notification_offset = 0; // [ap]
 
 static void CrispyDrawStats (void)
 {
@@ -203,8 +204,14 @@ static void CrispyDrawStats (void)
         coord_x = ORIGWIDTH - coord_w;
     }
 
+    int notifications = 0;
+    ap_get_notification_icons(&notifications);
+    int target_notification_offset = notifications > 0 ? 36 : 0;
+    if (notification_offset != target_notification_offset)
+      notification_offset += notification_offset < target_notification_offset ? 1 : -1;
+
     left_widget_w = right_widget_w = 0;
-    left_widget_x = 0 - WIDESCREENDELTA;
+    left_widget_x = 0 - WIDESCREENDELTA + notification_offset;
     right_widget_x = coord_x + WIDESCREENDELTA;
 
     if (crispy->automapstats == WIDGETS_ALWAYS || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
