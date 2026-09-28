@@ -131,7 +131,10 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
         {
             int newsky = R_TextureNumForName(tweak->string);
             if (newsky) // I won't make the sky AASTINKY, sorry.
+            {
                 skytexture = newsky;
+                R_InitSkyMap();
+            }
             break;
         }
 
