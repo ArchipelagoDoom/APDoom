@@ -64,6 +64,18 @@ static void P_TweakLinedef(maplinedef_t *linedef, ap_maptweak_t *tweak)
         case TWEAK_LINEDEF_SPECIAL: linedef->special = tweak->value; break;
         case TWEAK_LINEDEF_TAG:     linedef->tag = tweak->value;     break;
         case TWEAK_LINEDEF_FLAGS:   linedef->flags = tweak->value;   break;
+        case TWEAK_LINEDEF_FLIP:
+          if (!!tweak->value)
+          {
+            // swap linedef vertex indices and sidedef assignments
+            unsigned short t = linedef->v1;
+            linedef->v1 = linedef->v2;
+            linedef->v2 = t;
+            t = linedef->sidenum[0];
+            linedef->sidenum[0] = linedef->sidenum[1];
+            linedef->sidenum[1] = t;
+          }
+          break;
         default: break;
     }
     if (ap_debug_mode)
@@ -144,3 +156,15 @@ static void P_TweakMeta(ap_maptweak_t *tweak)
     if (ap_debug_mode)
         printf("P_TweakMeta: [%i] %02x: %i / %s\n", tweak->target, tweak->type, tweak->value, tweak->string);
 }
+
+static void P_TweakSegsForLinedef(mapseg_t* segs, int numsegs, ap_maptweak_t *tweak)
+{
+    if (ap_force_disable_behaviors) return;
+    if (tweak->type != TWEAK_LINEDEF_FLIP) return;
+    if (!tweak->value) return;
+
+    for (int n = 0; n < numsegs; ++n)
+      if (segs[n].linedef == tweak->target)
+        segs[n].side = !segs[n].side;
+}
+

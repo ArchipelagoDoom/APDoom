@@ -650,6 +650,7 @@ static void parse_linedefs_tweak_block(const Json::Value& json, std::vector<ap_m
 		insert_new_tweak(tweak_list, TWEAK_LINEDEF_SPECIAL, target, json[key_target]["special"]);
 		insert_new_tweak(tweak_list, TWEAK_LINEDEF_TAG,     target, json[key_target]["tag"]);
 		insert_new_tweak(tweak_list, TWEAK_LINEDEF_FLAGS,   target, json[key_target]["flags"]);
+		insert_new_tweak(tweak_list, TWEAK_LINEDEF_FLIP,    target, json[key_target]["flip"]);
 	}
 }
 

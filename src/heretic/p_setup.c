@@ -150,6 +150,14 @@ void P_LoadSegs(int lump)
     data = W_CacheLumpNum(lump, PU_STATIC);
 
     ml = (mapseg_t *) data;
+    { // [AP] Tweaks: Alter segs affected by linedef tweaks
+        ap_maptweak_t *tweak;
+
+        ap_init_map_tweaks(ap_make_level_index(gameepisode, gamemap), LINEDEF_TWEAKS);
+        while ((tweak = ap_get_map_tweaks()) != NULL)
+            P_TweakSegsForLinedef(ml, numsegs, tweak);
+    }
+    
     li = segs;
     for (i = 0; i < numsegs; i++, li++, ml++)
     {
