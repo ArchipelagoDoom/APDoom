@@ -22,6 +22,8 @@
 #include "apdoom.h"
 #include "ap_spec.h"
 
+#include "crispy.h"
+
 void tick_sticky_msgs(void)
 {
 	//HU_TickAPMessages();
