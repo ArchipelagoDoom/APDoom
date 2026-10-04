@@ -2151,7 +2151,7 @@ void A_SpawnFly (mobj_t* mo)
     newmobj	= P_SpawnMobj (targ->x, targ->y, targ->z, type);
 
     // [crispy] count spawned monsters
-    extrakills++;
+    totalkills++;
 
     if (P_LookForPlayers (newmobj, true) )
 	P_SetMobjState (newmobj, newmobj->info->seestate);

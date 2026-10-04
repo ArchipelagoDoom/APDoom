@@ -1081,12 +1081,7 @@ void HU_Erase(void)
 
 static void Crispy_Statsline_Ratio (char *str, int str_size, const char *prefix, int count, int total, int extra)
 {
-	if (extra)
-	    M_snprintf(str, str_size, "%s%s%s%d/%d+%d ", cr_stat, prefix, crstr[CR_GRAY],
-	               count, total, extra);
-	else
-	    M_snprintf(str, str_size, "%s%s%s%d/%d ", cr_stat, prefix, crstr[CR_GRAY],
-	               count, total);
+  M_snprintf(str, str_size, "%s%s%s%d/%d ", cr_stat, prefix, crstr[CR_GRAY], count - extra, total);
 }
 
 static void Crispy_Statsline_Remaining (char *str, int str_size, const char *prefix, int count, int total, int extra)
