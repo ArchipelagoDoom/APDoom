@@ -402,9 +402,13 @@ void DrawEpisodicLevelSelectStats()
                     progress_y = key_y + mapinfo->checks.y;
                     break;
             }
+
+            int total_checks = ap_total_check_count(ap_level_info);
+            dp_translation = ap_level_state->check_count == total_checks ? cr[CR_GREEN] : NULL;
             ST_RightAlignedShortNum(progress_x, progress_y, ap_level_state->check_count);
             V_DrawPatch(progress_x + 1, progress_y, W_CacheLumpNameSafe("STYSLASH"));
-            ST_LeftAlignedShortNum(progress_x + 8, progress_y, ap_total_check_count(ap_level_info));
+            ST_LeftAlignedShortNum(progress_x + 8, progress_y, total_checks);
+            dp_translation = NULL;
         }
     }
 
