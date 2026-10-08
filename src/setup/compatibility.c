@@ -179,6 +179,7 @@ void BindCompatibilityVariables(void)
     M_BindIntVariable("apdoom_ap_automapicons",     &crispy->ap_automapicons);
     M_BindIntVariable("apdoom_ap_levelselectmusic", &crispy->ap_levelselectmusic);
     M_BindIntVariable("apdoom_ap_levelselectorder", &crispy->ap_levelselectorder);
+    M_BindIntVariable("apdoom_ap_hubsound",         &crispy->ap_hubsound);
     M_BindIntVariable("apdoom_ap_filterjoinpart",   &crispy->ap_filterjoinpart);
     M_BindIntVariable("apdoom_ap_filtertutorial",   &crispy->ap_filtertutorial);
     M_BindIntVariable("apdoom_ap_filterchat",       &crispy->ap_filterchat);

@@ -187,7 +187,8 @@ void A_EnableHUB(mobj_t *mo)
     else if (leveltimesinceload > MINHUBTIME)
     {
         P_SetMobjState(mo, mo->info->seestate);
-        S_StartSound(mo, sfx_itmbk);
+        if (crispy->ap_hubsound)
+            S_StartSound(mo, sfx_itmbk);
     }
 }
 

@@ -286,6 +286,7 @@ static void M_DrawCrispness1(void);
 static void M_DrawCrispness2(void);
 static void M_DrawCrispness3(void);
 static void M_DrawCrispness4(void);
+static void M_DrawCrispness5(void);
 
 // [AP] Menu for showing goal status
 #define AP_INC_DOOM
@@ -699,13 +700,8 @@ enum
     crispness_ap_automapicons,
     crispness_ap_levelselectmusic,
     crispness_ap_levelselectorder,
+    crispness_ap_hubsound,
     crispness_sep_ap_,
-
-    crispness_sep_apmsg,
-    crispness_ap_filterjoinpart,
-    crispness_ap_filtertutorial,
-    crispness_ap_filterchat,
-    crispness_sep_apmsg_,
 
     crispness4_next,
     crispness4_prev,
@@ -733,11 +729,7 @@ static menuitem_t Crispness4Menu[]=
     {3,"",	M_CrispyToggleAPAutomapIcons,'a'},
     {3,"",	M_CrispyToggleAPLevelSelectMusic,'l'},
     {3,"",  M_CrispyToggleAPLevelSelectOrder,'l'},
-    {-1,"",0,'\0'},
-    {-1,"",0,'\0'},
-    {3,"",  M_CrispyToggleAPFilterJoinPart,'j'},
-    {3,"",  M_CrispyToggleAPFilterTutorial,'t'},
-    {3,"",  M_CrispyToggleAPFilterChat,'p'},
+    {3,"",  M_CrispyToggleAPHubSound, 'h'},
     {-1,"",0,'\0'},
     {1,"",	M_CrispnessNext,'n'},
     {1,"",	M_CrispnessPrev,'p'},
@@ -753,12 +745,48 @@ static menu_t  Crispness4Def =
     1
 };
 
+enum
+{
+    crispness_sep_apmsg,
+    crispness_ap_filterjoinpart,
+    crispness_ap_filtertutorial,
+    crispness_ap_filterchat,
+    crispness_sep_apmsg_,
+
+    crispness5_next,
+    crispness5_prev,
+    crispness5_end
+} crispness5_e;
+
+
+static menuitem_t Crispness5Menu[]=
+{
+    {-1,"",0,'\0'},
+    {3,"",  M_CrispyToggleAPFilterJoinPart,'j'},
+    {3,"",  M_CrispyToggleAPFilterTutorial,'t'},
+    {3,"",  M_CrispyToggleAPFilterChat,'p'},
+    {-1,"",0,'\0'},
+    {1,"",	M_CrispnessNext,'n'},
+    {1,"",	M_CrispnessPrev,'p'},
+};
+
+static menu_t  Crispness5Def =
+{
+    crispness5_end,
+    &OptionsDef,
+    Crispness5Menu,
+    M_DrawCrispness5,
+    48,18,
+    1
+};
+
 static menu_t *CrispnessMenus[] =
 {
 	&Crispness1Def,
 	&Crispness2Def,
 	&Crispness3Def,
 	&Crispness4Def,
+	&Crispness5Def,
 };
 
 static int crispness_cur;
@@ -1685,7 +1713,7 @@ static void M_DrawCrispness1(void)
 {
     M_DrawCrispnessBackground();
 
-    M_DrawCrispnessHeader("Crispness 1/4");
+    M_DrawCrispnessHeader("Crispness 1/5");
 
     M_DrawCrispnessSeparator(crispness_sep_rendering, "Rendering");
     M_DrawCrispnessItem(crispness_hires, "High Resolution Rendering", crispy->hires, true);
@@ -1713,7 +1741,7 @@ static void M_DrawCrispness2(void)
 {
     M_DrawCrispnessBackground();
 
-    M_DrawCrispnessHeader("Crispness 2/4");
+    M_DrawCrispnessHeader("Crispness 2/5");
 
     M_DrawCrispnessSeparator(crispness_sep_audible, "Audible");
     M_DrawCrispnessItem(crispness_soundfull, "Play sounds in full length", crispy->soundfull, true);
@@ -1741,7 +1769,7 @@ static void M_DrawCrispness3(void)
 {
     M_DrawCrispnessBackground();
 
-    M_DrawCrispnessHeader("Crispness 3/4");
+    M_DrawCrispnessHeader("Crispness 3/5");
 
     M_DrawCrispnessSeparator(crispness_sep_tactical, "Tactical");
 
@@ -1770,7 +1798,7 @@ static void M_DrawCrispness4(void)
 {
     M_DrawCrispnessBackground();
 
-    M_DrawCrispnessHeader("Crispness 4/4");
+    M_DrawCrispnessHeader("Crispness 4/5");
 
     M_DrawCrispnessSeparator(crispness_sep_physical, "Physical");
     M_DrawCrispnessMultiItem(crispness_freeaim, "Vertical Aiming", multiitem_freeaim, crispy->freeaim, crispy->singleplayer);
@@ -1790,14 +1818,27 @@ static void M_DrawCrispness4(void)
     M_DrawCrispnessMultiItem(crispness_ap_automapicons, "Automap AP Icons", multiitem_ap_automapicons, crispy->ap_automapicons, true);
     M_DrawCrispnessItem(crispness_ap_levelselectmusic, "Level Select Music", crispy->ap_levelselectmusic, true);
     M_DrawCrispnessMultiItem(crispness_ap_levelselectorder, "Level Ordering", multiitem_ap_levelselectorder, crispy->ap_levelselectorder, true);
+    M_DrawCrispnessItem(crispness_ap_hubsound, "Hub power-on sound", crispy->ap_hubsound, true);
+
+    M_DrawCrispnessGoto(crispness4_next, "Next Page >");
+    M_DrawCrispnessGoto(crispness4_prev, "< Prev Page");
+
+    dp_translation = NULL;
+}
+
+static void M_DrawCrispness5(void)
+{
+    M_DrawCrispnessBackground();
+
+    M_DrawCrispnessHeader("Crispness 5/5");
 
     M_DrawCrispnessSeparator(crispness_sep_apmsg, "Filter Messages");
     M_DrawCrispnessMultiItem(crispness_ap_filterjoinpart, "Join / Leave Messages", multiitem_ap_filters, crispy->ap_filterjoinpart, true);
     M_DrawCrispnessMultiItem(crispness_ap_filtertutorial, "Tutorial Messages", multiitem_ap_filters, crispy->ap_filtertutorial, true);
     M_DrawCrispnessMultiItem(crispness_ap_filterchat, "Player Chat Messages", multiitem_ap_filters, crispy->ap_filterchat, true);
 
-    M_DrawCrispnessGoto(crispness4_next, "First Page >");
-    M_DrawCrispnessGoto(crispness4_prev, "< Prev Page");
+    M_DrawCrispnessGoto(crispness5_next, "First Page >");
+    M_DrawCrispnessGoto(crispness5_prev, "< Prev Page");
 
     dp_translation = NULL;
 }

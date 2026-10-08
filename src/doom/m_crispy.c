@@ -346,6 +346,11 @@ void M_CrispyToggleAPLevelSelectOrder(int choice)
     ChangeSettingEnum(&crispy->ap_levelselectorder, choice, NUM_AP_LEVELSELECTORDER);
 }
 
+void M_CrispyToggleAPHubSound(int choice)
+{
+  crispy->ap_hubsound = !crispy->ap_hubsound;
+}
+
 void M_CrispyToggleAPFilterJoinPart(int choice)
 {
     choice = 0;

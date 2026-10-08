@@ -167,6 +167,7 @@ static boolean CrispyVsync(int option);
 static boolean CrispyAPAutomapIcons(int option);
 static boolean CrispyAPLevelSelectMusic(int option);
 static boolean CrispyAPLevelSelectOrder(int option);
+static boolean CrispyAPHubSound(int option);
 static boolean CrispyAPFilterJoinPart(int option);
 static boolean CrispyAPFilterTutorial(int option);
 static boolean CrispyAPFilterChat(int option);
@@ -489,6 +490,7 @@ static MenuItem_t Crispness4Items[] = {
     {ITT_LRFUNC2, "SCROLL MAP ICONS:", CrispyAPAutomapIcons, 0, MENU_NONE},
     {ITT_LRFUNC2, "LEVEL SELECT MUSIC:", CrispyAPLevelSelectMusic, 0, MENU_NONE},
     {ITT_LRFUNC2, "LEVEL ORDERING:", CrispyAPLevelSelectOrder, 0, MENU_NONE},
+    {ITT_LRFUNC2, "HUB ACTIVATION SOUND:", CrispyAPHubSound, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
     {ITT_EMPTY, NULL, NULL, 0, MENU_NONE},
     {ITT_LRFUNC2, "JOIN / LEAVE MESSAGES:", CrispyAPFilterJoinPart, 0, MENU_NONE},
@@ -2186,6 +2188,12 @@ static boolean CrispyAPLevelSelectOrder(int option)
     return true;
 }
 
+static boolean CrispyAPHubSound(int option)
+{
+    crispy->ap_hubsound = !crispy->ap_hubsound;
+    return true;
+}
+
 static boolean CrispyAPFilterJoinPart(int option)
 {
     crispy->ap_filterjoinpart = !crispy->ap_filterjoinpart;
@@ -3612,14 +3620,18 @@ static void DrawCrispness4(void)
     // Order to move around the level select map
     DrawCrispnessMultiItem(crispy->ap_levelselectorder, 175, 55, multiitem_ap_levelselectorder, false);
 
-    DrawCrispnessSubheader("FILTER MESSAGES", 75);
+    // Hub activation sound
+    DrawCrispnessItem(crispy->ap_hubsound, 220, 65);
+
+    DrawCrispnessSubheader("FILTER MESSAGES", 85);
 
     // Whether to filter out join / leave messages from text log
-    DrawCrispnessMultiItem(crispy->ap_filterjoinpart, 224, 85, multiitem_ap_filters, false);
+    DrawCrispnessMultiItem(crispy->ap_filterjoinpart, 224, 95, multiitem_ap_filters, false);
 
     // Whether to filter out tutorial messages from text log
-    DrawCrispnessMultiItem(crispy->ap_filtertutorial, 200, 95, multiitem_ap_filters, false);
+    DrawCrispnessMultiItem(crispy->ap_filtertutorial, 200, 105, multiitem_ap_filters, false);
 
     // Whether to filter out player chat messages from text log
-    DrawCrispnessMultiItem(crispy->ap_filterchat, 226, 105, multiitem_ap_filters, false);
+    DrawCrispnessMultiItem(crispy->ap_filterchat, 226, 115, multiitem_ap_filters, false);
 }
+

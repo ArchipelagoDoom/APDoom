@@ -19,6 +19,7 @@
 #include "doomdef.h"
 #include "p_action.h"
 #include "apdoom.h"
+#include "crispy.h"
 
 const char *sprnames[] = {
     "IMPX","ACLO","PTN1","SHLD","SHD2","BAGH","SPMP","INVS","PTN2","SOAR",
@@ -76,7 +77,8 @@ void A_EnableHUB(mobj_t *actor, player_t *player, pspdef_t *psp)
     else if (leveltimesinceload > MINHUBTIME)
     {
         P_SetMobjState(actor, actor->info->seestate);
-        S_StartSound(actor, sfx_respawn);
+        if (crispy->ap_hubsound)
+            S_StartSound(actor, sfx_respawn);
     }
 }
 
