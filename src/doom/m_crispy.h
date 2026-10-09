@@ -64,6 +64,7 @@ extern void M_CrispyToggleDemoTimer(int choice);
 extern void M_CrispyToggleAPAutomapIcons(int choice);
 extern void M_CrispyToggleAPLevelSelectMusic(int choice);
 extern void M_CrispyToggleAPLevelSelectOrder(int choice);
+extern void M_CrispyToggleAPHubSound(int choice);
 extern void M_CrispyToggleAPFilterJoinPart(int choice);
 extern void M_CrispyToggleAPFilterTutorial(int choice);
 extern void M_CrispyToggleAPFilterChat(int choice);

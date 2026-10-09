@@ -19,6 +19,7 @@
 #include "doomdef.h"
 #include "p_action.h"
 #include "apdoom.h"
+#include "crispy.h"
 
 const char *sprnames[] = {
     "IMPX","ACLO","PTN1","SHLD","SHD2","BAGH","SPMP","INVS","PTN2","SOAR",
@@ -47,6 +48,8 @@ const char *sprnames[] = {
 extern void P_RemoveMobj(mobj_t*);
 extern void P_SetMobjState(mobj_t*, statenum_t);
 
+extern void S_StartSound(void*, int);
+
 void A_CheckCollected(mobj_t *actor, player_t *player, pspdef_t *psp)
 {
     if (ap_is_location_checked(ap_make_level_index(gameepisode, gamemap), actor->index))
@@ -72,7 +75,11 @@ void A_EnableHUB(mobj_t *actor, player_t *player, pspdef_t *psp)
         }
     }
     else if (leveltimesinceload > MINHUBTIME)
+    {
         P_SetMobjState(actor, actor->info->seestate);
+        if (crispy->ap_hubsound)
+            S_StartSound(actor, sfx_respawn);
+    }
 }
 
 void A_DisableHUB(mobj_t *actor, player_t *player, pspdef_t *psp)

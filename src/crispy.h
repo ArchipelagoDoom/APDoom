@@ -94,6 +94,7 @@ typedef struct
 	int ap_filterjoinpart;
 	int ap_filtertutorial;
 	int ap_filterchat;
+	int ap_hubsound;
 	int shadowhud;
 
 	// [crispy] in-game switches and variables

@@ -2693,6 +2693,12 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(apdoom_ap_levelselectorder),
 
     //!
+    // [AP] Hub makes a sound effect when it activates.
+    //
+
+    CONFIG_VARIABLE_INT(apdoom_ap_hubsound),
+
+    //!
     // [AP] Filter out join / part / tags messages.
     //
 
