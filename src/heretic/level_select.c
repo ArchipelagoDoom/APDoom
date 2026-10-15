@@ -365,8 +365,8 @@ void DrawEpisodicLevelSelectStats()
 
             int total_checks = ap_total_check_count(ap_level_info);
             dp_translation = ap_level_state->check_count == total_checks ? cr[CR_GREEN] : NULL;
-            SB_RightAlignedSmallNum(progress_x, progress_y, ap_level_state->check_count);
             V_DrawPatch(progress_x + 1, progress_y, W_CacheLumpNameSafe("STYSLASH"));
+            SB_RightAlignedSmallNum(progress_x, progress_y, ap_level_state->check_count);
             SB_LeftAlignedSmallNum(progress_x + 7, progress_y, total_checks);
             dp_translation = NULL;
         }
