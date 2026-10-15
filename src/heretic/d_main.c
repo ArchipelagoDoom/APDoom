@@ -91,6 +91,7 @@ boolean advancedemo;
 FILE *debugfile;
 
 static int show_endoom = 0;
+static int ap_notif_height = 160;
 
 void D_ConnectNetGame(void);
 void D_CheckNetGame(void);
@@ -206,6 +207,7 @@ static void CrispyDrawStats (void)
     left_widget_w = right_widget_w = 0;
     left_widget_x = 0 - WIDESCREENDELTA;
     right_widget_x = coord_x + WIDESCREENDELTA;
+    ap_notif_height = 160;
 
     if (crispy->automapstats == WIDGETS_ALWAYS || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
     {
@@ -218,6 +220,8 @@ static void CrispyDrawStats (void)
 
         M_snprintf(str, sizeof(str), "S %d/%d", player->secretcount, totalsecret);
         MN_DrTextA(str, left_widget_x, (158 - 10) - (1*height));
+
+        ap_notif_height = (158 - 10) - (3*height);
     }
     else if (crispy->automapstats == WIDGETS_STBAR_ALWAYS || (automapactive && crispy->automapstats == WIDGETS_STBAR))
     {
@@ -226,6 +230,8 @@ static void CrispyDrawStats (void)
                     level_state->check_count, ap_total_check_count(level_info),
                     player->secretcount, totalsecret);
         MN_DrTextA(str, left_widget_x, (158 - 10) - (1*height));
+
+        ap_notif_height = (158 - 10) - (1*height);
     }
 
     if (crispy->leveltime == WIDGETS_ALWAYS || (automapactive && crispy->leveltime == WIDGETS_AUTOMAP))
@@ -366,7 +372,7 @@ void D_Display(void)
     MN_Drawer();
     if (gamestate != GS_FINALE)
     {
-        APC_DrawNotifs(MN_DrTextA);
+        APC_DrawNotifs(MN_DrTextA, ap_notif_height);
         HU_DrawAPMessages();   // [AP] Sticky messages on top of everything
         CT_Drawer(); // [AP] moved from above so it shows atop everything
     }

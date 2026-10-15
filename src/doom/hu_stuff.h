@@ -60,6 +60,7 @@ void HU_ClearAPMessages(void);
 void HU_AddAPMessage(const char* message);
 void HU_DrawAPMessages(void);
 void HU_TickAPMessages(void);
+int HU_StatsHeight(void);
 
 extern const char *player_names[4];
 extern char *chat_macros[10];

@@ -20,6 +20,6 @@
 #define __APNOTIF_H__
 
 void APC_DrawNotifBox(int x, int y, const char *sprite, boolean disabled);
-void APC_DrawNotifs(void (textfunc)(const char *, int, int));
+void APC_DrawNotifs(void (textfunc)(const char *, int, int), int base_height);
 
 #endif

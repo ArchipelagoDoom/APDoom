@@ -448,6 +448,7 @@ static const char *cr_stat, *cr_stat2;
 static const char *tx_kill[2] = {"K\t", "K "};
 static const char *tx_item[2] = {"I\t", "I "};
 static const char *tx_scrt[2] = {"S\t", "S "};
+const int w_message_y = 20 * 8;
 
 void HU_Init(void)
 {
@@ -674,7 +675,6 @@ void HU_Start(void)
 
     // create the message widget
     // [AP] Messages moved to bottom, AP messages are at top
-    const int w_message_y = 20 * 8;
     HUlib_initSText(&w_message,
 		    HU_MSGX, w_message_y, HU_MSGHEIGHT,
 		    hu_font,
@@ -1318,6 +1318,15 @@ void HU_UpdateAPMessagePosition(int i)
     w_ap_messages[i].l[0].y = 3 * 8 - i * 8 - 4 * 8 + HU_GetActiveAPMessageCount() * 8 + ap_message_anim;
 
     w_chat.l.x = HU_INPUTX; // if window aspect ratio changed
+}
+
+int HU_StatsHeight(void)
+{
+    if (crispy->automapstats == WIDGETS_STBAR_ALWAYS || (automapactive && crispy->automapstats >= WIDGETS_STBAR))
+        return w_allstats.y;
+    if (crispy->automapstats == WIDGETS_ALWAYS || (automapactive && crispy->automapstats == WIDGETS_AUTOMAP))
+        return w_kills.y;
+    return w_message_y;
 }
 
 void HU_TickAPMessages()

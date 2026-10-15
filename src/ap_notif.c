@@ -131,7 +131,7 @@ void APC_DrawNotifBox(int x, int y, const char *sprite, boolean disabled)
     dp_translation = NULL;
 }
 
-void APC_DrawNotifs(void (textfunc)(const char *, int, int))
+void APC_DrawNotifs(void (textfunc)(const char *, int, int), int base_height)
 {
     int notif_count;
     const ap_notification_icon_t* notifs = ap_get_notification_icons(&notif_count);
@@ -142,7 +142,7 @@ void APC_DrawNotifs(void (textfunc)(const char *, int, int))
         if (notif->state == AP_NOTIF_STATE_PENDING)
             continue;
 
-        const int center_y = 172 + notif->y;
+        const int center_y = 12 + base_height + notif->y;
 
         APC_DrawNotifBox(notif->x - WIDESCREENDELTA, center_y, notif->sprite, notif->disabled);
         if (notif->text[0])

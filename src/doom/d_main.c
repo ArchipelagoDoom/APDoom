@@ -358,7 +358,7 @@ boolean D_Display (void)
     M_Drawer ();          // menu is drawn even on top of everything
     if (gamestate != GS_FINALE)
     {
-        APC_DrawNotifs(HUlib_drawText);
+        APC_DrawNotifs(HUlib_drawText, HU_StatsHeight());
         HU_DrawAPMessages();   // ^ no, Sticky messages on top of everything :)
     }
     NetUpdate ();         // send out any new accumulation
