@@ -413,7 +413,7 @@ extern int ap_backwards_compatibility; // Pretending to be 1.2.0
 #endif
 
 int apdoom_init(ap_settings_t* settings);
-void apdoom_shutdown();
+void apdoom_shutdown(int is_error);
 void apdoom_save_state();
 void apdoom_check_location(ap_level_index_t idx, int index);
 int apdoom_is_location_progression(ap_level_index_t idx, int index);

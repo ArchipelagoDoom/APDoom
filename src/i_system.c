@@ -278,10 +278,12 @@ void I_Quit (void)
 {
     atexit_listentry_t *entry;
 
-    // Run through all exit functions
 #ifndef SETUP_PRG
-    apdoom_shutdown(); // [AP] Shutdown properly, this will save player state (Should we put that into exit_funcs?)
+    // [AP] Shutdown and save player state
+    apdoom_shutdown(false);
 #endif
+
+    // Run through all exit functions
     entry = exit_funcs; 
 
     while (entry != NULL)
@@ -335,6 +337,11 @@ void I_Error (const char *error, ...)
     va_end(argptr);
 
     // Shutdown. Here might be other errors.
+
+#ifndef SETUP_PRG
+    // [AP] Shutdown and save player state (as best as we can)
+    apdoom_shutdown(true);
+#endif
 
     entry = exit_funcs;
 

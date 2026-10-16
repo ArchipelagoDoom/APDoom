@@ -1028,8 +1028,20 @@ int apdoom_init(ap_settings_t* settings)
 }
 
 
-void apdoom_shutdown()
+void apdoom_shutdown(int is_error)
 {
+	// Demo playback can cause this function to be called multiple times.
+	// Don't actually try to shut things down multiple times if this happens.
+	static int times_shutdown = 0;
+	if (times_shutdown++) return;
+
+	if (is_error)
+	{
+		// Reset the player to the level select for save safety.
+		ap_state.ep = 0;
+		ap_state.map = 0;
+	}
+
 	if (ap_was_connected)
 		save_state();
 	if (!ap_practice_mode)
