@@ -1,6 +1,6 @@
 # Archipelago Doom 2.0
 
-![Upstream](https://img.shields.io/badge/upstream-Crispy_Doom_7.1.0-3b849c)
+![Upstream](https://img.shields.io/badge/upstream-Crispy_Doom_7.2.0-3b849c)
 ![Release](https://img.shields.io/github/v/release/archipelagodoom/apdoom?include_prereleases)
 ![Commits Since Release](https://img.shields.io/github/commits-since/archipelagodoom/apdoom/latest?include_prereleases)
 
@@ -42,8 +42,7 @@ CMake is the only supported method of generating project files.
 
 - Clone the repository: `git clone https://github.com/ArchipelagoDoom/APDoom`
 - Initialize submodules: `git submodule update --init --recursive`
-- Place any APWorlds that you want to be available by default in the `embed` directory.
-  - **Beta note:** No APWorlds are currently included by default; ideally, you should generate some using ap_gen_tool, but you can take the officially distributed Beta APWorlds and place them in there too.
+- (optional) Place any additional APWorlds that you want to be available by default in the `embed` directory.
 - Create a `build` directory inside the repository directory, and change directories into it.
 - Use CMake to generate project files: `cmake ..`
 
