@@ -26,6 +26,7 @@
 #include "i_swap.h" // [crispy] SHORT()
 #include "i_system.h"
 #include "i_video.h"
+#include "p_mapformat.h"
 #include "z_zone.h"
 #include "m_argv.h" // [crispy] M_ParmExists()
 #include "m_misc.h"
@@ -1595,9 +1596,11 @@ void ST_updateFaceWidget(void)
     st_faceindex = painoffset + faceindex;
 }
 
+// [crispy] moved so ST_createWidgets can also access it
+static int	largeammo = 1994; // means "n/a"
+
 void ST_updateWidgets(void)
 {
-    static int	largeammo = 1994; // means "n/a"
     int		i;
 
     // must redirect the pointer if the ready weapon has changed.
@@ -2067,7 +2070,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
         ST_createWidgets();
     }
 
-    if (crispy->cleanscreenshot == 2)
+    if (crispy->screenshot == 2)
         return;
 
     // [crispy] translucent HUD
@@ -2290,6 +2293,12 @@ void ST_createWidgets(void)
 		  &plyr->ammo[weaponinfo[plyr->readyweapon].ammo],
 		  &st_statusbaron,
 		  ST_AMMOWIDTH );
+
+    // [crispy] avoid out-of-bounds read when resizing status bar 
+    if (weaponinfo[plyr->readyweapon].ammo == am_noammo)
+	w_ready.num = &largeammo;
+    else
+	w_ready.num = &plyr->ammo[weaponinfo[plyr->readyweapon].ammo];
 
     // the last weapon type
     w_ready.data = plyr->readyweapon; 

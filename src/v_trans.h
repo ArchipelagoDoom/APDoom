@@ -48,6 +48,7 @@ enum
     CR_RED2GREEN,
     CR_CYAN, // [AP] Daivuk's fancy blueish color
     CR_ZERO, // [AP] 0% value, aka fullblack, potentially useful for shadows
+    CR_DIMMED, // [AP] New to crispy 7.2.0, added to the end of the list
     CRMAX
 };
 

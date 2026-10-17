@@ -137,7 +137,7 @@ void DrawMessage(void)
     player_t *player;
 
     player = &players[consoleplayer];
-    if (player->messageTics <= 0 || !player->message)
+    if (player->messageTics <= 0 || !player->message || crispy->screenshot)
     {                           // No message
         return;
     }
@@ -279,7 +279,9 @@ void D_Display(void)
     {
         I_UpdateFracTic();
 
-        if (!automapactive || crispy->automapoverlay)
+        // [crispy] When appropriate, let automap responder have mouse movement
+        // events for mouse panning.
+        if (!(automapactive && !crispy->automapoverlay && !followplayer))
         {
             I_StartDisplay();
             G_FastResponder();
@@ -313,6 +315,15 @@ void D_Display(void)
             {
                 AM_Drawer();
                 BorderNeedRefresh = true;
+            }
+            // [crispy] don't draw any GUI elements when taking a clean screenshot
+            if (crispy->screenshot == 2)
+            {
+                if (automapactive && !crispy->automapoverlay)
+                    SB_Drawer();                    
+                UpdateState |= I_FULLVIEW;
+                I_FinishUpdate();
+                return;
             }
             // [crispy] check for translucent HUD
             SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
@@ -1212,10 +1223,10 @@ void D_DoomMain(void)
     //!
     // @category game
     //
-    // Automatic wand start when advancing from one level to the next. At the
+    // Automatic wand start when advancing from one level to the next.  At the
     // beginning of each level, the player's health is reset to 100, their
     // armor to 0 and their inventory is reduced to the following: wand, staff
-    // and 50 ammo for the wand. This option is not allowed when recording a
+    // and 50 ammo for the wand.  This option is not allowed when recording a
     // demo, playing back a demo or when starting a network game.
     //
 
@@ -1224,7 +1235,7 @@ void D_DoomMain(void)
     //!
     // @category game
     //
-    // Ammo pickups give 50% more ammo. This option is not allowed when recording a
+    // Ammo pickups give 50% more ammo.  This option is not allowed when recording a
     // demo, playing back a demo or when starting a network game.
     //
 
@@ -1233,7 +1244,7 @@ void D_DoomMain(void)
     //!
     // @category game
     //
-    // Fast monsters. This option is not allowed when recording a demo,
+    // Fast monsters.  This option is not allowed when recording a demo,
     // playing back a demo or when starting a network game.
     //
 

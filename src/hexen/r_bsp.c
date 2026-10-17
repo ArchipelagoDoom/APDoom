@@ -18,6 +18,7 @@
 #include "h2def.h"
 #include "i_system.h"
 #include "m_bbox.h"
+#include "p_mapformat.h"
 #include "r_local.h"
 
 seg_t *curline;
@@ -25,7 +26,9 @@ side_t *sidedef;
 line_t *linedef;
 sector_t *frontsector, *backsector;
 
-drawseg_t drawsegs[MAXDRAWSEGS], *ds_p;
+drawseg_t*	drawsegs = NULL;
+drawseg_t*	ds_p;
+int		numdrawsegs = 0;
 
 void R_StoreWallRange(int start, int stop);
 
@@ -500,7 +503,8 @@ void R_Subsector(int num)
     }
     while (count--)
     {
-        R_AddLine(line);
+        if (line->linedef)
+            R_AddLine(line);
         line++;
     }
 

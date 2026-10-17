@@ -487,8 +487,8 @@ void WI_drawEL(void)
                 entering);
 
     // draw level
-    y += (5*SHORT(lnames[wbs->next]->height))/4;
-
+	// [crispy] haleyjd: corrected to use height of entering, not map name
+    y += (5*SHORT(entering->height))/4;
     V_DrawPatch((ORIGWIDTH - SHORT(lnames[wbs->next]->width))/2,
 		y, 
                 lnames[wbs->next]);

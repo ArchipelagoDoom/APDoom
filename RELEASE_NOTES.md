@@ -1,57 +1,70 @@
 **General Fixes and Improvements**
 
- * Fix regression in uncapped automap mouse panning introduced by fast polling changes (@mikeday0)
+- Expand extended BSP format support and blockmap building to all games
+  (@elf-alchemist).
+- Fix nodes decompression buffer reallocation in all games.
+- Allocate texture composites on demand with PU_LEVEL tag, fixing a crash in
+  R_GenerateComposite in all games (@Noseey).
+- Rework clean screenshots: always refresh the SDL backbuffer before taking
+  a screenshot (@Noseey).
+- Only suppress fast polling when automap follow mode is off (@mikeday0).
+- Fully remove the visplanes and drawseg limits in Hexen and Strife
+  (@elf-alchemist).
+- Add overflow guards for flattranslation when loading savegames in Heretic,
+  Hexen and Strife (@Noseey).
 
 **Crispy Doom**
 
- * Support KEX masterlevels.wad (@Noseey)
- * Fix A11Y flickering glitches (@Noseey)
- * Fix demo footer after level restart (@rfomin)
- * Fix `-levelstat` command (@rfomin)
- * Add support for non-power-of-2 wide textures (@elf-alchemist)
- * Consider patch offset when limit checking during finale, fix rust2.wad end screen (@mikeday0)
- * Add IDDST, IDDKT, IDDIT cheats, ported from Woof (@jiffygist)
- * Reduce memory consumption for swirling flats (@fabiangreffrath)
- * Don't let sideloaded PWADs replace default Doom 2 artwork (@fabiangreffrath)
- * Add support for Gib health feature from DOOM Retro (@fabiangreffrath)
- * Strafe in mid air was not strafe but forward / backward (@PascalCorpsman)
+- Add support for the 200 dummy SFX added by DEHEXTRA.
+- Improve stat counting: stats are now identical for all players in netgames,
+  and monsters resurrected by Arch-Viles or spawned by the Icon of Sin
+  (Nightmare/`-respawn`) are counted (@gera2342).
+- Include `-coop_spawns` in the demo footer (@gera2342).
+- Fix lowres_turn not being updated when joining demos recorded with shorttics
+  (@Noseey).
+- Fix GotoNextLevel storing the wrong map in the demo when recording
+  (@Noseey).
+- Use the new naming scheme for Masterlevels KEX music, and make the
+  Masterlevels KEX detection more robust (@Noseey).
+- Don't preserve palette index 109 for CR_DARK (@KScl).
+- Fix out-of-bounds read when resizing the status bar with a ready weapon that
+  uses no ammo (@KScl).
+- Make sure the patch name buffer is terminated in R_InitTextures().
 
 **Crispy Heretic**
 
- * Support Quick-Reverse (@Noseey)
- * Add Crosshairs (@Noseey)
- * Add A11Y Functions (@Noseey)
- * Add Map Markers (@Noseey)
- * Add Crispy Hud + Variations (@Noseey)
- * Add Translucency Option (@Noseey)
- * Add Weapon sound alignment Option, dragonclaw/gauntlets (@Noseey)
- * Support wide RAW images from new "Heretic + Hexen" release (@rfomin)
- * Add support for non-power-of-2 wide textures, support the new non-power-of-2 textures from the H+H Heretic IWAD (@elf-alchemist)
- * Make sky tutti-frutti fix work for any sky height (@mikeday0)
- * Add support for H+H remastered Heretic IWAD (@JNechaevsky)
- * Fix the artifact flash animation in uncapped framerate mode (@JNechaevsky)
- * Add IWAD search folders for the H+H rerelease (@JNechaevsky)
- * Add IDDT, IDDST, IDDKT, IDDIT cheats, ported from Woof (@jiffygist)
+- Fix demo desync in P_ExplodeMissileSafe().
+- Check for a NULL thing->state in R_AddSprites() (@Noseey).
+- Move demo recording to the actual map init and prepare the frame in
+  P_SetupLevel (@Noseey).
+- Fix key_lookcenter being blocked by joystick_look_sensitivity when using
+  spring-centered freelook (@Noseey).
+- Add clean screenshot support (@Noseey).
+- Add `-coop_spawns` to the demo footer (@gera2342).
 
 **Crispy Hexen**
- * Support Quick-Reverse (@Noseey)
- * Add Crosshairs (@Noseey)
- * Add A11Y Functions (@Noseey)
- * Add Map Markers (@Noseey)
- * Add Translucency Option (@Noseey)
- * Add Crispy Hud + Variations (@Noseey)
- * Support wide RAW images from new "Heretic + Hexen" release (@rfomin)
- * Add support for non-power-of-2 wide textures, Support the new non-power-of-2 textures from the H+H Hexen IWAD (@elf-alchemist)
- * Fix bug where saving a save on pages 1, 2 or 3 could delete save on pages 2, 4 or 6 (@mikeday0)
- * Make sky tutti-frutti fix work for any sky height (@mikeday0)
- * Fix the artifact flash animation in uncapped framerate mode (@JNechaevsky)
- * Add IWAD search folders for the H+H rerelease (@JNechaevsky)
- * Fix wyvern + porkalator bug, check for `P_FindMobjFromTID()` returning a `NULL` mobj in `DragonSeek()` (@fabiangreffrath)
+
+- Add support for sideloading Deathkings of the Dark Citadel (DKDC),
+  including SNDINFO, CLUSxMSG and WINxMSG (@Noseey).
+- Optimize sideloading, fix the wrong demo reel in the episode selection and
+  detect HEXDD.WAD differently (@Noseey).
+- Fix demo issues: re-init episode 1 on Endgame and use the start map for new
+  games during recording (@Noseey).
+- Initialize S_InitScript and InitMapInfo in SV_LoadGame (@Noseey).
+- Move the world timer when powers are active to avoid overlapping (@Noseey).
+- Add GotoNextLevel and ReloadLevel with demo suffix (@Noseey).
+- Move demo recording to the actual map init and prepare the frame in
+  P_SetupLevel (@Noseey).
+- Fix key_lookcenter being blocked by joystick_look_sensitivity (@Noseey).
+- Add clean screenshot support (@Noseey).
 
 **Crispy Strife**
 
- * Support Quick-Reverse (@Noseey)
- * Support persistent Map Markers (@Noseey)
- * Add A11Y Function, Flickering (@Noseey)
- * Add support for non-power-of-2 wide textures (@elf-alchemist)
-
+- Add translucency option (@Noseey).
+- Add accessibility features: weapon flash lighting, palette changes,
+  ultimate weapon palette, extra lighting, and the startup scream with the
+  graphical startup (@Noseey).
+- Add fullscreen HUD variations, including translucent HUDs (@Noseey).
+- Add demo fast-forward (@Noseey).
+- Add GotoNextLevel and ReloadLevel with demo suffix (@Noseey).
+- Apply the joystick fire delay to dialogs and menus (@mgorny).

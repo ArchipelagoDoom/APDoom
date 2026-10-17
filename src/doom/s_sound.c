@@ -38,7 +38,7 @@
 #include "w_wad.h"
 #include "z_zone.h"
 #include "g_game.h" // [crispy] demo_gotonextlvl
-#include "d_pwad.h" // [crispy] masterlevel kex music
+#include "d_pwad.h" // [crispy] masterlevel kex music (MLK)
 
 #include "apdoom.h"
 #include "ap_basic.h"
@@ -264,27 +264,27 @@ int S_CorrectMusic(int orig_mnum)
         case mus_nrftl8: return mus_shawn2;
         case mus_nrftl9: return mus_ddtbl2;
         // --- Master Levels ---
-        case mus_mlvlk1: return mus_dm2int;
-        case mus_mlvlk2: return mus_e2m2;
-        case mus_mlvlk3: return mus_the_da;
-        case mus_mlvlk4: return mus_e1m6;
-        case mus_mlvlk5: return mus_dead;
-        case mus_mlvlk6: return mus_stalks;
-        case mus_mlvlk7: return mus_in_cit;
-        case mus_mlvlk8: return mus_ddtblu;
-        case mus_mlvlk9: return mus_e3m3;
-        case mus_mlvlk10: return mus_victor;
-        case mus_mlvlk11: return mus_e1m5;
-        case mus_mlvlk12: return mus_e2m6;
-        case mus_mlvlk13: return mus_romero;
-        case mus_mlvlk14: return mus_e2m7;
-        case mus_mlvlk15: return mus_e1m8;
-        case mus_mlvlk16: return mus_messag;
-        case mus_mlvlk17: return mus_e1m7;
-        case mus_mlvlk18: return mus_e3m1;
-        case mus_mlvlk19: return mus_tense;
-        case mus_mlvlk20: return mus_read_m;
-        case mus_mlvlk21: return mus_openin;
+        case mus_mlk1: return mus_dm2int;
+        case mus_mlk2: return mus_e2m2;
+        case mus_mlk3: return mus_the_da;
+        case mus_mlk4: return mus_e1m6;
+        case mus_mlk5: return mus_dead;
+        case mus_mlk6: return mus_stalks;
+        case mus_mlk7: return mus_in_cit;
+        case mus_mlk8: return mus_ddtblu;
+        case mus_mlk9: return mus_e3m3;
+        case mus_mlk10: return mus_victor;
+        case mus_mlk11: return mus_e1m5;
+        case mus_mlk12: return mus_e2m6;
+        case mus_mlk13: return mus_romero;
+        case mus_mlk14: return mus_e2m7;
+        case mus_mlk15: return mus_e1m8;
+        case mus_mlk16: return mus_messag;
+        case mus_mlk17: return mus_e1m7;
+        case mus_mlk18: return mus_e3m1;
+        case mus_mlk19: return mus_tense;
+        case mus_mlk20: return mus_read_m;
+        case mus_mlk21: return mus_openin;
         default: return orig_mnum;
     }
 }
@@ -315,7 +315,7 @@ void S_Init(int sfxVolume, int musicVolume)
         I_SetOPLDriverVer(opl_doom_1_9);
     }
 
-    I_PrecacheSounds(S_sfx, NUMSFX);
+    I_PrecacheSounds(S_sfx, NUMSFX_ORIG);
 
     S_SetSfxVolume(sfxVolume);
     S_SetMusicVolume(musicVolume);
@@ -340,6 +340,15 @@ void S_Init(int sfxVolume, int musicVolume)
     for (i=1 ; i<NUMSFX ; i++)
     {
         S_sfx[i].lumpnum = S_sfx[i].usefulness = -1;
+    }
+
+    // [crispy] DEHEXTRA
+    for (i = sfx_fre000; i < NUMSFX; i++)
+    {
+        M_snprintf(S_sfx[i].name, 7, "fre%.3i", i - sfx_fre000);
+        S_sfx[i].priority = 127;
+        S_sfx[i].pitch = -1;
+        S_sfx[i].volume = -1;
     }
 
     // Doom defaults to pitch-shifting off.
@@ -456,29 +465,29 @@ void S_Start(void)
             {mus_nrftl9, mus_ddtbl2},
         };
 
-        const int mlvlkmus[21][2] =
+        const int mlkmus[21][2] =
         {
-            {mus_mlvlk1, mus_dm2int},
-            {mus_mlvlk2, mus_e2m2},
-            {mus_mlvlk3, mus_the_da},
-            {mus_mlvlk4, mus_e1m6},
-            {mus_mlvlk5, mus_dead},
-            {mus_mlvlk6, mus_stalks},
-            {mus_mlvlk7, mus_in_cit},
-            {mus_mlvlk8, mus_ddtblu},
-            {mus_mlvlk9, mus_e3m3},
-            {mus_mlvlk10, mus_victor},
-            {mus_mlvlk11, mus_e1m5},
-            {mus_mlvlk12, mus_e2m6},
-            {mus_mlvlk13, mus_romero},
-            {mus_mlvlk14, mus_e2m7},
-            {mus_mlvlk15, mus_e1m8},
-            {mus_mlvlk16, mus_messag},
-            {mus_mlvlk17, mus_e1m7},
-            {mus_mlvlk18, mus_e3m1},
-            {mus_mlvlk19, mus_tense},
-            {mus_mlvlk20, mus_read_m},
-            {mus_mlvlk21, mus_openin},
+            {mus_mlk1, mus_dm2int},
+            {mus_mlk2, mus_e2m2},
+            {mus_mlk3, mus_the_da},
+            {mus_mlk4, mus_e1m6},
+            {mus_mlk5, mus_dead},
+            {mus_mlk6, mus_stalks},
+            {mus_mlk7, mus_in_cit},
+            {mus_mlk8, mus_ddtblu},
+            {mus_mlk9, mus_e3m3},
+            {mus_mlk10, mus_victor},
+            {mus_mlk11, mus_e1m5},
+            {mus_mlk12, mus_e2m6},
+            {mus_mlk13, mus_romero},
+            {mus_mlk14, mus_e2m7},
+            {mus_mlk15, mus_e1m8},
+            {mus_mlk16, mus_messag},
+            {mus_mlk17, mus_e1m7},
+            {mus_mlk18, mus_e3m1},
+            {mus_mlk19, mus_tense},
+            {mus_mlk20, mus_read_m},
+            {mus_mlk21, mus_openin},
         };
 
         if ((gameepisode == 2 || gamemission == pack_nerve) &&
@@ -495,15 +504,15 @@ void S_Start(void)
         }
         else
         if ((gameepisode == 3 || gamemission == pack_master) && D_CheckMasterlevelKex() &&
-            gamemap <= arrlen(mlvlkmus))
+            gamemap <= arrlen(mlkmus))
         {
             char name[9];
 
-            mnum = mlvlkmus[gamemap - 1][0];
+            mnum = mlkmus[gamemap - 1][0];
             M_snprintf(name, sizeof(name), "d_%s", S_music[mnum].name);
             if (W_CheckNumForName(name) == -1)
             {
-                mnum = mlvlkmus[gamemap - 1][1];
+                mnum = mlkmus[gamemap - 1][1];
             }            
         }
         else
@@ -1103,7 +1112,7 @@ void S_ChangeMusic(int musicnum, int looping)
         {
             if (logical_gamemission == pack_master && D_CheckMasterlevelKex())
             {
-                // mlvlk using Doom 1 tracks - do not correct.
+                // mlk using Doom 1 tracks - do not correct.
             }
             else
             {

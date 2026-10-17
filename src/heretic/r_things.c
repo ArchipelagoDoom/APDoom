@@ -761,10 +761,12 @@ void R_AddSprites(sector_t * sec)
 
     for (thing = sec->thinglist; thing; thing = thing->snext)
     {
+        const boolean is_mummy = thing->state && thing->state->sprite == SPR_MUMM;
+
         // [crispy] draw base frame and translucent current frame for MT_MUMMYLEADER attack
         if (crispy->translucency & TRANSLUCENCY_MISSILE)
         {
-            if (thing->state->sprite == SPR_MUMM && !(thing->flags & MF_SHADOW) && thing->frame == (24 | FF_FULLBRIGHT))
+            if (is_mummy && !(thing->flags & MF_SHADOW) && thing->frame == (24 | FF_FULLBRIGHT))
             {
                 thing->frame = (thing->frame & FF_FRAMEMASK) - 1; // [crispy] set attack stance without fire
                 R_ProjectSprite(thing);
@@ -773,7 +775,7 @@ void R_AddSprites(sector_t * sec)
             }
         }
         R_ProjectSprite(thing);
-        if (thing->state->sprite == SPR_MUMM && !(thing->flags & MF_SHADOW) && thing->flags & MF_TRANSLUCENT)
+        if (is_mummy && !(thing->flags & MF_SHADOW) && thing->flags & MF_TRANSLUCENT)
         {
             thing->flags &= ~MF_TRANSLUCENT;
         }
@@ -1296,6 +1298,9 @@ void R_DrawMasked(void)
     for (ds = ds_p - 1; ds >= drawsegs; ds--)
         if (ds->maskedtexturecol)
             R_RenderMaskedSegRange(ds, ds->x1, ds->x2);
+
+    if (crispy->screenshot == 2)
+        return;
 
 //
 // draw the psprites on top of everything

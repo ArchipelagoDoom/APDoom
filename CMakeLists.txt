@@ -3,7 +3,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 cmake_minimum_required(VERSION 3.7.2)
 project("Archipelago Doom" VERSION 2.0.0 LANGUAGES C CXX)
 set(VERSION_SUFFIX "")
-set(UPSTREAM_STRING "Crispy Doom 7.1.0")
+set(UPSTREAM_STRING "Crispy Doom 7.2.0")
 
 set(CMAKE_C_STANDARD 99)
 
@@ -19,7 +19,7 @@ set(PACKAGE_STRING "${PROJECT_NAME} ${PROJECT_VERSION}${VERSION_SUFFIX}")
 set(PACKAGE_BUGREPORT "https://github.com/ArchipelagoDoom/APDoom/issues")
 
 string(REGEX REPLACE " Doom$" "" PACKAGE_SHORTNAME "${PACKAGE_NAME}")
-set(PACKAGE_COPYRIGHT "Copyright (C) 1993-2025")
+set(PACKAGE_COPYRIGHT "Copyright (C) 1993-2026")
 set(PACKAGE_LICENSE "GNU General Public License, version 2")
 
 # Set binary/library output to consistent directories.

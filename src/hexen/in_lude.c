@@ -158,6 +158,8 @@ static void Stop(void)
 //      Initializes the stats for single player mode
 //========================================================================
 
+// [crispy] construct the name instead
+/*
 static const char *ClusMsgLumpNames[] = {
     "clus1msg",
     "clus2msg",
@@ -165,6 +167,7 @@ static const char *ClusMsgLumpNames[] = {
     "clus4msg",
     "clus5msg"
 };
+*/
 
 static void InitStats(void)
 {
@@ -174,7 +177,8 @@ static void InitStats(void)
     signed int slaughterfrags;
     int slaughtercount;
     int playercount;
-    const char *msgLumpName;
+    // const char *msgLumpName;
+    char msgLumpName[9]; // [crispy]
     int msgSize;
     int msgLump;
 
@@ -187,7 +191,11 @@ static void InitStats(void)
         {
             if (oldCluster >= 1 && oldCluster <= 5)
             {
-                msgLumpName = ClusMsgLumpNames[oldCluster - 1];
+                // [crispy] add suffix for Deathkings
+                if (oldCluster <= 2 && crispy->havedeathkings && gameepisode == 2)
+                    M_snprintf(msgLumpName, sizeof(msgLumpName), "CLUS%dMSD", oldCluster);
+                else
+                    M_snprintf(msgLumpName, sizeof(msgLumpName), "CLUS%dMSG", oldCluster);
                 msgLump = W_GetNumForName(msgLumpName);
                 msgSize = W_LumpLength(msgLump);
                 if (msgSize >= MAX_INTRMSN_MESSAGE_SIZE)

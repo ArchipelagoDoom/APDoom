@@ -26,6 +26,8 @@
 // State.
 #include "r_state.h"
 
+#include "p_mapformat.h" // [crispy] support extended node formats
+
 //
 // P_CheckSight
 //
@@ -197,6 +199,8 @@ boolean P_CrossSubsector (int num)
     for ( ; count ; seg++, count--)
     {
 	line = seg->linedef;
+	if (!line) // figgi -- skip minisegs
+	    continue;
 
 	// allready checked other side?
 	if (line->validcount == validcount)
@@ -377,7 +381,7 @@ P_CheckSight
     if (gameversion <= exe_doom_1_2)
     {
         return P_PathTraverse(t1->x, t1->y, t2->x, t2->y,
-                              PT_EARLYOUT | PT_ADDLINES, PTR_SightTraverse);
+                              PT_EARLYOUT | PT_COMPATADDLINES, PTR_SightTraverse);
     }
 
     strace.x = t1->x;

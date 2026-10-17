@@ -1368,7 +1368,8 @@ static void IterFindPolySegs(int x, int y, seg_t ** segList)
     }
     for (i = 0; i < numsegs; i++)
     {
-        if (segs[i].v1->x == x && segs[i].v1->y == y)
+        if (segs[i].linedef && // [crispy] extended nodes
+            segs[i].v1->x == x && segs[i].v1->y == y)
         {
             if (!segList)
             {
@@ -1402,7 +1403,8 @@ static void SpawnPolyobj(int index, int tag, boolean crush)
 
     for (i = 0; i < numsegs; i++)
     {
-        if (segs[i].linedef->special == PO_LINE_START &&
+        if (segs[i].linedef && // [crispy] extended nodes
+            segs[i].linedef->special == PO_LINE_START &&
             segs[i].linedef->arg1 == tag)
         {
             if (polyobjs[index].segs)
@@ -1445,7 +1447,8 @@ static void SpawnPolyobj(int index, int tag, boolean crush)
             psIndexOld = psIndex;
             for (i = 0; i < numsegs; i++)
             {
-                if (segs[i].linedef->special == PO_LINE_EXPLICIT &&
+                if (segs[i].linedef && // [crispy] extended nodes
+                    segs[i].linedef->special == PO_LINE_EXPLICIT &&
                     segs[i].linedef->arg1 == tag)
                 {
                     if (!segs[i].linedef->arg2)
@@ -1472,7 +1475,8 @@ static void SpawnPolyobj(int index, int tag, boolean crush)
             //              linedef.
             for (i = 0; i < numsegs; i++)
             {
-                if (segs[i].linedef->special == PO_LINE_EXPLICIT &&
+                if (segs[i].linedef && // [crispy] extended nodes
+                    segs[i].linedef->special == PO_LINE_EXPLICIT &&
                     segs[i].linedef->arg1 == tag
                     && segs[i].linedef->arg2 == j)
                 {
@@ -1486,7 +1490,8 @@ static void SpawnPolyobj(int index, int tag, boolean crush)
                 // lines with the current tag value
                 for (i = 0; i < numsegs; i++)
                 {
-                    if (segs[i].linedef->special == PO_LINE_EXPLICIT &&
+                    if (segs[i].linedef && // [crispy] extended nodes
+                        segs[i].linedef->special == PO_LINE_EXPLICIT &&
                         segs[i].linedef->arg1 == tag)
                     {
                         I_Error
@@ -1646,6 +1651,7 @@ void PO_Init(int lump)
         {                       // Polyobj StartSpot Pt.
             polyobjs[polyIndex].startSpot.x = spawnthing.x << FRACBITS;
             polyobjs[polyIndex].startSpot.y = spawnthing.y << FRACBITS;
+            polyobjs[polyIndex].startSpot.thinker.function = (think_t) P_DegenMobjThinker;
             SpawnPolyobj(polyIndex, spawnthing.angle,
                          (spawnthing.type == PO_SPAWNCRUSH_TYPE));
             polyIndex++;

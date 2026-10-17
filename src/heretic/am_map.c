@@ -152,7 +152,7 @@ static patch_t *marknums[10]; // numbers used for marking by the automap
 static mpoint_t markpoints[AM_NUMMARKPOINTS]; // where the points are
 static int markpointnum = 0; // next point to be assigned
 
-static int followplayer = 1;    // specifies whether to follow the player around
+int followplayer = 1;    // specifies whether to follow the player around
 
 cheatseq_t cheat_amap_seq = CHEAT("ravmap", 0);
 cheatseq_t cheat_altamap_seq = CHEAT("iddt", 0);
@@ -2228,6 +2228,10 @@ void AM_Drawer(void)
         numepisodes = 3;
     }
 
+    if (crispy->screenshot == 2)
+    {
+        return;
+    }
     // [crispy] check for translucent HUD
     SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
     // [AP] Show episode 6 names

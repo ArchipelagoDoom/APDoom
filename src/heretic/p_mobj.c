@@ -146,7 +146,7 @@ boolean P_SetMobjStateNF(mobj_t * mobj, statenum_t state)
 
 static void P_ExplodeMissileSafe(mobj_t * mo, boolean safe)
 {
-    if (mo->type == MT_WHIRLWIND)
+    if (mo->type == MT_WHIRLWIND && !safe)
     {
         if (++mo->special2.i < 60)
         {
@@ -400,7 +400,6 @@ void P_XYMovement(mobj_t * mo)
             }
             else if (mo->flags & MF_MISSILE)
             {                   // Explode a missile
-                boolean safe = false;
                 if (ceilingline && ceilingline->backsector
                     && ceilingline->backsector->ceilingpic == skyflatnum)
                 {               // Hack to prevent missiles exploding against the sky
@@ -409,17 +408,17 @@ void P_XYMovement(mobj_t * mo)
                         mo->momx = mo->momy = 0;
                         mo->momz = -FRACUNIT;
                     }
-                    if (mo->z > ceilingline->backsector->ceilingheight)
+                    else if (mo->z > ceilingline->backsector->ceilingheight)
                     {
                         P_RemoveMobj(mo);
-                        return;
                     }
                     else
                     {
-                        safe = true;
+                        P_ExplodeMissileSafe(mo, true);
                     }
+                    return;
                 }
-                P_ExplodeMissileSafe(mo, safe);
+                P_ExplodeMissile(mo);
             }
             //else if(mo->info->crashstate)
             //{

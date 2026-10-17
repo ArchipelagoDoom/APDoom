@@ -23,6 +23,7 @@
 #include "i_swap.h"
 #include "p_local.h"
 #include "a11y.h"
+#include "p_mapformat.h"
 #include "sv_extsaveg.h" // [crispy] for extended savegame information
 
 // MACROS ------------------------------------------------------------------
@@ -2127,6 +2128,7 @@ void SV_LoadGame(int slot)
 
     AssertSegment(ASEG_GAME_HEADER);
 
+    prev_episode = gameepisode; // [crispy]
     gameepisode = 1;
     gamemap = SV_ReadByte();
     gameskill = SV_ReadByte();
@@ -2147,6 +2149,12 @@ void SV_LoadGame(int slot)
     UnarchivePlayers();
 
     AssertSegment(ASEG_END);
+
+    // [crispy] read more extended savegame data for game
+    SV_ReadExtendedSaveGameData(EXTSAVEG_GAME);
+
+    // [crispy] re-init scripts and mapinfo to support multiple episodes
+    H2_InitEpisode(false);
 
     // Save player structs
     for (i = 0; i < maxplayers; i++)
@@ -2568,7 +2576,7 @@ static void ArchiveWorld(void)
         SV_WriteByte(li->arg5);
         for (j = 0; j < 2; j++)
         {
-            if (li->sidenum[j] == -1)
+            if (li->sidenum[j] == NO_INDEX)
             {
                 continue;
             }
@@ -2599,10 +2607,12 @@ static void UnarchiveWorld(void)
     AssertSegment(ASEG_WORLD);
     for (i = 0, sec = sectors; i < numsectors; i++, sec++)
     {
+        // [crispy] add overflow guard for the flattranslation[] array
+        short floorpic, ceilingpic;
         sec->floorheight = SV_ReadWord() << FRACBITS;
         sec->ceilingheight = SV_ReadWord() << FRACBITS;
-        sec->floorpic = SV_ReadWord();
-        sec->ceilingpic = SV_ReadWord();
+        floorpic = SV_ReadWord();
+        ceilingpic = SV_ReadWord();
         sec->lightlevel = SV_ReadWord();
         sec->rlightlevel = sec->lightlevel; // [crispy] A11Y
         sec->special = SV_ReadWord();
@@ -2610,6 +2620,15 @@ static void UnarchiveWorld(void)
         sec->seqType = SV_ReadWord();
         sec->specialdata = 0;
         sec->soundtarget = 0;
+        // [crispy] add overflow guard for the flattranslation[] array
+        if (floorpic >= 0 && floorpic < numflats)
+        {
+            sec->floorpic = floorpic;
+        }
+        if (ceilingpic >= 0 && ceilingpic < numflats)
+        {
+            sec->ceilingpic = ceilingpic;
+        }
     }
     for (i = 0, li = lines; i < numlines; i++, li++)
     {
@@ -2622,7 +2641,7 @@ static void UnarchiveWorld(void)
         li->arg5 = SV_ReadByte();
         for (j = 0; j < 2; j++)
         {
-            if (li->sidenum[j] == -1)
+            if (li->sidenum[j] == NO_INDEX)
             {
                 continue;
             }

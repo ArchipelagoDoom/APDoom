@@ -13,6 +13,7 @@ am_map.c            am_map.h          \
 ct_chat.c                             \
                     ct_chat.h         \
 d_net.c                               \
+d_pwad.c            d_pwad.h          \
 f_finale.c                            \
 g_game.c                              \
                     h2def.h           \
@@ -24,9 +25,11 @@ mn_menu.c                             \
 p_acs.c                               \
                     p_action.h        \
 p_anim.c                              \
+p_blockmap.c                          \
 p_ceilng.c                            \
 p_doors.c                             \
 p_enemy.c                             \
+p_extnodes.c                          \
 p_floor.c                             \
 p_inter.c                             \
 p_lights.c                            \

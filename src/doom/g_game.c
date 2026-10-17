@@ -140,7 +140,8 @@ int             consoleplayer;          // player taking events and displaying
 int             displayplayer;          // view being displayed 
 int             levelstarttic;          // gametic at level start 
 int             totalkills, totalitems, totalsecret;    // for intermission 
-int             extrakills;             // [crispy] count spawned monsters
+int             maxkilldiscount;        // [crispy] discount spawned and resurrected monsters
+int             environmentkills;       // [crispy] monster kills in netgame not attributed to any player
 int             totalleveltimes;        // [crispy] CPhipps - total time for all completed levels
 int             demostarttic;           // [crispy] fix revenant internal demo bug
  
@@ -1449,11 +1450,15 @@ static void G_ReadGameParms (void)
 // [crispy] take a screenshot after rendering the next frame
 static void G_CrispyScreenShot()
 {
-	// [crispy] increase screenshot filename limit
-	V_ScreenShot("DOOM%04i.%s");
-	players[consoleplayer].message = DEH_String("screen shot");
-	crispy->cleanscreenshot = 0;
-	crispy->screenshotmsg = 2;
+    // [crispy] increase screenshot filename limit
+    V_ScreenShot("DOOM%04i.%s");
+    if (gamestate == GS_LEVEL)
+        players[consoleplayer].message = DEH_String("screen shot");
+    if (crispy->screenshot == 2)
+    {
+        R_SetViewSize(BETWEEN(3, 11, screenblocks), detailLevel);
+    }
+    crispy->screenshot = 0;
 }
 
 void ap_set_respawning_player_attributes(player_t *p)
@@ -1615,15 +1620,16 @@ void G_Ticker (void)
 	    break; 
 	  case ga_screenshot: 
 	    // [crispy] redraw view without weapons and HUD
-	    if (gamestate == GS_LEVEL && (crispy->cleanscreenshot || crispy->screenshotmsg == 1))
-	    {
-		crispy->screenshotmsg = 4;
-		crispy->post_rendering_hook = G_CrispyScreenShot;
-	    }
-	    else
-	    {
-		G_CrispyScreenShot();
-	    }
+        if (gamestate == GS_LEVEL)
+        {
+            if (crispy->screenshot == 2 && (!automapactive || crispy->automapoverlay))
+            {
+                R_SetViewSize(11, detailLevel);
+                R_ExecuteSetViewSize();
+            }
+        }
+        // [crispy] screenshot always after drawing is done
+        crispy->post_rendering_hook = G_CrispyScreenShot;
 	    gameaction = ga_nothing; 
 	    break; 
         case ga_levelselect:
@@ -1989,12 +1995,11 @@ G_CheckSpot
 
     {
         fixed_t xa, ya;
-        signed int an;
 
-        // This calculation overflows in Vanilla Doom, but here we deliberately
-        // avoid integer overflow as it is undefined behavior, so the value of
-        // 'an' will always be positive.
-        an = (ANG45 >> ANGLETOFINESHIFT) * ((signed int) mthing->angle / 45);
+        // This calculation overflows in Vanilla Doom, so use unsigned arithmetic
+        // for a defined wraparound. 'an' is then always within [0, 8191].
+        const uint32_t k = (uint32_t)((signed int) mthing->angle / 45);
+        const int an = (int)(((uint32_t)ANG45 * k) >> ANGLETOFINESHIFT);
 
         switch (an)
         {
@@ -2026,8 +2031,11 @@ G_CheckSpot
                 xa = ya = 0;
                 break;
         }
-        mo = P_SpawnMobj(x + 20 * xa, y + 20 * ya,
-                         ss->sector->floorheight, MT_TFOG);
+
+        // Vanilla Doom wraps around here (20 * finetangent[0] overflows).
+        mo = P_SpawnMobj((fixed_t)(x + 20 * (int64_t)xa),
+                         (fixed_t)(y + 20 * (int64_t)ya),
+                             ss->sector->floorheight, MT_TFOG);
     }
 
     if (players[consoleplayer].viewz != 1) 
@@ -3012,6 +3020,11 @@ G_DeferedInitNew
 	Z_Free(demoname);
 
 	G_RecordDemo(orig_demoname);
+
+	// [crispy] update required for recording e. g. when gotonextlevel was used
+	gamemap = d_map;
+	gameepisode = d_episode;
+
 	G_BeginRecording();
     }
 } 
@@ -3295,6 +3308,10 @@ void G_ReadDemoTiccmd (ticcmd_t* cmd)
 	char *actualname = M_StringDuplicate(defdemoname);
 
 	gamekeydown[key_demo_quit] = false;
+
+	// [crispy] update turning resolution when joining a demo
+	// based upon longtics info taken from record
+	lowres_turn = !longtics;
 
 	// [crispy] redraw status bar to get rid of demo progress bar
 	ST_Drawer(viewheight == SCREENHEIGHT, true);
@@ -3835,6 +3852,11 @@ static size_t WriteCmdLineLump(MEMFILE *stream)
     if (M_CheckParm("-solo-net"))
     {
         mem_fputs(" -solo-net", stream);
+    }
+
+    if (M_CheckParm("-coop_spawns"))
+    {
+        mem_fputs(" -coop_spawns", stream);
     }
 
     return mem_ftell(stream) - pos;

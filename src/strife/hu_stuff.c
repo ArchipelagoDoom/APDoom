@@ -47,6 +47,7 @@
 
 #include "v_video.h" // [crispy] V_DrawPatch() et al.
 #include "v_trans.h" // [crispy] color translation and color string tables
+#include "r_local.h" // [crispy] translucent HUD
 
 //
 // Locally used constants, shortcuts.
@@ -314,6 +315,12 @@ void HU_Start(void)
 // [crispy] crosshair color determined by health
 static byte *R_CrosshairColor (void)
 {
+    if (TRANSLUCENT_HUD)
+    {
+        // [crispy] only dimming, no colorization
+        return cr[CR_DIMMED];
+    }
+    else
     if (crispy->crosshairhealth)
     {
         const int health = players[consoleplayer].health;
@@ -363,7 +370,7 @@ static void HU_DrawCrosshair (void)
 void HU_Drawer(void)
 {
     // [crispy] erase when taking a clean screenshot
-    if (crispy->cleanscreenshot)
+    if (crispy->screenshot == 2)
     {
         HU_Erase();
         return;
@@ -376,15 +383,15 @@ void HU_Drawer(void)
         HU_Start();
     }
 
-    // [crispy] erase when taking a clean screenshot
-    if (crispy->screenshotmsg == 4)
+    // [crispy] erase when taking a screenshot
+    if (!crispy->screenshot)
     {
-        HUlib_eraseSText(&w_message);
+        HUlib_drawSText(&w_message);
+        HUlib_drawIText(&w_chat);
     }
     else
     {
-    HUlib_drawSText(&w_message);
-    HUlib_drawIText(&w_chat);
+        HUlib_eraseSText(&w_message);
     }
 
     if (automapactive)
@@ -541,7 +548,6 @@ void HU_Ticker(void)
     {
         message_on = false;
         message_nottobefuckedwith = false;
-        crispy->screenshotmsg >>= 1; // [crispy]
     }
 
     // haleyjd 20110219: [STRIFE] this condition was removed
@@ -558,7 +564,6 @@ void HU_Ticker(void)
             message_counter = HU_MSGTIMEOUT;
             message_nottobefuckedwith = message_dontfuckwithme;
             message_dontfuckwithme = 0;
-            crispy->screenshotmsg >>= 1; // [crispy]
         }
     //} // else message_on = false;
 

@@ -98,9 +98,8 @@ typedef struct
 	int shadowhud;
 
 	// [crispy] in-game switches and variables
-	int screenshotmsg;
 	int snowflakes;
-	int cleanscreenshot;
+	int screenshot; // 1 = normal, 2 = clean
 	int demowarp;
 	int fps;
 
@@ -126,6 +125,7 @@ typedef struct
 	char *havemaster;
 	char *havesigil;
 	char *havesigil2;
+    char *havedeathkings;
 
 	// [AP] Handle CQ3VE
 	boolean ischex;

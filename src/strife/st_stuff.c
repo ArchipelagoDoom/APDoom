@@ -47,6 +47,8 @@
 #include "m_cheat.h"
 #include "m_menu.h" // villsa [STRIFE]
 #include "m_misc.h"
+#include "a11y.h" // [crispy] A11Y
+#include "v_trans.h" // [crispy] for crispy HUD
 
 #include "s_sound.h"
 
@@ -90,7 +92,7 @@
 //       or into the frame buffer?
 
 // [crispy] Crispy HUD
-#define ST_WIDESCREENDELTA      (screenblocks == 13 ? WIDESCREENDELTA : 0)
+#define ST_WIDESCREENDELTA      ((screenblocks == 12) || (screenblocks >= 15) ? WIDESCREENDELTA : 0)
 #define ST_HEALTHX2             (15 - ST_WIDESCREENDELTA)
 #define ST_HEALTHY2             194
 #define ST_ARMORX               (45 - ST_WIDESCREENDELTA)
@@ -298,6 +300,15 @@ cheatseq_t cheat_powerup[NUM_ST_PUMPUP] = // [STRIFE]
 //cheatseq_t cheat_choppers = CHEAT("idchoppers", 0); [STRIFE] no such thing
 
 void M_SizeDisplay(int choice); // villsa [STRIFE]
+
+// [crispy] for conditional drawing of status bar elements
+void (*V_DrawSBPatch)(int x, int y, patch_t *patch) = V_DrawPatch;
+
+// [crispy] on/off status bar translucency
+void SB_Translucent(boolean translucent)
+{
+    V_DrawSBPatch = translucent ? V_DrawXlaPatch : V_DrawPatch;
+}
 
 //
 // STATUS BAR CODE
@@ -939,6 +950,12 @@ static void ST_doPaletteStuff(void)
 
     // haleyjd 08/31/10: Removed Chex Quest
 
+    // [crispy] A11Y
+    if (!a11y_palette_changes)
+    {
+        palette = 0;
+    }
+
     if (palette != st_palette)
     {
         st_palette = palette;
@@ -974,6 +991,23 @@ void ST_drawNumFontY(int x, int y, int num)
     {
         V_DrawPatch(x, y, invfonty[num % 10]);
         x -= SHORT(invfonty[0]->width) + 1;
+        num /= 10;
+    }
+}
+
+//
+// [crispy] ST_drawNumFontG
+//
+//
+void ST_drawNumFontG(int x, int y, int num)
+{
+    if(!num)
+        V_DrawPatch(x, y, invfontg[0]);
+    
+    while(num)
+    {
+        V_DrawPatch(x, y, invfontg[num % 10]);
+        x -= SHORT(invfontg[0]->width) + 1;
         num /= 10;
     }
 }
@@ -1218,7 +1252,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
     st_firsttime = st_firsttime || refresh;
 
     // [crispy] Crispy HUD
-    st_crispyhud = screenblocks > 11 && (!automapactive || crispy->automapoverlay);
+    st_crispyhud = screenblocks > 12 && (!automapactive || crispy->automapoverlay);
 
     // If just after ST_Start(), refresh all
     ST_doRefresh();
@@ -1408,13 +1442,16 @@ static boolean ST_drawKeysPopup(void)
 }
 
 // [crispy] draw patch + number pair for Crispy HUD
-static void ST_drawCrispyPair(int x, int y, patch_t *patch, int num)
+static void ST_drawCrispyPair(int x, int y, patch_t *patch, int num, void (*drawNumFunct)(int, int, int))
 {
     int xp = x + SHORT(patch->leftoffset) - SHORT(patch->width) / 2 - 3;
     int yp = y + SHORT(patch->topoffset) - SHORT(patch->height) - 2;
 
-    V_DrawPatch(xp, yp, patch);
-    ST_drawNumFontY(x, y, MAX(0, num));
+    V_DrawSBPatch(xp, yp, patch);
+    if (TRANSLUCENT_HUD)
+        dp_translation = cr[CR_DIMMED];
+    drawNumFunct(x, y, MAX(0, num));
+    dp_translation = NULL;
 }
 
 // [crispy] Crispy HUD: heavily modified version of the original status bar in
@@ -1428,13 +1465,13 @@ static void ST_drawCrispyHUD(void)
 
     // [crispy] health
     patch = W_CacheLumpName(DEH_String("I_MDKT"), PU_STATIC);
-    ST_drawCrispyPair(ST_HEALTHX2, ST_HEALTHY2, patch, plyr->health);
+    ST_drawCrispyPair(ST_HEALTHX2, ST_HEALTHY2, patch, plyr->health, ST_drawNumFontG);
 
     // [crispy] armor
     if (plyr->armortype)
     {
         patch = invarmor[plyr->armortype - 1];
-        ST_drawCrispyPair(ST_ARMORX, ST_ARMORY, patch, plyr->armorpoints);
+        ST_drawCrispyPair(ST_ARMORX, ST_ARMORY, patch, plyr->armorpoints, ST_drawNumFontY);
     }
 
     // [crispy] inventory item
@@ -1453,7 +1490,7 @@ static void ST_drawCrispyHUD(void)
         else
             patch = W_CacheLumpNum(lumpnum, PU_STATIC);
 
-        ST_drawCrispyPair(ST_INVX, ST_INVY, patch, inv->amount);
+        ST_drawCrispyPair(ST_INVX, ST_INVY, patch, inv->amount, ST_drawNumFontY);
     }
 
     // [crispy] ammo
@@ -1461,9 +1498,10 @@ static void ST_drawCrispyHUD(void)
     if (ammo != am_noammo)
     {
         patch = invammo[ammo];
-        ST_drawCrispyPair(ST_AMMOX2, ST_AMMOY2, patch, plyr->ammo[ammo]);
+        ST_drawCrispyPair(ST_AMMOX2, ST_AMMOY2, patch, plyr->ammo[ammo], ST_drawNumFontY);
     }
 
+    SB_Translucent(false);
     // [crispy] inventory bar
     if (st_invtics > 0 && draw_inv)
     {
@@ -1481,7 +1519,7 @@ static void ST_drawCrispyHUD(void)
             firstinventory = 0;
 
         // [crispy] cursor
-        V_DrawPatch(ST_SLOTWIDTH * (plyr->inventorycursor - firstinventory) +
+        V_DrawSBPatch(ST_SLOTWIDTH * (plyr->inventorycursor - firstinventory) +
                     bar_min, 180, invcursor);
 
         // [crispy] inventory items
@@ -1508,10 +1546,11 @@ static void ST_drawCrispyHUD(void)
             else
                 patch = W_CacheLumpNum(lumpnum, PU_STATIC);
 
-            V_DrawPatch(icon_x, 182, patch);
+            V_DrawSBPatch(icon_x, 182, patch);
             ST_drawNumFontY2(icon_x + 20, 191, plyr->inventory[i].amount);
         }
     }
+    SB_Translucent(TRANSLUCENT_HUD);
 }
 
 //
@@ -1525,7 +1564,7 @@ boolean ST_DrawExternal(void)
     int i;
 
     // [crispy] don't draw fullscreen HUD for a clean screenshot
-    if (crispy->cleanscreenshot && !st_statusbaron)
+    if (crispy->screenshot == 2 && !st_statusbaron)
         return false;
 
     if(st_statusbaron)
@@ -1551,14 +1590,14 @@ boolean ST_DrawExternal(void)
     {
         ammotype_t ammo;
 
-        ST_drawNumFontY2(15, 194, plyr->health);
+        ST_drawNumFontY2(ST_HEALTHX2, 194, plyr->health);
         ammo = weaponinfo[plyr->readyweapon].ammo;
         if (ammo != am_noammo)
-            ST_drawNumFontY2(310, 194, plyr->ammo[ammo]);
+            ST_drawNumFontY2(ST_AMMOX2, 194, plyr->ammo[ammo]);
     }
 
     // [crispy] don't draw popups for a clean screenshot
-    if (!st_displaypopup || crispy->cleanscreenshot)
+    if (!st_displaypopup || crispy->screenshot == 2)
         return false;
 
     // villsa [STRIFE] added 20100926

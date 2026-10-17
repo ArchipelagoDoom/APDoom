@@ -197,7 +197,7 @@ HUlib_drawTextLine
             w = SHORT(l->f[c - l->sc]->width);
             if (x+w > ORIGWIDTH + WIDESCREENDELTA)
                 break;
-            V_DrawPatchDirect(x, l->y, l->f[c - l->sc]);
+            V_DrawSBPatch(x, l->y, l->f[c - l->sc]);
             x += w;
         }
         else
@@ -212,7 +212,7 @@ HUlib_drawTextLine
     if (drawcursor
         && x + SHORT(l->f['_' - l->sc]->width) <= ORIGWIDTH + WIDESCREENDELTA)
     {
-        V_DrawPatchDirect(x, l->y, l->f['_' - l->sc]);
+        V_DrawSBPatch(x, l->y, l->f['_' - l->sc]);
     }
 }
 
@@ -233,9 +233,9 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     // and the text must either need updating or refreshing
     // (because of a recent change back from the automap)
 
-    // [crispy] erase when taking a clean screenshot
+    // [crispy] erase when taking a screenshot
     if (!automapactive &&
-        viewwindowx && (l->needsupdate || crispy->cleanscreenshot || crispy->screenshotmsg == 4))
+        viewwindowx && (l->needsupdate || crispy->screenshot))
     {
         lh = (SHORT(l->f[0]->height) + 1) << crispy->hires;
         for (y=(l->y << crispy->hires),yoffset=y*SCREENWIDTH ; y<(l->y << crispy->hires)+lh ; y++,yoffset+=SCREENWIDTH)

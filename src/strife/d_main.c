@@ -231,7 +231,9 @@ void D_Display (void)
     {
         I_UpdateFracTic();
 
-        if (!automapactive || crispy->automapoverlay)
+        // [crispy] When appropriate, let automap responder have mouse movement
+        // events for mouse panning.
+        if (!(automapactive && !crispy->automapoverlay && !followplayer))
         {
             I_StartDisplay();
             G_FastResponder();
@@ -364,6 +366,7 @@ void D_Display (void)
             inhelpscreensstate = true;
         }
 
+        SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
         HU_Drawer ();
         if(ST_DrawExternal()) 
             popupactivestate = true;
@@ -372,10 +375,11 @@ void D_Display (void)
             popupactivestate = false;
             menuactivestate = 1;
         }
+        SB_Translucent(false);
     }
 
     // [crispy] draw neither pause pic nor menu when taking a clean screenshot
-    if (crispy->cleanscreenshot && !wipe)
+    if (gamestate == GS_LEVEL && crispy->screenshot == 2 && !wipe)
     {
         I_FinishUpdate();
         if (crispy->post_rendering_hook)
@@ -516,6 +520,10 @@ void D_BindVariables(void)
     M_BindIntVariable("screensize",             &screenblocks);
     M_BindIntVariable("snd_channels",           &snd_channels);
     M_BindIntVariable("a11y_sector_lighting",   &a11y_sector_lighting); // [crispy]
+    M_BindIntVariable("a11y_extra_lighting",    &a11y_extra_lighting); // [crispy]
+    M_BindIntVariable("a11y_weapon_flash",      &a11y_weapon_flash); // [crispy]
+    M_BindIntVariable("a11y_palette_changes",   &a11y_palette_changes); // [crispy]
+    M_BindIntVariable("a11y_weapon_palette",    &a11y_weapon_palette); // [crispy]
     M_BindIntVariable("vanilla_savegame_limit", &vanilla_savegame_limit);
     M_BindIntVariable("vanilla_demo_limit",     &vanilla_demo_limit);
     M_BindIntVariable("show_endoom",            &show_endoom);
@@ -559,6 +567,7 @@ void D_BindVariables(void)
     M_BindIntVariable("crispy_soundfix",        &crispy->soundfix);
     M_BindIntVariable("crispy_soundfull",       &crispy->soundfull);
     M_BindIntVariable("crispy_soundmono",       &crispy->soundmono);
+    M_BindIntVariable("crispy_translucency",    &crispy->translucency);
 #ifdef CRISPY_TRUECOLOR
     M_BindIntVariable("crispy_truecolor",       &crispy->truecolor);
 #endif
@@ -1571,7 +1580,8 @@ void D_IntroTick(void)
         // that without this one-time limitation, the sound is far too loud.
         if(!didsound)
         {
-            S_StartSound(NULL, sfx_psdtha);
+            if (graphical_startup) // [crispy]
+                S_StartSound(NULL, sfx_psdtha);
             didsound = true;
         }
     }

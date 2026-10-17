@@ -1,7 +1,8 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
+// Copyright(C) 1993-2008 Raven Software
 // Copyright(C) 2005-2014 Simon Howard
-// Copyright(C) 2015-2018 Fabian Greffrath
+// Copyright(C) 2026 Michael Balling
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -14,27 +15,13 @@
 // GNU General Public License for more details.
 //
 // DESCRIPTION:
-//	[crispy] support maps with NODES in compressed or uncompressed ZDBSP
-// 	format or DeePBSP format
+//	Auto-loading of (semi-)official PWAD expansions, i.e.
+//	Deathkings of the Dark Cidadel
 //
 
+#ifndef __D_PWAD__
+#define __D_PWAD__
 
-#ifndef __P_EXTNODES__
-#define __P_EXTNODES__
-
-typedef enum
-{
-    MFMT_DOOMBSP = 0x000,
-    MFMT_DEEPBSP = 0x001,
-    MFMT_ZDBSPX  = 0x002,
-    MFMT_ZDBSPZ  = 0x004
-} mapformat_t;
-
-extern mapformat_t P_CheckMapFormat(int lumpnum);
-
-extern void P_LoadSegs_DeePBSP(int lump);
-extern void P_LoadSubsectors_DeePBSP(int lump);
-extern void P_LoadNodes_DeePBSP(int lump);
-extern void P_LoadNodes_ZDBSP(int lump, boolean compressed);
+void D_LoadHEXDD(void);
 
 #endif

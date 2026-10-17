@@ -66,6 +66,7 @@ typedef enum
 typedef enum
 {
     MENU_MAIN,
+    MENU_EPISODE, // [crispy] Hexen / Deathkings selection
     MENU_CLASS,
     MENU_SKILL,
     MENU_OPTIONS,
@@ -123,6 +124,7 @@ static void SetMenu(MenuType_t menu);
 static void SCQuitGame(int option);
 static void SCClass(int option);
 static void SCSkill(int option);
+static void SCEpisode(int option);
 static void SCMouseSensi(int option);
 static void SCMouseSensiX2(int option);
 static void SCMouseSensiY(int option);
@@ -160,6 +162,7 @@ static void SCMessages(int option);
 static void SCEndGame(int option);
 static void SCInfo(int option);
 static void DrawMainMenu(void);
+static void DrawEpisodeMenu(void);
 static void DrawClassMenu(void);
 static void DrawSkillMenu(void);
 static void DrawOptionsMenu(void);
@@ -222,7 +225,7 @@ static char numeric_entry_str[NUMERIC_ENTRY_NUMDIGITS + 1];
 static int numeric_entry_index;
 
 static MenuItem_t MainItems[] = {
-    {ITT_SETMENU, "NEW GAME", SCNetCheck2, 1, MENU_CLASS},
+    {ITT_EFUNC, "NEW GAME", SCNetCheck2, 1, MENU_NONE},
     {ITT_SETMENU, "OPTIONS", NULL, 0, MENU_OPTIONS},
     {ITT_SETMENU, "GAME FILES", NULL, 0, MENU_FILES},
     {ITT_EFUNC, "INFO", SCInfo, 0, MENU_NONE},
@@ -235,6 +238,19 @@ static Menu_t MainMenu = {
     5, MainItems,
     0,
     MENU_NONE
+};
+
+static MenuItem_t EpisodeItems[] = {
+    {ITT_EFUNC, "HEXEN: BEYOND HERETIC", SCEpisode, 1, MENU_NONE},
+    {ITT_EFUNC, "DEATHKINGS OF THE DARK CITADEL", SCEpisode, 2, MENU_NONE}
+};
+
+static Menu_t EpisodeMenu = {
+    33, 66,
+    DrawEpisodeMenu,
+    2, EpisodeItems,
+    0,
+    MENU_MAIN
 };
 
 static MenuItem_t ClassItems[] = {
@@ -557,6 +573,7 @@ static const multiitem_t multiitem_sndchannels[3] =
 
 static Menu_t *Menus[] = {
     &MainMenu,
+    &EpisodeMenu,
     &ClassMenu,
     &SkillMenu,
     &OptionsMenu,
@@ -593,6 +610,43 @@ static const char *GammaText[] = {
 };
 
 // CODE --------------------------------------------------------------------
+
+static int G_ReloadLevel(void)
+{
+    int result = false;
+
+    if (gamestate == GS_LEVEL)
+    {
+        // [crispy] restart demos from the map they were started
+        if (demorecording)
+        {
+        gamemap = startmap;
+        // [crispy] might not be startepisode, due to support for multiple episodes
+        // gameepisode = startepisode;
+        }
+        G_DeferedInitNew(gameskill, gameepisode, gamemap);
+        result = true;
+    }
+
+    return result;
+}
+
+static int G_GotoNextLevel(void)
+{
+    int changed = false;
+
+    if (gamestate == GS_LEVEL)
+    {
+        int map;
+
+        map = P_TranslateMap(P_GetMapNextMap(gamemap));
+
+        G_DeferedInitNew(gameskill, gameepisode, map);
+        changed = true;
+    }
+
+    return changed;
+}
 
 //---------------------------------------------------------------------------
 //
@@ -953,6 +1007,17 @@ static void DrawMainMenu(void)
 
 //==========================================================================
 //
+// [crispy] DrawEpisodeMenu
+//
+//==========================================================================
+
+static void DrawEpisodeMenu(void)
+{
+    MN_DrTextB("CHOOSE EPISODE:", 34, 24);
+}
+
+//==========================================================================
+//
 // DrawClassMenu
 //
 //==========================================================================
@@ -1302,6 +1367,11 @@ static boolean SCNetCheck(int option)
 static void SCNetCheck2(int option)
 {
     SCNetCheck(option);
+    // [crispy] go to episode selection if Deathkings is sideloaded
+    if (crispy->havedeathkings)
+        SetMenu(MENU_EPISODE);
+    else
+        SetMenu(MENU_CLASS);
     return;
 }
 
@@ -1493,6 +1563,26 @@ static void SCClass(int option)
             break;
     }
     SetMenu(MENU_SKILL);
+}
+
+//---------------------------------------------------------------------------
+//
+// [crispy] PROC SCEpisode
+//
+//---------------------------------------------------------------------------
+
+static void SCEpisode(int option)
+{
+    if (demoplayback)
+    {
+        // deactivate playback, return control to player
+        demoextend = false;
+    }
+
+    // [crispy] Execude Episode Selection
+    prev_episode = gameepisode;
+    gameepisode = option;
+    SetMenu(MENU_CLASS);
 }
 
 //---------------------------------------------------------------------------
@@ -2182,8 +2272,18 @@ boolean MN_Responder(event_t * event)
     }
 
     if ((ravpic && key == KEY_F1) ||
-        (key != 0 && key == key_menu_screenshot))
+        (key != 0 && (key == key_menu_screenshot || key == key_menu_cleanscreenshot)))
     {
+        if (key == key_menu_cleanscreenshot)
+        {
+            // [crispy] take screen shot without weapons and HUD
+            crispy->screenshot = 2;
+        }
+        else
+        {
+            // [crispy] take a normal screenshot
+            crispy->screenshot = 1;
+        }
         G_ScreenShot();
         return (true);
     }
@@ -2211,6 +2311,12 @@ boolean MN_Responder(event_t * event)
                     I_SetPalette(0);
 #endif
                     H2_StartTitle();    // go to intro/demo mode.
+                    // [crispy] re-init startepisode for correct demo reel
+                    if (crispy->havedeathkings && gameepisode != startepisode)
+                    {
+                        gameepisode = prev_episode = startepisode;
+                        H2_InitEpisode(true);
+                    }
                     return false;
                 case 3:
                     P_SetMessage(&players[consoleplayer],
@@ -2476,6 +2582,16 @@ boolean MN_Responder(event_t * event)
             }
             G_DeferedInitNew(gameskill, gameepisode, gamemap);
             P_SetMessage(&players[consoleplayer], TXT_CHEATWARP, false);
+            return true;
+        }
+        else if (!netgame && key != 0 && key == key_menu_reloadlevel)
+        {
+            G_ReloadLevel();
+            return true;
+        }
+        else if (!netgame && key != 0 && key == key_menu_nextlevel)
+        {
+            G_GotoNextLevel();
             return true;
         }
     }

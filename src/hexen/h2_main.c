@@ -27,6 +27,7 @@
 #include "h2def.h"
 #include "ct_chat.h"
 #include "d_iwad.h"
+#include "d_pwad.h" // [crispy] D_LoadHEXDD()
 #include "d_mode.h"
 #include "m_misc.h"
 #include "s_sound.h"
@@ -490,6 +491,7 @@ void D_DoomMain(void)
 
     I_AtExit(D_HexenQuitMessage, false);
     startepisode = 1;
+    gameepisode = prev_episode = startepisode; // [crispy] init gameepisode
     autostart = false;
     startmap = 1;
     gamemode = commercial;
@@ -581,8 +583,9 @@ void D_DoomMain(void)
     //!
     // @category game
     //
-    // Mana pickups give 50% more mana. This option is not allowed when recording a
-    // demo, playing back a demo or when starting a network game.
+    // Mana pickups give 50% more mana.  This option is not allowed when
+    // recording a demo, playing back a demo or when starting a network
+    // game.
     //
 
     crispy->moreammo = M_ParmExists("-moremana");
@@ -590,7 +593,7 @@ void D_DoomMain(void)
     //!
     // @category game
     //
-    // Fast monsters. This option is not allowed when recording a demo,
+    // Fast monsters.  This option is not allowed when recording a demo,
     // playing back a demo or when starting a network game.
     //
 
@@ -625,6 +628,17 @@ void D_DoomMain(void)
 
     // Generate the WAD hash table.  Speed things up a bit.
     W_GenerateHashTable();
+
+    //!
+    // @category mod
+    //
+    // Disable automatic loading of HEXDD.WAD (Deathkings)
+    //
+    if (!M_ParmExists("-nosideload") && gamemode != shareware &&
+        !demolumpname[0] && !M_CheckParmWithArgs("-record", 1))
+    {
+        D_LoadHEXDD();
+    }
 
     I_PrintStartupBanner(gamedescription);
 
@@ -1125,7 +1139,9 @@ static void DrawAndBlit(void)
     {
         I_UpdateFracTic();
 
-        if (!automapactive || crispy->automapoverlay)
+        // [crispy] When appropriate, let automap responder have mouse movement
+        // events for mouse panning.
+        if (!(automapactive && !crispy->automapoverlay && !followplayer))
         {
             I_StartDisplay();
             G_FastResponder();
@@ -1161,6 +1177,15 @@ static void DrawAndBlit(void)
             {
                 AM_Drawer();
                 BorderNeedRefresh = true;
+            }
+            // [crispy] don't draw any GUI elements when taking a clean screenshot
+            if (crispy->screenshot == 2)
+            {
+                if (automapactive && !crispy->automapoverlay)
+                    SB_Drawer();                    
+                UpdateState |= I_FULLVIEW;
+                I_FinishUpdate();
+                return;
             }
             // [crispy] check for translucent HUD
             SB_Translucent(TRANSLUCENT_HUD && (!automapactive || crispy->automapoverlay));
@@ -1228,7 +1253,7 @@ static void DrawMessage(void)
     player_t *player;
 
     player = &players[consoleplayer];
-    if (player->messageTics <= 0)
+    if (player->messageTics <= 0 || crispy->screenshot)
     {                           // No message
         return;
     }

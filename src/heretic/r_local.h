@@ -444,6 +444,7 @@ extern lighttable_t **hscalelight, **vscalelight, **dscalelight;
 
 typedef void (*drawfunc_t) (int start, int stop);
 void R_ClearClipSegs(void);
+void R_SetupFrame(player_t * player); // [crispy]
 
 void R_ClearDrawSegs(void);
 void R_InitSkyMap(void);

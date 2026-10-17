@@ -33,9 +33,11 @@
 #include "m_bbox.h"
 #include "m_menu.h"
 
+#include "p_mapformat.h"
 #include "r_local.h"
 #include "r_sky.h"
 #include "st_stuff.h" // [crispy]
+#include "a11y.h" // [crispy] A11Y
 
 
 
@@ -963,7 +965,7 @@ void R_Init (void)
     if(devparm)
         printf (".");
 
-    R_SetViewSize (screenblocks, detailLevel);
+    R_SetViewSize (BETWEEN(3, 11, screenblocks), detailLevel);
     R_InitPlanes ();
     if(devparm)
         printf (".");
@@ -1099,8 +1101,16 @@ void R_SetupFrame (player_t* player)
 
     R_SetupPitch(pitch);  // villsa [STRIFE]
 
-    extralight = player->extralight;
-    
+    // [crispy] A11Y - weapon flash lighting
+    if (a11y_weapon_flash)
+    {
+        extralight = player->extralight;
+    }
+    else
+        extralight = 0;
+    // [crispy] A11Y
+    extralight += a11y_extra_lighting;
+
     viewsin = finesine[viewangle>>ANGLETOFINESHIFT];
     viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
 	

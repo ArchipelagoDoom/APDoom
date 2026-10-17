@@ -440,6 +440,7 @@ enum
 
     crispness_sep_visual,
     crispness_smoothlight,
+    crispness_translucency,
     crispness_sep_visual_,
 
     crispness1_next,
@@ -459,6 +460,7 @@ static menuitem_t Crispness1Menu[] =
     {-1, "", 0, '\0'},
     {-1, "", 0, '\0'},
     {2, "", M_CrispyToggleSmoothLighting, 's'},
+    {3, "", M_CrispyToggleTranslucency, 't'},
     {-1, "", 0, '\0'},
     {1, "", M_CrispnessNext, 'n'},
     {1, "", M_CrispnessPrev, 'p'},
@@ -1393,7 +1395,7 @@ void M_DrawOptions(void)
     // haleyjd 08/26/10: [STRIFE] Removed messages, sensitivity, detail.
 
     M_DrawThermo(OptionsDef.x,OptionsDef.y+LINEHEIGHT*(scrnsize+1),
-                 11,screenSize); // [crispy] Crispy HUD
+                 14,screenSize); // [crispy] Crispy HUD
 }
 
 // [crispy] mouse sensitivity menu
@@ -1519,6 +1521,7 @@ static void M_DrawCrispness1(void)
 
     M_DrawCrispnessSeparator(crispness_sep_visual, "Visual");
     M_DrawCrispnessItem(crispness_smoothlight, "Smooth Diminishing Lighting", crispy->smoothlight, true);
+    M_DrawCrispnessMultiItem(crispness_translucency, "Translucency", multiitem_translucency, crispy->translucency, true);
 
     M_DrawCrispnessGoto(crispness1_next, "Next Page >");
     M_DrawCrispnessGoto(crispness1_prev, "< Last Page");
@@ -1565,7 +1568,7 @@ static void M_DrawCrispness3(void)
 
     M_DrawCrispnessSeparator(crispness_sep_crosshair, "Crosshair");
     M_DrawCrispnessItem(crispness_crosshair, "Draw Crosshair", crispy->crosshair, true);
-    M_DrawCrispnessItem(crispness_crosshairhealth, "Color Indicates Health", crispy->crosshairhealth, crispy->crosshair);
+    M_DrawCrispnessItem(crispness_crosshairhealth, "Color Indicates Health", crispy->crosshairhealth, crispy->crosshair && !TRANSLUCENT_HUD);
 
     M_DrawCrispnessGoto(crispness3_next, "First Page >");
     M_DrawCrispnessGoto(crispness3_prev, "< Prev Page");
@@ -1907,7 +1910,7 @@ void M_SizeDisplay(int choice)
         }
         break;
     case 1:
-        if (screenSize < 10) // [crispy] Crispy HUD
+        if (screenSize < 13) // [crispy] Crispy HUD
         {
             screenblocks++;
             screenSize++;
@@ -1915,7 +1918,7 @@ void M_SizeDisplay(int choice)
         break;
     }
 
-    R_SetViewSize (screenblocks, detailLevel);
+    R_SetViewSize (BETWEEN(3, 11, screenblocks), detailLevel);
 }
 
 
@@ -2235,6 +2238,48 @@ static boolean IsNullKey(int key)
         || key == KEY_SCRLCK || key == KEY_NUMLOCK;
 }
 
+static int G_ReloadLevel(void)
+{
+    int result = false;
+
+    if (gamestate == GS_LEVEL)
+    {
+        // [crispy] restart demos from the map they were started
+        if (demorecording)
+        {
+        gamemap = startmap;
+        }
+        G_DeferedInitNew(gameskill, gamemap);
+        result = true;
+    }
+
+    return result;
+}
+
+static int G_GotoNextLevel(void)
+{
+    byte strife_next[31] = {
+        2,  3,  4,  5,  6,  7,  8,  9, 10, 11,
+        12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+        22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+        1
+    };
+
+    int changed = false;
+
+    if (gamestate == GS_LEVEL)
+    {
+        int map;
+
+        map = strife_next[gamemap-1];
+
+        G_DeferedInitNew(gameskill, map);
+        changed = true;
+    }
+
+    return changed;
+}
+
 //
 // CONTROL PANEL
 //
@@ -2332,6 +2377,10 @@ boolean M_Responder (event_t* ev)
             else
             {
                 key = key_menu_forward;
+            }
+            if (menuindialog || menuactive) // [crispy] fix joystick fire delay
+            {
+            joystick_fire_countdown = 5;
             }
         }
         if (dir & JOY_DIR_BACK)
@@ -2618,11 +2667,19 @@ boolean M_Responder (event_t* ev)
     }
     */
 
-    // [crispy] clean screenshot
-    if (key != 0 && key == key_menu_cleanscreenshot)
+    if (key != 0 && (key == key_menu_screenshot || key == key_menu_cleanscreenshot))
     {
-        crispy->cleanscreenshot = (screenblocks > 10) ? 2 : 1;
-        G_ScreenShot();
+        if (key == key_menu_cleanscreenshot)
+        {
+            // [crispy] take screen shot without weapons and HUD
+            crispy->screenshot = 2;
+        }
+        else
+        {
+            // [crispy] take a normal screenshot
+            crispy->screenshot = 1;
+        }
+        G_ScreenShot ();
         return true;
     }
 
@@ -2751,7 +2808,10 @@ boolean M_Responder (event_t* ev)
                 M_QuickLoad();
             }
             else
+            {
+                crispy->screenshot = 1;
                 G_ScreenShot();
+            }
             return true;
         }
         else if (key == key_menu_quit)     // Quit DOOM
@@ -2780,12 +2840,18 @@ boolean M_Responder (event_t* ev)
         else if(gameversion == exe_strife_1_31 && key == key_spy)
         {
             // haleyjd 20130301: 1.31 moved screenshots to F12.
+            crispy->screenshot = 1;
             G_ScreenShot();
             return true;
         }
-        else if (key != 0 && key == key_menu_screenshot)
+        else if (!netgame && key != 0 && key == key_menu_reloadlevel)
         {
-            G_ScreenShot();
+            G_ReloadLevel();
+            return true;
+        }
+        else if (!netgame && key != 0 && key == key_menu_nextlevel)
+        {
+            G_GotoNextLevel();
             return true;
         }
     }

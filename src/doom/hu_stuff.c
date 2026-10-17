@@ -959,7 +959,7 @@ static void HU_DrawCrosshair (void)
 void HU_Drawer(void)
 {
 
-    if (crispy->cleanscreenshot)
+    if (crispy->screenshot == 2)
     {
 	HU_Erase();
 	return;
@@ -982,11 +982,16 @@ void HU_Drawer(void)
     }
 
     dp_translation = NULL;
-    if (crispy->screenshotmsg == 4)
-	HUlib_eraseSText(&w_message);
+    // [crispy] erase when taking a screenshot
+    if (!crispy->screenshot)
+    {
+        HUlib_drawSText(&w_message);
+        //HUlib_drawIText(&w_chat); // [AP] moved to HU_DrawAPMessages
+    }
     else
-    HUlib_drawSText(&w_message);
-    //HUlib_drawIText(&w_chat); // [AP] moved to HU_DrawAPMessages
+    {
+        HUlib_eraseSText(&w_message);
+    }
 
     if (crispy->coloredhud & COLOREDHUD_TEXT)
 	dp_translation = cr[CR_GOLD];
@@ -1079,35 +1084,31 @@ void HU_Erase(void)
 
 }
 
-static void Crispy_Statsline_Ratio (char *str, int str_size, const char *prefix, int count, int total, int extra)
+static void Crispy_Statsline_Ratio (char *str, int str_size, const char *prefix, int count, int total)
 {
-	if (extra)
-	    M_snprintf(str, str_size, "%s%s%s%d/%d+%d ", cr_stat, prefix, crstr[CR_GRAY],
-	               count, total, extra);
-	else
-	    M_snprintf(str, str_size, "%s%s%s%d/%d ", cr_stat, prefix, crstr[CR_GRAY],
-	               count, total);
+	M_snprintf(str, str_size, "%s%s%s%d/%d ", cr_stat, prefix, crstr[CR_GRAY],
+	           count, total);
 }
 
-static void Crispy_Statsline_Remaining (char *str, int str_size, const char *prefix, int count, int total, int extra)
+static void Crispy_Statsline_Remaining (char *str, int str_size, const char *prefix, int count, int total)
 {
 	M_snprintf(str, str_size, "%s%s%s%d ", cr_stat, prefix, crstr[CR_GRAY],
 		   MAX(0, total - count));
 }
 
-static void Crispy_Statsline_Percent (char *str, int str_size, const char *prefix, int count, int total, int extra)
+static void Crispy_Statsline_Percent (char *str, int str_size, const char *prefix, int count, int total)
 {
 	M_snprintf(str, str_size, "%s%s%s%d%% ", cr_stat, prefix, crstr[CR_GRAY],
 		   count * 100 / (total ? total : 1));
 }
 
-static void Crispy_Statsline_Boolean (char *str, int str_size, const char *prefix, int count, int total, int extra)
+static void Crispy_Statsline_Boolean (char *str, int str_size, const char *prefix, int count, int total)
 {
 	M_snprintf(str, str_size, "%s%s%s%s ", cr_stat, prefix, crstr[CR_GRAY],
 		   count >= total ? "Yes" : "No");
 }
 
-typedef void (*crispy_statsline_func_t)(char *str, int str_size, const char *prefix, int count, int total, int extra);
+typedef void (*crispy_statsline_func_t)(char *str, int str_size, const char *prefix, int count, int total);
 
 static const crispy_statsline_func_t crispy_statslines[NUM_STATSFORMATS] =
 {
@@ -1412,13 +1413,16 @@ void HU_Ticker(void)
     int i, rc;
     char c;
     char str[32], *s;
+    // [crispy] stat totals among all players
+    int killsum = environmentkills;
+    //int itemsum = 0; // [AP] Unreferenced
+    int secretsum = 0;
 
     // tick down message counter if message is up
     if (message_counter && !--message_counter)
     {
 	message_on = false;
 	message_nottobefuckedwith = false;
-	crispy->screenshotmsg >>= 1;
     }
 
     if (secret_counter && !--secret_counter)
@@ -1451,7 +1455,6 @@ void HU_Ticker(void)
 	    message_counter = HU_MSGTIMEOUT;
 	    message_nottobefuckedwith = message_dontfuckwithme;
 	    message_dontfuckwithme = 0;
-	    crispy->screenshotmsg >>= 1;
 	}
 
     } // else message_on = false;
@@ -1524,6 +1527,16 @@ void HU_Ticker(void)
 	    w_title.y = HU_TITLEY;
     }
 
+    // [crispy] calculate kill count among all players
+    for (i = 0 ; i < MAXPLAYERS; i++)
+    {
+        if (!playeringame[i])
+            continue;
+        killsum += players[i].killcount;
+        //itemsum += players[i].itemcount; // [AP] Unreferenced
+        secretsum += players[i].secretcount;
+    }
+
 #if 0 // [AP] We do this a bit less hackishly, and don't take over w_kills
     if (crispy->automapstats == WIDGETS_STBAR && (!automapactive || w_title.y != HU_TITLEY))
     {
@@ -1533,18 +1546,18 @@ void HU_Ticker(void)
 
 	w_kills.y = HU_TITLEY;
 
-	crispy_statsline(str, sizeof(str), "K ", plr->killcount, totalkills, extrakills);
+	crispy_statsline(str, sizeof(str), "K ", killsum - maxkilldiscount, totalkills);
 	HUlib_clearTextLine(&w_kills);
 	s = str;
 	while (*s)
 	    HUlib_addCharToTextLine(&w_kills, *(s++));
 
-	crispy_statsline(str, sizeof(str), "I ", plr->itemcount, totalitems, 0);
+	crispy_statsline(str, sizeof(str), "I ", itemsum, totalitems);
 	s = str;
 	while (*s)
 	    HUlib_addCharToTextLine(&w_kills, *(s++));
 
-	crispy_statsline(str, sizeof(str), "S ", plr->secretcount, totalsecret, 0);
+	crispy_statsline(str, sizeof(str), "S ", secretsum, totalsecret);
 	s = str;
 	while (*s)
 	    HUlib_addCharToTextLine(&w_kills, *(s++));
@@ -1566,17 +1579,17 @@ void HU_Ticker(void)
 	HUlib_clearTextLine(&w_items);
 	HUlib_clearTextLine(&w_scrts);
 
-	crispy_statsline(str, sizeof(str), tx_kill[w_isinlined], plr->killcount, totalkills, extrakills);
+	crispy_statsline(str, sizeof(str), tx_kill[w_isinlined], killsum - maxkilldiscount, totalkills);
 	s = str;
 	while (*s)
 	    HUlib_addCharToTextLine(w_isinlined ? &w_allstats : &w_kills, *(s++));
 
-	crispy_statsline(str, sizeof(str), tx_item[w_isinlined], level_state->check_count, ap_total_check_count(level_info), 0);
+	crispy_statsline(str, sizeof(str), tx_item[w_isinlined], level_state->check_count, ap_total_check_count(level_info));
 	s = str;
 	while (*s)
 	    HUlib_addCharToTextLine(w_isinlined ? &w_allstats : &w_items, *(s++));
 
-	crispy_statsline(str, sizeof(str), tx_scrt[w_isinlined], plr->secretcount, totalsecret, 0);
+	crispy_statsline(str, sizeof(str), tx_scrt[w_isinlined], secretsum, totalsecret);
 	s = str;
 	while (*s)
 	    HUlib_addCharToTextLine(w_isinlined ? &w_allstats : &w_scrts, *(s++));
@@ -1689,7 +1702,6 @@ char HU_dequeueChatChar(void)
 static void StartChatInput(int dest)
 {
     chat_on = true;
-
     HUlib_resetIText(&w_chat);
     HU_queueChatChar(HU_BROADCAST);
 

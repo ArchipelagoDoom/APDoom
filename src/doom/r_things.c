@@ -247,7 +247,7 @@ void R_InitSpriteDefs(const char **namelist)
 		frame = lumpinfo[l]->name[4] - 'A';
 		rotation = lumpinfo[l]->name[5];
 
-		if (modifiedgame)
+		if (gameversion > exe_doom_1_2 && modifiedgame)
 		    patched = W_GetNumForName (lumpinfo[l]->name);
 		else
 		    patched = l;
@@ -1409,7 +1409,7 @@ void R_DrawMasked (void)
 	if (ds->maskedtexturecol)
 	    R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
     
-    if (crispy->cleanscreenshot == 2)
+    if (crispy->screenshot == 2)
         return;
 
     // draw the psprites on top of everything

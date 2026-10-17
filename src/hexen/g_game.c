@@ -38,6 +38,8 @@
 
 // External functions
 
+extern void R_ExecuteSetViewSize(void); // [crispy] for clean screenshot
+extern void S_InitScript(void); // [crispy] multiple episodes
 
 // Functions
 
@@ -68,6 +70,7 @@ gameaction_t gameaction;
 gamestate_t gamestate;
 skill_t gameskill;
 //boolean         respawnmonsters;
+int prev_episode;               // [crispy] previous episode up until InitEpisode
 int gameepisode;
 int gamemap;
 int prevmap;
@@ -96,6 +99,7 @@ int displayplayer;              // view being displayed
 int levelstarttic;              // gametic at level start
 
 char *demoname;
+static const char *orig_demoname = NULL; // [crispy] the name originally chosen for the demo, i.e. without "-00000"
 boolean demorecording;
 boolean longtics;               // specify high resolution turning in demos
 boolean lowres_turn;
@@ -535,7 +539,7 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
             look = -FixedMul(2, joylook);
             kbdlookctrl += ticdup;
         }
-        else if (joystick_look_sensitivity)
+        else if (joystick_look_sensitivity && joylook)
         {
             if (joylook < 0)
             {
@@ -1361,6 +1365,20 @@ void G_PrepTiccmd (void)
     }
 }
 
+// [crispy] take a screenshot after rendering the next frame
+static void G_CrispyScreenShot()
+{
+    // [crispy] increase screenshot filename limit
+    V_ScreenShot("HEXEN%04i.%s");
+    if (gamestate == GS_LEVEL)
+        P_SetMessage(&players[consoleplayer], "SCREEN SHOT", false);
+    if (crispy->screenshot == 2)
+    {
+        R_SetViewSize(BETWEEN(3, 11, screenblocks), detailLevel);
+    }
+    crispy->screenshot = 0;
+}
+
 
 //==========================================================================
 //
@@ -1372,6 +1390,7 @@ void G_Ticker(void)
 {
     int i, buf;
     ticcmd_t *cmd = NULL;
+    extern boolean automapactive;
 
 //
 // do player reborns if needed
@@ -1413,8 +1432,17 @@ void G_Ticker(void)
                 G_DoPlayDemo();
                 break;
             case ga_screenshot:
-                V_ScreenShot("HEXEN%02i.%s");
-                P_SetMessage(&players[consoleplayer], "SCREEN SHOT", false);
+                if (gamestate == GS_LEVEL)
+                {
+                    if (crispy->screenshot == 2 && (!automapactive || crispy->automapoverlay))
+                    {
+                        R_SetViewSize(11, detailLevel);
+                        R_ExecuteSetViewSize();
+                    }
+                }
+                // [crispy] screenshot always after drawing is done
+                crispy->post_rendering_hook = G_CrispyScreenShot;
+                BorderNeedRefresh = true;
                 gameaction = ga_nothing;
                 break;
             case ga_leavemap:
@@ -1892,12 +1920,14 @@ void G_StartNewGame(skill_t skill)
     int realMap;
 
     G_StartNewInit();
+    // [crispy] re-init scripts and mapinfo to support multiple episodes
+    H2_InitEpisode(false);
     realMap = P_TranslateMap(1);
     if (realMap == -1)
     {
         realMap = 1;
     }
-    G_InitNew(TempSkill, 1, realMap);
+    G_InitNew(TempSkill, gameepisode, realMap);
 }
 
 //==========================================================================
@@ -2153,6 +2183,14 @@ void G_DeferredNewGame(skill_t skill)
 {
     TempSkill = skill;
     gameaction = ga_newgame;
+
+    // [crispy] if a new game is started during demo recording, start a new demo
+    if (demorecording)
+    {
+        G_CheckDemoStatus();
+        Z_Free(demoname);
+        G_RecordDemo(TempSkill, 1, gameepisode, startmap, orig_demoname);
+    }
 }
 
 //==========================================================================
@@ -2183,6 +2221,14 @@ void G_DeferedInitNew(skill_t skill, int episode, int map)
     TempEpisode = episode;
     TempMap = map;
     gameaction = ga_initnew;
+
+    // [crispy] if a new game is started during demo recording, start a new demo
+    if (demorecording)
+    {
+        G_CheckDemoStatus();
+        Z_Free(demoname);
+        G_RecordDemo(TempSkill, 1, TempEpisode, TempMap, orig_demoname);
+    }
 }
 
 void G_DoInitNew(void)
@@ -2240,7 +2286,8 @@ void G_InitNew(skill_t skill, int episode, int map)
     }
     paused = false;
     viewactive = true;
-    gameepisode = episode;
+    // [crispy] don't let e. g. demo episode overwrite gameepisode
+    // gameepisode = episode;
     gamemap = map;
     gameskill = skill;
     BorderNeedRefresh = true;
@@ -2402,6 +2449,16 @@ void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
     int i;
     int maxsize;
 
+    // [crispy] demo file name suffix counter
+    static unsigned int j = 0;
+    FILE *fp = NULL;
+
+    // [crispy] the name originally chosen for the demo, i.e. without "-00000"
+    if (!orig_demoname)
+    {
+        orig_demoname = name;
+    }
+
     //!
     // @category demo
     //
@@ -2426,10 +2483,17 @@ void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
 
     G_InitNew(skill, episode, map);
     usergame = false;
-    demoname_size = strlen(name) + 5;
+    demoname_size = strlen(name) + 5 + 6; // [crispy] + 6 for "-00000"
     demoname = Z_Malloc(demoname_size, PU_STATIC, NULL);
     M_snprintf(demoname, demoname_size, "%s.lmp", name);
     maxsize = 0x20000;
+
+    // [crispy] prevent overriding demos by adding a file name suffix
+    for ( ; j <= 99999 && (fp = fopen(demoname, "rb")) != NULL; j++)
+    {
+        M_snprintf(demoname, demoname_size, "%s-%05d.lmp", name, j);
+        fclose (fp);
+    }
 
     //!
     // @arg <size>
@@ -2656,8 +2720,47 @@ boolean G_CheckDemoStatus(void)
         M_WriteFile(demoname, demobuffer, demo_p - demobuffer);
         Z_Free(demobuffer);
         demorecording = false;
-        I_Error("Demo %s recorded", demoname);
+        // [crispy] if a new game is started during demo recording, start a new demo
+        if (gameaction != ga_initnew && gameaction != ga_newgame)
+        {
+            I_Error("Demo %s recorded", demoname);
+        }
+        else
+        {
+            fprintf(stderr, "Demo %s recorded\n", demoname);
+        }
     }
 
     return false;
+}
+
+/*
+===============================================================================
+
+						[crispy] Additional Functions
+
+===============================================================================
+*/
+
+/*
+===================
+=
+= H2_InitEpisode
+=
+= (Re-)Init episode related MapInfo and Sound Scripts
+= to support multiple episodes in Hexen.
+===================
+*/
+
+void H2_InitEpisode(bool forceinit)
+{
+    if (!crispy->havedeathkings)
+        return;
+
+    if (forceinit || (prev_episode != gameepisode))
+    {
+        S_InitScript();
+        InitMapInfo();
+        prev_episode = gameepisode;
+    }
 }

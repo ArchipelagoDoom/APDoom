@@ -191,7 +191,9 @@ boolean D_Display (void)
     {
         I_UpdateFracTic();
 
-        if (!automapactive || crispy->automapoverlay)
+        // [crispy] When appropriate, let automap responder have mouse movement
+        // events for mouse panning.
+        if (!(automapactive && !crispy->automapoverlay && !followplayer))
         {
             I_StartDisplay();
             G_FastResponder();
@@ -337,7 +339,7 @@ boolean D_Display (void)
     }
 
     // [crispy] draw neither pause pic nor menu when taking a clean screenshot
-    if (crispy->cleanscreenshot)
+    if (gamestate == GS_LEVEL && crispy->screenshot == 2)
     {
 	return false;
     }
@@ -1464,6 +1466,42 @@ static void LoadIwadDeh(void)
                     "doom2.exe.");
         }
     }
+
+    // Doom 1.2 needs a separate Dehacked patch which must be downloaded and
+    // installed next to the IWAD.
+    if (gameversion == exe_doom_1_2)
+    {
+        char *doom12_deh = NULL;
+        char *dirname;
+
+        // Look for doom12.deh in the same directory as the IWAD file.
+        dirname = M_DirName(iwadfile);
+        doom12_deh = M_StringJoin(dirname, DIR_SEPARATOR_S, "doom12.deh", NULL);
+        free(dirname);
+
+        // If the dehacked patch isn't found, try searching the WAD
+        // search path instead.  We might find it...
+        if (!M_FileExists(doom12_deh))
+        {
+            free(doom12_deh);
+            doom12_deh = D_FindWADByName("doom12.deh");
+        }
+
+        // Still not found?
+        if (doom12_deh == NULL)
+        {
+            I_Error("Unable to find Doom 1.2 dehacked file (doom12.deh).\n"
+                    "The dehacked file is required in order to emulate\n"
+                    "Doom 1.2 correctly.  It can be found in your nearest\n"
+                    "/idgames repository mirror at:\n\n"
+                    "   utils/exe_edit/patches/doom12.zip");
+        }
+
+        if (!DEH_LoadFile(doom12_deh))
+        {
+            I_Error("Failed to load doom12.deh needed for emulating v1.2.");
+        }
+    }
 }
 
 static void G_CheckDemoStatusAtExit (void)
@@ -1811,11 +1849,12 @@ void D_DoomMain (void)
     //!
     // @category game
     //
-    // Automatic pistol start when advancing from one level to the next. At the
-    // beginning of each level, the player's health is reset to 100, their
-    // armor to 0 and their inventory is reduced to the following: pistol,
-    // fists and 50 bullets. This option is not allowed when recording a demo,
-    // playing back a demo or when starting a network game.
+    // Automatic pistol start when advancing from one level to the next.
+    // At the beginning of each level, the player's health is reset to
+    // 100, their armor to 0 and their inventory is reduced to the
+    // following: pistol, fists and 50 bullets.  This option is not
+    // allowed when recording a demo, playing back a demo or when
+    // starting a network game.
     //
 
     crispy->pistolstart = M_ParmExists("-pistolstart");
@@ -1823,8 +1862,9 @@ void D_DoomMain (void)
     //!
     // @category game
     //
-    // Double ammo pickup rate. This option is not allowed when recording a
-    // demo, playing back a demo or when starting a network game.
+    // Double ammo pickup rate.  This option is not allowed when
+    // recording a demo, playing back a demo or when starting a network
+    // game.
     //
 
     crispy->moreammo = M_ParmExists("-doubleammo");

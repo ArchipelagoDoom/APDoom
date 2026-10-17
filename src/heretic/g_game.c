@@ -656,7 +656,7 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
             look = -FixedMul(2, joylook);
             kbdlookctrl += ticdup;
         }
-        else if (joystick_look_sensitivity)
+        else if (joystick_look_sensitivity && joylook)
         {
             if (joylook < 0)
             {
@@ -1488,6 +1488,21 @@ void G_PrepTiccmd (void)
     }
 }
 
+// [crispy] take a screenshot after rendering the next frame
+static void G_CrispyScreenShot()
+{
+    // [crispy] increase screenshot filename limit
+    V_ScreenShot("HTIC%04i.%s");
+    if (gamestate == GS_LEVEL)
+        P_SetMessage(&players[consoleplayer], DEH_String("SCREEN SHOT"), false);
+    if (crispy->screenshot == 2)
+    {
+        R_SetViewSize(BETWEEN(3, 11, screenblocks), detailLevel);
+    }
+    crispy->screenshot = 0;
+}
+
+
 /*
 ===============================================================================
 =
@@ -1505,6 +1520,7 @@ void G_Ticker(void)
 {
     int i, buf;
     ticcmd_t *cmd = NULL;
+    extern boolean automapactive;
 
 //
 // do player reborns if needed
@@ -1542,7 +1558,17 @@ void G_Ticker(void)
                 G_DoPlayDemo();
                 break;
             case ga_screenshot:
-                V_ScreenShot("HTIC%02i.%s");
+                if (gamestate == GS_LEVEL)
+                {
+                    if (crispy->screenshot == 2 && (!automapactive || crispy->automapoverlay))
+                    {
+                        R_SetViewSize(11, detailLevel);
+                        R_ExecuteSetViewSize();
+                    }
+                }
+                // [crispy] screenshot always after drawing is done
+                crispy->post_rendering_hook = G_CrispyScreenShot;
+                BorderNeedRefresh = true;
                 gameaction = ga_nothing;
                 break;
             case ga_completed:
@@ -2544,7 +2570,7 @@ void G_DeferedInitNew(skill_t skill, int episode, int map)
     {
 	G_CheckDemoStatus();
 	Z_Free(demoname);
-	G_RecordDemo(skill, 1, episode, map, orig_demoname);
+	G_RecordDemo(d_skill, 1, d_episode, d_map, orig_demoname);
     }
 }
 
@@ -3075,6 +3101,11 @@ static size_t WriteCmdLineLump(MEMFILE *stream)
     if (M_CheckParm("-solo-net"))
     {
         mem_fputs(" -solo-net", stream);
+    }
+
+    if (M_CheckParm("-coop_spawns"))
+    {
+        mem_fputs(" -coop_spawns", stream);
     }
 
     return mem_ftell(stream) - pos;

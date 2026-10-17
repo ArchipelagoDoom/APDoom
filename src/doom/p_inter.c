@@ -445,7 +445,7 @@ P_TouchSpecialThing
 	
       case SPR_BON2:
 	player->armorpoints++;		// can go over 100%
-	if (player->armorpoints > deh_max_armor && gameversion > exe_doom_1_2)
+	if (player->armorpoints > deh_max_armor)
 	{
 	    // [AP] Convert unused health/armor bonus to EnergyLink
 	    APDOOM_EnergyLink_GiveEnergy(AP_ENERGYLINK_COST(player->armorpoints - deh_max_armor) / 2);
@@ -788,6 +788,11 @@ P_TouchSpecialThing
 	S_StartSoundOptional (NULL, sound, sfx_itemup); // [NS] Fallback to itemup.
 }
 
+// [crispy]
+static inline boolean CheckDiscountable(mobj_t* target)
+{
+    return target->flags & MF_SPAWNED_BY_ICON && !(gameskill == sk_nightmare || respawnparm);
+}
 
 void cache_ap_player_state(void);
 
@@ -817,15 +822,24 @@ P_KillMobj_Real // So we can specify death by death link
 	// count for intermission
 	if (target->flags & MF_COUNTKILL)
 	    source->player->killcount++;	
+	// [crispy] discount icon-spawned monsters
+	if (!target->player && CheckDiscountable(target))
+	    maxkilldiscount++;
 
 	if (target->player)
 	    source->player->frags[target->player-players]++;
     }
-    else if (!netgame && (target->flags & MF_COUNTKILL) )
+    else if ((target->flags & MF_COUNTKILL) )
     {
 	// count all monster deaths,
 	// even those caused by other monsters
-	players[0].killcount++;
+	if (!netgame)
+	    players[0].killcount++;
+	else
+	    environmentkills++;
+	// [crispy] discount icon-spawned monsters
+	if (CheckDiscountable(target))
+	    maxkilldiscount++;
     }
     
     if (target->player)

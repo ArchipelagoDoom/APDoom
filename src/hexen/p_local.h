@@ -154,6 +154,7 @@ void P_ThrustMobj(mobj_t * mo, angle_t angle, fixed_t move);
 int P_FaceMobj(mobj_t * source, mobj_t * target, angle_t * delta);
 boolean P_SeekerMissile(mobj_t * actor, angle_t thresh, angle_t turnMax);
 void P_MobjThinker(thinker_t *thinker);
+void P_DegenMobjThinker(thinker_t *thinker);
 void P_BlasterMobjThinker(thinker_t *thinker);
 void P_SpawnPuff(fixed_t x, fixed_t y, fixed_t z);
 void P_SpawnBlood(fixed_t x, fixed_t y, fixed_t z, int damage);
@@ -311,8 +312,8 @@ void P_RadiusAttack(mobj_t * spot, mobj_t * source, int damage, int distance,
 // ***** P_SETUP *****
 
 extern byte *rejectmatrix;      // for fast sight rejection
-extern short *blockmaplump;     // offsets in blockmap are from here
-extern short *blockmap;
+extern int32_t *blockmaplump;   // offsets in blockmap are from here // [crispy] BLOCKMAP limit
+extern int32_t *blockmap;       // [crispy] BLOCKMAP limit
 extern int bmapwidth, bmapheight;       // in mapblocks
 extern fixed_t bmaporgx, bmaporgy;      // origin of block map
 extern mobj_t **blocklinks;     // for thing chains

@@ -28,10 +28,12 @@
 #include "s_sound.h"
 #include "p_local.h"
 #include "p_rejectpad.h"
+#include "p_mapformat.h"
 
 // MACROS ------------------------------------------------------------------
 
 #define MAPINFO_SCRIPT_NAME "MAPINFO"
+#define MAPINFO_SIZE 99 // [crispy]
 #define MCMD_SKY1 1
 #define MCMD_SKY2 2
 #define MCMD_LIGHTNING 3
@@ -105,8 +107,8 @@ line_t *lines;
 int numsides;
 side_t *sides;
 static int totallines;
-short *blockmaplump;            // offsets in blockmap are from here
-short *blockmap;
+int32_t *blockmap;	            // offsets in blockmap are from here // [crispy] BLOCKMAP limit
+int32_t *blockmaplump;          // [crispy] BLOCKMAP limit
 int bmapwidth, bmapheight;      // in mapblocks
 fixed_t bmaporgx, bmaporgy;     // origin of block map
 mobj_t **blocklinks;            // for thing chains
@@ -114,7 +116,7 @@ byte *rejectmatrix;             // for fast sight rejection
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
-static mapInfo_t MapInfo[99];
+static mapInfo_t MapInfo[MAPINFO_SIZE];
 static const char *MapCmdNames[] = {
     "SKY1",
     "SKY2",
@@ -189,6 +191,19 @@ void P_LoadVertexes(int lump)
     W_ReleaseLumpNum(lump);
 }
 
+// [crispy] recalculate seg offsets
+// adapted from prboom-plus/src/p_setup.c:474-482
+fixed_t GetOffset(vertex_t *v1, vertex_t *v2)
+{
+    fixed_t dx, dy;
+    fixed_t r;
+
+    dx = (v1->x - v2->x)>>FRACBITS;
+    dy = (v1->y - v2->y)>>FRACBITS;
+    r = (fixed_t)(sqrt(dx*dx + dy*dy))<<FRACBITS;
+
+    return r;
+}
 
 /*
 =================
@@ -216,17 +231,19 @@ void P_LoadSegs(int lump)
     li = segs;
     for (i = 0; i < numsegs; i++, li++, ml++)
     {
-        li->v1 = &vertexes[SHORT(ml->v1)];
-        li->v2 = &vertexes[SHORT(ml->v2)];
+        li->v1 = &vertexes[(unsigned short)SHORT(ml->v1)]; // [crispy] extended nodes
+        li->v2 = &vertexes[(unsigned short)SHORT(ml->v2)]; // [crispy] extended nodes
 
         li->angle = (SHORT(ml->angle)) << 16;
         li->offset = (SHORT(ml->offset)) << 16;
-        linedef = SHORT(ml->linedef);
+        linedef = (unsigned short)SHORT(ml->linedef); // [crispy] extended nodes
         ldef = &lines[linedef];
         li->linedef = ldef;
         side = SHORT(ml->side);
         li->sidedef = &sides[ldef->sidenum[side]];
         li->frontsector = sides[ldef->sidenum[side]].sector;
+        // [crispy] recalculate
+        li->offset = GetOffset(li->v1, (ml->side ? ldef->v2 : ldef->v1));
         if (ldef->flags & ML_TWOSIDED)
             li->backsector = sides[ldef->sidenum[side ^ 1]].sector;
         else
@@ -300,8 +317,8 @@ void P_LoadSubsectors(int lump)
     ss = subsectors;
     for (i = 0; i < numsubsectors; i++, ss++, ms++)
     {
-        ss->numlines = SHORT(ms->numsegs);
-        ss->firstline = SHORT(ms->firstseg);
+        ss->numlines = (unsigned short)SHORT(ms->numsegs); // [crispy] extended nodes
+        ss->firstline = (unsigned short)SHORT(ms->firstseg); // [crispy] extended nodes
     }
 
     W_ReleaseLumpNum(lump);
@@ -391,7 +408,23 @@ void P_LoadNodes(int lump)
         no->dy = SHORT(mn->dy) << FRACBITS;
         for (j = 0; j < 2; j++)
         {
-            no->children[j] = SHORT(mn->children[j]);
+            no->children[j] = (unsigned short)SHORT(mn->children[j]); // [crispy] extended nodes
+
+            // [crispy] add support for extended nodes
+            // from prboom-plus/src/p_setup.c:937-957
+            if (no->children[j] == NO_INDEX)
+                no->children[j] = -1;
+            else
+            if (no->children[j] & NF_SUBSECTOR_VANILLA)
+            {
+                no->children[j] &= ~NF_SUBSECTOR_VANILLA;
+
+                if (no->children[j] >= numsubsectors)
+                    no->children[j] = 0;
+
+                no->children[j] |= NF_SUBSECTOR;
+            }
+
             for (k = 0; k < 4; k++)
                 no->bbox[j][k] = SHORT(mn->bbox[j][k]) << FRACBITS;
         }
@@ -498,8 +531,8 @@ void P_LoadLineDefs(int lump)
         ld->arg4 = mld->arg4;
         ld->arg5 = mld->arg5;
 
-        v1 = ld->v1 = &vertexes[SHORT(mld->v1)];
-        v2 = ld->v2 = &vertexes[SHORT(mld->v2)];
+        v1 = ld->v1 = &vertexes[(unsigned short)SHORT(mld->v1)]; // [crispy] extended nodes
+        v2 = ld->v2 = &vertexes[(unsigned short)SHORT(mld->v2)]; // [crispy] extended nodes
         ld->dx = v2->x - v1->x;
         ld->dy = v2->y - v1->y;
         if (!ld->dx)
@@ -536,11 +569,11 @@ void P_LoadLineDefs(int lump)
         }
         ld->sidenum[0] = SHORT(mld->sidenum[0]);
         ld->sidenum[1] = SHORT(mld->sidenum[1]);
-        if (ld->sidenum[0] != -1)
+        if (ld->sidenum[0] != NO_INDEX) // [crispy] extended nodes
             ld->frontsector = sides[ld->sidenum[0]].sector;
         else
             ld->frontsector = 0;
-        if (ld->sidenum[1] != -1)
+        if (ld->sidenum[1] != NO_INDEX)// [crispy] extended nodes
             ld->backsector = sides[ld->sidenum[1]].sector;
         else
             ld->backsector = 0;
@@ -593,23 +626,42 @@ void P_LoadSideDefs(int lump)
 =================
 */
 
-void P_LoadBlockMap(int lump)
+boolean P_LoadBlockMap(int lump)
 {
     int i, count;
     int lumplen;
+    short *wadblockmaplump;
 
-    lumplen = W_LumpLength(lump);
+    // [crispy] (re-)create BLOCKMAP if necessary
+    if (M_CheckParm("-blockmap") ||
+        lump >= numlumps ||
+        (lumplen = W_LumpLength(lump)) < 8 ||
+        (count = lumplen / 2) >= 0x10000)
+    {
+        return false;
+    }
 
-    blockmaplump = Z_Malloc(lumplen, PU_LEVEL, NULL);
-    W_ReadLump(lump, blockmaplump);
+    // [crispy] remove BLOCKMAP limit
+    wadblockmaplump = Z_Malloc(lumplen, PU_LEVEL, NULL);
+    W_ReadLump(lump, wadblockmaplump);
+    blockmaplump = Z_Malloc(sizeof(*blockmaplump) * count, PU_LEVEL, NULL);
     blockmap = blockmaplump + 4;
+
+    blockmaplump[0] = SHORT(wadblockmaplump[0]);
+    blockmaplump[1] = SHORT(wadblockmaplump[1]);
+    blockmaplump[2] = (int32_t)(SHORT(wadblockmaplump[2])) & 0xffff;
+    blockmaplump[3] = (int32_t)(SHORT(wadblockmaplump[3])) & 0xffff;
 
     // Swap all short integers to native byte ordering:
 
-    count = lumplen / 2;
+    // count = lumplen / 2; // [crispy] moved up
+    for (i=4; i<count; i++)
+    {
+        short t = SHORT(wadblockmaplump[i]);
+        blockmaplump[i] = (t == -1) ? -1l : (int32_t) t & 0xffff;
+    }
 
-    for (i = 0; i < count; i++)
-        blockmaplump[i] = SHORT(blockmaplump[i]);
+    Z_Free(wadblockmaplump);
 
     bmaporgx = blockmaplump[0] << FRACBITS;
     bmaporgy = blockmaplump[1] << FRACBITS;
@@ -621,6 +673,9 @@ void P_LoadBlockMap(int lump)
     count = sizeof(*blocklinks) * bmapwidth * bmapheight;
     blocklinks = Z_Malloc(count, PU_LEVEL, 0);
     memset(blocklinks, 0, count);
+
+    // [crispy] (re-)create BLOCKMAP if necessary
+    return true;
 }
 
 
@@ -635,6 +690,12 @@ void P_LoadBlockMap(int lump)
 = Finds block bounding boxes for sectors
 =================
 */
+
+void P_DegenMobjThinker(thinker_t *thinker)
+{
+  (void) thinker;
+  I_Error("This function should never get called.");
+}
 
 void P_GroupLines(void)
 {
@@ -692,6 +753,7 @@ void P_GroupLines(void)
         // set the degenmobj_t to the middle of the bounding box
         sector->soundorg.x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
         sector->soundorg.y = (bbox[BOXTOP] + bbox[BOXBOTTOM]) / 2;
+        sector->soundorg.thinker.function = (think_t) P_DegenMobjThinker;
 
         // adjust bounding box to map blocks
         block = (bbox[BOXTOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
@@ -742,6 +804,26 @@ static void P_LoadReject(int lumpnum)
     }
 }
 
+// [crispy] factor out map lump name and number finding into a separate function
+int P_GetNumForMap (int episode, int map, boolean critical)
+{
+    char lumpname[9];
+
+    // find map name
+	if (map<10)
+        M_snprintf(lumpname, 9, "map0%i", map);
+	else
+        M_snprintf(lumpname, 9, "map%i", map);
+
+    // [crispy] add suffix for Deathkings
+    if (crispy->havedeathkings && episode == 2 && map >= 33 && map <= 38)
+    {
+        strcat(lumpname, "D");
+    }
+
+    return critical ? W_GetNumForName(lumpname) : W_CheckNumForName(lumpname);
+}
+
 //=============================================================================
 
 lumpinfo_t *maplumpinfo;
@@ -758,9 +840,11 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
 {
     int i;
     int parm;
-    char lumpname[9];
+    // char lumpname[9];
     int lumpnum;
     mobj_t *mobj;
+    boolean crispy_validblockmap;
+    mapformat_t crispy_mapformat;
 
     for (i = 0; i < maxplayers; i++)
     {
@@ -783,23 +867,50 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     leveltime = 0;
     oldleveltime = 0;  // [crispy] Track if game is running
 
-    M_snprintf(lumpname, sizeof(lumpname), "MAP%02d", map);
-    lumpnum = W_GetNumForName(lumpname);
+    // M_snprintf(lumpname, sizeof(lumpname), "MAP%02d", map);
+    // [crispy] P_GetNumForMap instead of W_GetNumForName(lumpname)
+    lumpnum = P_GetNumForMap(gameepisode, map, true);
 
+    crispy_mapformat = P_CheckMapFormat(lumpnum);
     maplumpinfo = lumpinfo[lumpnum];
 
     //
     // Begin processing map lumps
     // Note: most of this ordering is important
     //
-    P_LoadBlockMap(lumpnum + ML_BLOCKMAP);
+    crispy_validblockmap = P_LoadBlockMap(lumpnum + ML_BLOCKMAP); // [crispy] (re-)create BLOCKMAP if necessary
     P_LoadVertexes(lumpnum + ML_VERTEXES);
     P_LoadSectors(lumpnum + ML_SECTORS);
     P_LoadSideDefs(lumpnum + ML_SIDEDEFS);
     P_LoadLineDefs(lumpnum + ML_LINEDEFS);
+
+
+    // [crispy] (re-)create BLOCKMAP if necessary
+    if (!crispy_validblockmap)
+    {
+        P_CreateBlockMap();
+    }
+
+    if (crispy_mapformat.bsp >= NFMT_XNOD)
+    {
+	int znode_num = (crispy_mapformat.bsp == NFMT_XNOD)
+		      ? lumpnum+ML_NODES
+		      : lumpnum+ML_SSECTORS;
+	P_LoadNodes_ZDBSP (znode_num, crispy_mapformat);
+    }
+    else if (crispy_mapformat.bsp == NFMT_DEEPBSPV4)
+    {
+        P_LoadNodes_DeePBSPV4(lumpnum + ML_NODES);
+        P_LoadSubsectors_DeePBSPV4(lumpnum + ML_SSECTORS);
+        P_LoadSegs_DeePBSPV4(lumpnum + ML_SEGS);
+    }
+    else
+    {
     P_LoadSubsectors(lumpnum + ML_SSECTORS);
     P_LoadNodes(lumpnum + ML_NODES);
     P_LoadSegs(lumpnum + ML_SEGS);
+    }
+
     P_GroupLines();
 
     // [crispy] fix long wall wobble
@@ -885,6 +996,14 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
 
 //printf ("free memory: 0x%x\n", Z_FreeMemory());
 
+    // [crispy] prepare frame to avoid crashing throughout R_RenderPlayerView
+    // https://github.com/fabiangreffrath/crispy-doom/issues/1400
+    R_SetupFrame(&players[displayplayer]);
+    R_ClearClipSegs();
+    R_ClearDrawSegs();
+    R_ClearPlanes();
+    R_ClearSprites();
+
 }
 
 //==========================================================================
@@ -893,13 +1012,14 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
 //
 //==========================================================================
 
-static void InitMapInfo(void)
+void InitMapInfo(void)
 {
     int map;
     int mapMax;
     int mcmdValue;
     mapInfo_t *info;
     char songMulch[10];
+    char lumpname[9];
     const char *default_sky_name = DEFAULT_SKY_NAME;
 
     mapMax = 1;
@@ -909,23 +1029,37 @@ static void InitMapInfo(void)
 	default_sky_name = "SKY2";
     }
 
-    // Put defaults into MapInfo[0]
+    // [crispy] Set all MapInfo Entries to Default for Episode Selection
+    for(int i = 0; i < MAPINFO_SIZE; i++)
+    {
+        // Put defaults into MapInfo[0]
+        info = &MapInfo[i];
+        info->cluster = 0;
+        info->warpTrans = 0;
+        info->nextMap = 1;          // Always go to map 1 if not specified
+        info->cdTrack = 1;
+        info->sky1Texture = R_TextureNumForName(default_sky_name);
+        info->sky2Texture = info->sky1Texture;
+        info->sky1ScrollDelta = 0;
+        info->sky2ScrollDelta = 0;
+        info->doubleSky = false;
+        info->lightning = false;
+        info->fadetable = W_GetNumForName(DEFAULT_FADE_TABLE);
+        M_StringCopy(info->name, UNKNOWN_MAP_NAME, sizeof(info->name));
+    }
+
     info = MapInfo;
-    info->cluster = 0;
-    info->warpTrans = 0;
-    info->nextMap = 1;          // Always go to map 1 if not specified
-    info->cdTrack = 1;
-    info->sky1Texture = R_TextureNumForName(default_sky_name);
-    info->sky2Texture = info->sky1Texture;
-    info->sky1ScrollDelta = 0;
-    info->sky2ScrollDelta = 0;
-    info->doubleSky = false;
-    info->lightning = false;
-    info->fadetable = W_GetNumForName(DEFAULT_FADE_TABLE);
-    M_StringCopy(info->name, UNKNOWN_MAP_NAME, sizeof(info->name));
 
 //    M_StringCopy(info->songLump, DEFAULT_SONG_LUMP, sizeof(info->songLump));
-    SC_Open(MAPINFO_SCRIPT_NAME);
+
+    M_snprintf(lumpname, sizeof(lumpname), MAPINFO_SCRIPT_NAME);
+    // [crispy] add suffix for Deathkings
+    if (crispy->havedeathkings && gameepisode == 2)
+    {
+        strcat(lumpname, "D");
+    }
+
+    SC_Open(lumpname);
     while (SC_GetString())
     {
         if (SC_Compare("MAP") == false)

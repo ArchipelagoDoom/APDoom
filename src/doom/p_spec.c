@@ -141,6 +141,10 @@ static size_t	maxanims;
 //      Animating line specials
 //
 #define MAXLINEANIMS            64*256
+// version <= 1.2 did not have a limit and could handle up to 66 scrolling
+// linedefs before displaying adverse effects. All other versions have a limit
+// of 64.
+#define MAXLINEANIMS1_2         66
 
 short numlinespecials;
 line_t *linespeciallist[MAXLINEANIMS];
@@ -387,6 +391,7 @@ P_FindNextHighestFloor
     fixed_t     height = currentheight;
     static fixed_t *heightlist = NULL;
     static int heightlist_size = 0;
+    fixed_t     last_height_0 = 0;
 
     // [crispy] remove MAX_ADJOINING_SECTORS Vanilla limit
     // from prboom-plus/src/p_spec.c:404-411
@@ -428,10 +433,23 @@ P_FindNextHighestFloor
     // Find lowest height in list
     if (!h)
     {
-        return currentheight;
+        // Taken from prboom-plus p_spec.c:
+        //
+        // cph - my guess at doom v1.2 - 1.4beta compatibility here.  If there
+        // are no higher neighbouring sectors, Heretic just returned
+        // heightlist[0] (local variable), i.e. noise off the stack. 0 is right
+        // for RETURN01 E1M2, so let's take that.
+        //
+        // SmileTheory's response: It's not *quite* random stack noise. If this
+        // function is called as part of a loop, heightlist will be at the same
+        // location as in the previous call. Doing it this way fixes
+        // 1_ON_1.WAD.
+
+        return (gameversion < exe_doom_1_5 ? last_height_0 : currentheight);
     }
         
     min = heightlist[0];
+    last_height_0 = heightlist[0];
     
     // Range checking? 
     for (i = 1; i < h; i++)
@@ -1587,6 +1605,8 @@ void P_SpawnSpecials (void)
 {
     sector_t*	sector;
     int		i;
+    short maxlineanims = (gameversion <= exe_doom_1_2) ? MAXLINEANIMS1_2
+        : MAXLINEANIMS;
 
     // See if -TIMER was specified.
 
@@ -1680,8 +1700,9 @@ void P_SpawnSpecials (void)
 	  case 85: // [crispy] [JN] (Boom) Scroll Texture Right
             if (numlinespecials >= MAXLINEANIMS)
             {
-                I_Error("Too many scrolling wall linedefs (%d)! "
-                        "(Vanilla limit is 64)", NumScrollers());
+                I_Error("P_SpawnSpecials: Too many scrolling wall linedefs "
+                        "(%d)! (Vanilla limit is %d)", NumScrollers(),
+                        maxlineanims);
             }
 	    // EFFECT FIRSTCOL SCROLL+
 	    linespeciallist[numlinespecials] = &lines[i];
