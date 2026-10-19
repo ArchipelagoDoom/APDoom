@@ -443,6 +443,8 @@ void ap_remote_set(const char *key, int per_slot, int value);
 // ===== PWAD SUPPORT =========================================================
 extern ap_gameinfo_t ap_game_info;
 
+int ap_compare_version(const char *version);
+
 ap_levelselect_t *ap_get_level_select_info(unsigned int ep);
 
 void ap_init_map_tweaks(ap_level_index_t idx, allowed_tweaks_t type_mask);
@@ -493,6 +495,10 @@ typedef struct {
 
     // NULL-terminated list of PWADs included in the world zip, by relative path
     const char **included_wads;
+
+    // Minimum required version of APDoom.
+    // Expected to be formatted as "#.#.#" else it will be ignored.
+    const char *min_version;
 
 #ifdef BACKWARDS_COMPATIBILITY_1_2_0
     // Zero if world is designed for Archipelago Doom 2.0.

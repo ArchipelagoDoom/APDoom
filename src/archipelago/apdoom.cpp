@@ -258,7 +258,38 @@ static std::vector<ap_level_index_t> idx_avail_levels;
 
 // ----------------------------------------------------------------------------
 
-Json::Value open_defs(const char *defs_file)
+// Returns difference between versions based on strings.
+// Negative means version passed in is older, positive means it's newer.
+// Zero means unknown or no difference.
+int ap_compare_version(const char *version)
+{
+	static int our_version = 0;
+	int major, minor, revision;
+
+	if (!our_version)
+	{
+		our_version = -1;
+		if (sscanf(PACKAGE_VERSION, "%3d.%3d.%3d", &major, &minor, &revision) != 3)
+			printf("warning: Couldn't parse PACKAGE_VERSION ('%s') as a version string.\n"
+				"Version comparisons will be ignored.\n",
+				PACKAGE_VERSION);
+		else
+			our_version = ((major*1000000) + (minor*1000) + (revision));
+	}
+
+	if (!version || !version[0] || our_version < 0)
+		return 0;
+	if (sscanf(version, "%3d.%3d.%3d", &major, &minor, &revision) != 3)
+	{
+		printf("warning: Ignoring invalid min_version ('%s').\n", version);
+		return 0;
+	}
+
+	int their_version = ((major*1000000) + (minor*1000) + (revision));
+	return their_version - our_version;
+}
+
+static Json::Value open_defs(const char *defs_file)
 {
 	APZipReader *world = APZipReader_FetchFromCache(":world:");
 	APZipFile *f = APZipReader_GetFile(world, defs_file);
@@ -289,6 +320,13 @@ int ap_preload_defs_for_game(const char *game_name)
 
 	if (!ap_load_world(ap_world_info->shortname))
 		return 0;
+
+	if (ap_compare_version(ap_world_info->min_version) > 0)
+	{
+		printf("APDOOM: This world requires Archipelago Doom %s. This is version %s.\n",
+			ap_world_info->min_version, PACKAGE_VERSION);
+		return 0;
+	}
 
 	Json::Value defs_json = open_defs(ap_world_info->definitions);
 	if (defs_json.isNull())
@@ -660,7 +698,7 @@ int apdoom_init(ap_settings_t* settings)
 	detected_old_apworld = true;
 
 	printf("APDOOM: Initializing Game: \"%s\", Server: %s, Slot: %s\n", settings->game, settings->ip, settings->player_name);
-	AP_NetworkVersion version = {0, 6, 3};
+	AP_NetworkVersion version = {0, 6, 8};
 	AP_SetClientVersion(&version);
     AP_Init(ap_settings.ip, ap_settings.game, ap_settings.player_name, ap_settings.passwd);
 	AP_SetDeathLinkSupported(ap_settings.force_deathlink_off ? false : true);

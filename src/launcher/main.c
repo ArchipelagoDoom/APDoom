@@ -179,6 +179,20 @@ int world_count;
 static const ap_worldinfo_t **all_worlds = NULL;
 extrainfo_t *extra_world_info = NULL;
 
+static bool TestVersion(const char *version, char **error_str)
+{
+    if (ap_compare_version(version) > 0)
+    {
+        *error_str = LN_allocsprintf("This game requires Archipelago Doom version\xA2 %s\xA0.\n"
+            "You are currently using version\xA2 %s\xA0.\n"
+            "\n"
+            "You need to update Archipelago Doom to play this game.",
+            version, PACKAGE_VERSION);
+        return false;
+    }
+    return true;
+}
+
 static bool TestIWAD(const char *iwad, char **error_str)
 {
     char *iwad_path = D_FindWADByName(iwad);
@@ -270,8 +284,8 @@ void TestWorldFunctionality(void)
     extra_world_info = calloc(world_count, sizeof(extrainfo_t));
     for (size_t i = 0; all_worlds[i]; ++i)
     {
-        if (
-            !TestIWAD(all_worlds[i]->iwad, &extra_world_info[i].error_reason)
+        if (!TestVersion(all_worlds[i]->min_version, &extra_world_info[i].error_reason)
+            || !TestIWAD(all_worlds[i]->iwad, &extra_world_info[i].error_reason)
             || !TestPWAD(all_worlds[i]->required_wads, &extra_world_info[i].error_reason)
         )
         {

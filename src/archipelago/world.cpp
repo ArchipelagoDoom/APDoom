@@ -25,6 +25,7 @@ struct WorldInfo {
 	std::string definitions; // Location of game defs inside apworld
 
 	// Optional fields
+	std::string min_version; // Minimum required APDoom version
 	std::vector<std::string> included_wads; // PWADs included in apworld
 	std::vector<std::string> required_wads; // PWADs reqiured for play
 	std::vector<std::string> optional_wads; // PWADs auto-loaded if available, but optional
@@ -71,6 +72,7 @@ static ap_worldinfo_t *make_c_world(WorldInfo &w)
 	w.c_world_info.definitions = w.definitions.c_str();
 	w.c_world_info.iwad = w.iwad.c_str();
 
+	w.c_world_info.min_version = w.min_version.c_str();
 	to_cstring_vector(w.c_included_wads, w.included_wads);
 	to_cstring_vector(w.c_required_wads, w.required_wads);
 	to_cstring_vector(w.c_optional_wads, w.optional_wads);
@@ -148,6 +150,7 @@ static WorldInfo *parse_world(APZipReader *world)
 	w.is_backcompat_world = apdoom_json.get("backwards_compatibility", false).asBool();
 #endif
 
+	w.min_version = apdoom_json.get("min_version", "").asString();
 	w.fullname = apdoom_json.get("full_name", w.apname).asString();
 
 	if (json.isMember("authors") && json["authors"].isArray())
