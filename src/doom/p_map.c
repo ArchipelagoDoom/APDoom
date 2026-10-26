@@ -1468,6 +1468,9 @@ P_RadiusAttack
   mobj_t*	source,
   int		damage )
 {
+	mobj_t* prev_source = bombsource;
+	mobj_t* prev_spot = bombspot;
+
     int		x;
     int		y;
     
@@ -1491,9 +1494,9 @@ P_RadiusAttack
 		for (x=xl ; x<=xh ; x++)
 			P_BlockThingsIterator (x, y, PIT_RadiusAttack );
 
-	// [AP] clear out after we're done
-	bombsource = NULL;
-	bombspot = NULL;
+	// [AP] reset after we're done
+	bombsource = prev_source;
+	bombspot = prev_spot;
 }
 
 

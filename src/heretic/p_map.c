@@ -1636,6 +1636,9 @@ boolean PIT_RadiusAttack(mobj_t * thing)
 
 void P_RadiusAttack(mobj_t * spot, mobj_t * source, int damage)
 {
+    mobj_t* prev_source = bombsource;
+    mobj_t* prev_spot = bombspot;
+
     int x, y, xl, xh, yl, yh;
     fixed_t dist;
 
@@ -1658,9 +1661,9 @@ void P_RadiusAttack(mobj_t * spot, mobj_t * source, int damage)
         for (x = xl; x <= xh; x++)
             P_BlockThingsIterator(x, y, PIT_RadiusAttack);
 
-    // [AP] clear out after we're done
-    bombsource = NULL;
-    bombspot = NULL;
+    // [AP] reset after we're done
+    bombsource = prev_source;
+    bombspot = prev_spot;
 }
 
 
