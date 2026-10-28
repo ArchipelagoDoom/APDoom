@@ -1583,6 +1583,7 @@ void P_UseLines(player_t * player)
 mobj_t *bombsource;
 mobj_t *bombspot;
 int bombdamage;
+int bombcount = 0; // [AP] Track bombspot validity, radius attack in progress if nonzero
 
 /*
 =================
@@ -1639,6 +1640,11 @@ void P_RadiusAttack(mobj_t * spot, mobj_t * source, int damage)
     int x, y, xl, xh, yl, yh;
     fixed_t dist;
 
+    // [AP] player obituaries want to know if the bombspot is valid and not stale.
+    // some DEHACKED mods (e.g. Harmony) have barrels that explode on the first frame of their animation,
+    // which causes this function to become recursive (and thus clearing/resetting become unsafe)
+    ++bombcount;
+
     dist = (damage + MAXRADIUS) << FRACBITS;
     yh = (spot->y + dist - bmaporgy) >> MAPBLOCKSHIFT;
     yl = (spot->y - dist - bmaporgy) >> MAPBLOCKSHIFT;
@@ -1658,9 +1664,7 @@ void P_RadiusAttack(mobj_t * spot, mobj_t * source, int damage)
         for (x = xl; x <= xh; x++)
             P_BlockThingsIterator(x, y, PIT_RadiusAttack);
 
-    // [AP] clear out after we're done
-    bombsource = NULL;
-    bombspot = NULL;
+    --bombcount; // [AP] bombspot would now be stale
 }
 
 

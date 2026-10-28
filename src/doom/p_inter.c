@@ -1048,11 +1048,15 @@ P_MakeObituaryTags
 			APDOOM_ObitTags_Add("INFLICTOR_DOOMEDNUM_%d", inflictor->info->doomednum);
 	}
 
-	// Account for splash damage
-	// If damage is 100 or more we assume you just took a direct hit
-	extern mobj_t *bombspot;
-	if (damage < 100 && inflictor && bombspot && bombspot == inflictor)
-		APDOOM_ObitTags_Add("SPLASH");
+	extern int bombcount;
+	if (bombcount > 0)
+	{
+		// Account for splash damage
+		// If damage is 100 or more we assume you just took a direct hit
+		extern mobj_t *bombspot;
+		if (damage < 100 && inflictor && bombspot && bombspot == inflictor)
+			APDOOM_ObitTags_Add("SPLASH");
+	}
 }
 
 
