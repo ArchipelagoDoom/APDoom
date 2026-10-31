@@ -37,7 +37,7 @@ struct WorldInfo {
 	std::vector<const char *> c_authors; // As above
 	ap_worldinfo_t c_world_info;
 
-	bool operator<(const WorldInfo& other)
+	bool operator<(const WorldInfo& other) const
 	{
 		return strcmp(fullname.c_str(), other.fullname.c_str()) < 0;
 	}
