@@ -169,8 +169,8 @@ boolean CT_Responder(event_t * ev)
     }
     if (!chatmodeon)
     {
-        if (MenuActive || askforquit)
-        { // [AP] do not try to start chat when in menus
+        if (altdown || MenuActive || askforquit)
+        { // [AP] do not try to start chat when in menus, or with alt held
             return false;
         }
 

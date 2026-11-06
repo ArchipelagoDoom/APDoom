@@ -1760,7 +1760,11 @@ boolean HU_Responder(event_t *ev)
         // [AP] do not try to start chat when in menus
         return false;
     }
-	else if (/*netgame &&*/ /* We always enable chat in AP */ !demoplayback && ev->data2 == key_multi_msg)
+#if 1 // [AP] Chat is always enabled; if alt is held don't open it though (cheat usage)
+    else if (!altdown && !demoplayback && ev->data2 == key_multi_msg)
+#else
+	else if (netgame && !demoplayback && ev->data2 == key_multi_msg)
+#endif
 	{
 	    eatkey = true;
             StartChatInput(HU_BROADCAST);

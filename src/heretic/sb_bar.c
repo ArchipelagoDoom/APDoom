@@ -162,8 +162,7 @@ static crosshairpatch_t *crosshairpatch = crosshairpatch_m;
 cheatseq_t CheatGodSeq = CHEAT("quicken", 0);
 
 // Toggle no clipping mode
-//cheatseq_t CheatNoClipSeq = CHEAT("kitty", 0);
-cheatseq_t CheatNoClipSeq = CHEAT("idclip", 0); // [AP] kitty doesn't work because it triggers chat...
+cheatseq_t CheatNoClipSeq = CHEAT("kitty", 0);
 
 // Get all weapons and ammo
 cheatseq_t CheatWeaponsSeq = CHEAT("rambo", 0);
@@ -213,6 +212,7 @@ cheatseq_t CheatNoMomentumSeq = CHEAT("nomomentum", 0); // No momentum mode
 cheatseq_t CheatHomDetectSeq = CHEAT("homdet", 0);      // Flash unrendered areas red
 
 // [AP] new cheat sequences
+cheatseq_t CheatNoClipSeq2 = CHEAT("idclip", 0); // Backup clipping cheat (previous versions of APDoom)
 cheatseq_t CheatIDKEY1Seq = CHEAT("idkey", 0);
 cheatseq_t CheatIDKEY2Seq = CHEAT("idkey", 1);
 
@@ -243,6 +243,7 @@ static Cheat_t Cheats[] = {
     {CheatHomDetectFunc,    &CheatHomDetectSeq},
 
     // [AP] new cheats
+    {CheatNoClipFunc, &CheatNoClipSeq2},
     {CheatIDKEY1Func, &CheatIDKEY1Seq},
     {CheatIDKEY2Func, &CheatIDKEY2Seq},
 
